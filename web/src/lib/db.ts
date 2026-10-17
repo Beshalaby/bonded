@@ -12,6 +12,7 @@
 // SINGLE-WRITER ASSUMPTION: exactly one Next.js server process owns the store. Every flush writes the whole
 // snapshot (last write wins), so two instances against the same file or DATABASE_URL would overwrite each
 // other. Run one instance (no horizontal scaling). Python talks to the store only over HTTP.
+import crypto from "node:crypto";
 import type { DB } from "./types";
 import { backend, setLogMark, storeKind, type StoreKind } from "./persist";
 
@@ -183,5 +184,6 @@ export function storeStatus(): { store: StoreKind; target: string; loaded: boole
 export { empty as emptyDb };
 
 export function uid(prefix: string) {
-  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  // time prefix keeps ids sortable; 60 random bits make them unguessable (session ids act as bearer handles)
+  return `${prefix}_${Date.now().toString(36)}${crypto.randomBytes(8).toString("base64url").slice(0, 10).toLowerCase().replace(/[^a-z0-9]/g, "x")}`;
 }

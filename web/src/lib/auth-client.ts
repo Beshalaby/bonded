@@ -22,5 +22,10 @@ export function loginHref(next?: string) {
 
 /** Only same-site relative paths are valid redirect targets (no //host or scheme). */
 export function safeNext(n: string | null | undefined) {
-  return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/";
+  if (!n || !n.startsWith("/") || /[\\\u0000-\u001f\u007f]/.test(n)) return "/";
+  try {
+    const base = typeof window !== "undefined" ? window.location.origin : "http://local.invalid";
+    const u = new URL(n, base);
+    return u.origin === base ? u.pathname + u.search + u.hash : "/";
+  } catch { return "/"; }
 }

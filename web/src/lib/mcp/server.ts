@@ -69,6 +69,10 @@ export function hasSession(sid: string | null): boolean {
 function clientFor(sid: string | null): McpClient | undefined {
   const c = sid ? clients.get(sid) : undefined;
   if (!c) return undefined;
+  if (c.agentKey) {
+    const k = (read().agentKeys ?? []).find((x) => x.id === c.agentKey!.id);
+    if (!k || k.revokedAt) { clients.delete(c.id); return undefined; } // key revoked mid-session
+  }
   c.lastSeen = new Date().toISOString();
   return c;
 }

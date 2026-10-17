@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { emptyDb, mutate, read, replace, uid } from "./db";
 import { publish } from "./events";
 import { append } from "./recorder";
+import { agentKeyFrom, isInternalRequest } from "./auth-node";
 import * as guardian from "./guardian";
 import { CATEGORY_SYNONYMS, generateSeed } from "./seed";
 import type { Cart, GuardianVerdict, GuardrailMode, Merchant, Product, Session, TaskSpec, Transaction } from "./types";
@@ -154,7 +155,7 @@ export function createSession(b: { agentId?: string; model?: string; instruction
   const runId = typeof b.runId === "string" && b.runId ? b.runId.slice(0, 120) : undefined;
   const agentId = b.agentId || `agent-${slugModel(model)}`;
   const task: TaskSpec = { instruction: b.instruction, budget, ...(b.constraints ? { constraints: b.constraints } : {}), ...(b.taskId ? { taskId: b.taskId } : {}) };
-  const session: Session = { id: uid("ses"), agentId, model, task, status: "active", createdAt: new Date().toISOString(), guardrail, ...(runId ? { runId } : {}) };
+  const session: Session = { id: uid("ses"), agentId, model, task, status: "active", createdAt: new Date().toISOString(), guardrail, ...(runId ? { runId } : {}), ...(auth?.keyId ? { agentKeyId: auth.keyId } : {}) };
   mutate((db) => {
     if (!db.agents.find((a) => a.id === agentId)) db.agents.push({ id: agentId, name: agentId, model, createdAt: session.createdAt });
     db.sessions.push(session);
@@ -164,6 +165,20 @@ export function createSession(b: { agentId?: string; model?: string; instruction
   const ident = auth?.keyId ? { agentKeyId: auth.keyId } : auth?.internal ? {} : { unverified: true };
   append(session.id, "system", "session_start", { agentId, model, task, runId: runId ?? null, guardrail, ...ident });
   return { sessionId: session.id, agentId, runId: runId ?? null, guardrail };
+}
+
+/**
+ * A session created with an agent key belongs to that key: every later call on it must present the same
+ * `Authorization: Bearer` key (or come from the server's own runner). Unkeyed sessions stay open, as before.
+ */
+export function assertSessionAccess(req: Request, sessionId: string | null | undefined) {
+  if (!sessionId) return;
+  const s = read().sessions.find((x) => x.id === sessionId);
+  if (!s?.agentKeyId || isInternalRequest(req)) return;
+  let keyId: string | null = null;
+  try { keyId = agentKeyFrom(req)?.id ?? null; } catch { keyId = null; }
+  if (!keyId) throw new ArenaError(401, "this session belongs to an agent key; send Authorization: Bearer <agent key>");
+  if (keyId !== s.agentKeyId) throw new ArenaError(403, "agent key does not own this session");
 }
 
 // ---------------------------------------------------------------- logging helpers for read calls
