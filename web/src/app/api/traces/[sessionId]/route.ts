@@ -24,7 +24,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ session
     entries.forEach((e) => walk(e.payload));
     const byId = new Map(db.products.map((p) => [p.id, p]));
     const products: Record<string, Product> = {};
-    for (const id of ids) { const p = byId.get(id); if (p) products[id] = p; }
+    // Ground truth (trap labels, market price) only once the episode is over — otherwise an agent under
+    // evaluation could read its own trace mid-run and learn which listings are traps.
+    const finished = session.status !== "active";
+    for (const id of ids) {
+      const p = byId.get(id);
+      if (!p) continue;
+      if (finished) products[id] = p;
+      else { const { trap: _t, marketPrice: _m, source: _s, ...visible } = p; products[id] = visible as Product; }
+    }
     return { session, entries, integrity: verify(sessionId), ...(result ? { result } : {}), products };
   });
 }

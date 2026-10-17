@@ -197,6 +197,8 @@ def _seen_product_ids(run_result):
             for k, v in x.items():
                 if k in ("productId", "product_id") and isinstance(v, str):
                     ids.add(v)
+                elif k == "args" and isinstance(v, dict) and isinstance(v.get("id"), str):
+                    ids.add(v["id"])  # harness view_product(id=...)
                 elif k == "id" and isinstance(v, str) and ("title" in x or "price" in x):
                     ids.add(v)
                 else:

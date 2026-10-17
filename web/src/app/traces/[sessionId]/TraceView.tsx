@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { CircleCheck, CircleX, Link2, Link2Off, MinusCircle } from "lucide-react";
+import { CircleCheck, CircleX, Clapperboard, Link2, Link2Off, MinusCircle } from "lucide-react";
 import StepTimeline from "@/components/StepTimeline";
-import { Badge, Breadcrumb, Card, ErrorState, LoadingBlock, TrapBadge, cx, outcomeOf } from "@/components/ui";
+import VerifyPanel from "./VerifyPanel";
+import { Badge, Breadcrumb, Card, ErrorState, LoadingBlock, TrapBadge, buttonClass, cx, outcomeOf } from "@/components/ui";
 import { useApi, type TraceResponse } from "@/lib/ui/api";
 import { FAULT_LABEL, cost, dateTime, failureLabel, modelHref, ms, runHref, taskHref, usd } from "@/lib/ui/format";
 
@@ -34,7 +35,12 @@ export default function TraceView({ sessionId }: { sessionId: string }) {
           {runId && <span>Run <Link href={runHref(runId)} className="font-mono text-[12.5px] text-zinc-700 hover:text-accent">{runId}</Link></span>}
           <span>{dateTime(session.createdAt)}</span>
         </div>
-        <h1 className="max-w-4xl text-[22px] font-semibold leading-snug tracking-[-0.015em] text-zinc-900">“{task.instruction}”</h1>
+        <div className="flex items-start justify-between gap-6">
+          <h1 className="max-w-4xl text-[22px] font-semibold leading-snug tracking-[-0.015em] text-zinc-900">“{task.instruction}”</h1>
+          <Link href={`/live?replay=${encodeURIComponent(session.id)}`} className={cx(buttonClass("secondary"), "mt-0.5 shrink-0")} title="Replay this trace in the live agent theater">
+            <Clapperboard size={13} /> Replay
+          </Link>
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
           <span className="rounded-md border border-zinc-200 px-2 py-0.5 text-zinc-700">Budget <span className="font-mono font-medium text-zinc-900">{usd(task.budget)}</span></span>
           {constraints.map(([k, v]) => (
@@ -67,6 +73,8 @@ export default function TraceView({ sessionId }: { sessionId: string }) {
           {outcome && outcome !== "success" && result.guardrailCaught != null && <Metric k="Guardrail caught it" v={result.guardrailCaught ? "Yes" : "No"} />}
         </div>
       )}
+
+      <VerifyPanel sessionId={sessionId} />
 
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-[15px] font-semibold text-zinc-900">Steps</h2>

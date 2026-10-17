@@ -12,7 +12,8 @@ export async function GET() {
     const scams = listScams();
     const baseCount = listTasks().filter((t) => !t.adversarial).length;
     // Benchmark size over time: base tasks, then +1 per kept scam (each spawns a task variant), bucketed per second.
-    const asc = [...scams].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+    // A stored scam with an unparseable createdAt is skipped here: toISOString() on an invalid Date throws.
+    const asc = scams.filter((s) => Number.isFinite(Date.parse(s.createdAt))).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
     const growth: { ts: string; tasks: number }[] = [];
     let n = baseCount;
     if (asc.length) growth.push({ ts: new Date(Date.parse(asc[0].createdAt) - 1000).toISOString(), tasks: n });

@@ -7,6 +7,7 @@ import { attribute, llmAttribution } from "./attribution";
 import { HAS_LLM } from "./llm";
 import { noteResults } from "./runs";
 import type { BenchResult, GuardianDecision, RedTeamScam } from "./types";
+import { mcpDisplayName, MCP_PROVIDER } from "./mcp/names";
 
 const SIM_NAMES: Record<string, string> = {
   "sim/careful": "Atlas Careful (sim)",
@@ -28,11 +29,12 @@ const REAL_NAMES: Record<string, string> = {
 };
 
 const PROVIDERS: Record<string, string> = {
-  sim: "Simulated", openai: "OpenAI", anthropic: "Anthropic", google: "Google", "meta-llama": "Meta", mistralai: "Mistral",
+  sim: "Simulated", mcp: MCP_PROVIDER, openai: "OpenAI", anthropic: "Anthropic", google: "Google", "meta-llama": "Meta", mistralai: "Mistral",
   "x-ai": "xAI", deepseek: "DeepSeek", qwen: "Qwen", cohere: "Cohere", amazon: "Amazon", microsoft: "Microsoft", nvidia: "NVIDIA",
 };
 
 export function displayName(model: string): string {
+  if (model.startsWith("mcp/")) return mcpDisplayName(model);
   if (SIM_NAMES[model]) return SIM_NAMES[model];
   if (REAL_NAMES[model]) return REAL_NAMES[model];
   if (model.startsWith("sim/")) {
@@ -70,7 +72,7 @@ function normalize(r: Record<string, unknown>, runId?: string): BenchResult | nu
     costUsd: Number(r.costUsd ?? 0) || 0,
     latencyMs: Number(r.latencyMs ?? 0) || 0,
     steps: Number(r.steps ?? 0) || 0,
-    createdAt: typeof r.createdAt === "string" ? r.createdAt : new Date().toISOString(),
+    createdAt: typeof r.createdAt === "string" && Number.isFinite(Date.parse(r.createdAt)) ? r.createdAt : new Date().toISOString(),
     ...(dec && DECISIONS.includes(dec) ? { guardrailDecision: dec } : {}),
     guardrailCaught: !success && (dec === "ask" || dec === "block"),
   } as BenchResult;
@@ -136,7 +138,7 @@ export function addScams(scams: Partial<RedTeamScam>[]): RedTeamScam[] {
         testedModels: Array.isArray(s.testedModels) ? s.testedModels : [],
         round: s.round,
         generator: s.generator === "llm" ? "llm" : "mutation",
-        createdAt: s.createdAt ?? now,
+        createdAt: typeof s.createdAt === "string" && Number.isFinite(Date.parse(s.createdAt)) ? s.createdAt : now,
       };
       const i = db.scams.findIndex((x) => x.id === full.id);
       if (i >= 0) db.scams[i] = full;

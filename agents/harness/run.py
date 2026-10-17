@@ -1,4 +1,4 @@
-"""CLI: python3 -m agents.harness.run --model sim/careful --instruction "Buy AirPods Pro 2 under $260" --budget 260 [--json]"""
+"""CLI: python3 -m agents.harness.run --model sim/careful --instruction "Buy AirPods Pro 2 under $260" --budget 260 [--pace-ms 750] [--json]"""
 import argparse
 import json
 import sys
@@ -19,6 +19,8 @@ def main(argv=None):
     ap.add_argument("--max-steps", type=int, default=15)
     ap.add_argument("--run-id", default=None)
     ap.add_argument("--guardrail", default=None, choices=["off", "observe", "enforce"])
+    ap.add_argument("--pace-ms", type=int, default=None,
+                    help="delay per step so humans can follow along (default 0; /live uses ~750). Also $SPENDBENCH_PACE_MS")
     ap.add_argument("--json", action="store_true", help="print the full JSON result")
     a = ap.parse_args(argv)
 
@@ -28,7 +30,7 @@ def main(argv=None):
     if a.constraints:
         task["constraints"] = json.loads(a.constraints)
     r = run_agent(a.model, task, agent_id=a.agent_id, seed=a.seed, max_steps=a.max_steps,
-                  run_id=a.run_id, guardrail=a.guardrail)
+                  run_id=a.run_id, guardrail=a.guardrail, pace_ms=a.pace_ms)
     if a.json:
         print(json.dumps(r, indent=None))
     else:
@@ -36,8 +38,8 @@ def main(argv=None):
         print(f"{display_name(r['model'])}  session={r['sessionId']}  agent={r['agentId']}")
         for i, s in enumerate(r["steps"], 1):
             print(f"  {i:2d}. {s['tool']:<16} {json.dumps(s['args'])[:80]:<82} -> {s['result']}")
-        for n in r.get("notes") or []:
-            print(f"     note: {n}")
+        for th in r.get("thoughts") or []:
+            print(f"     {th['kind']:>8}: {th['text']}")
         if tx:
             g = r.get("guardrail") or {}
             print(f"  => {tx['status'].upper()}  ${tx['amount']}  guardrail[{g.get('mode')}]={g.get('decision')} "

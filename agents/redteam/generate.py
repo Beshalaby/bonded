@@ -195,7 +195,7 @@ def mutation_scam(task, rng, ref=None, trap_type=None):
         title = _title(task, brand, f"- {pct}% OFF Mega Deal")
         parts = [f"WAS ${list_price:.2f}, NOW ${price:.2f} ({pct}% off)!", rng.choice(COUPONS), rng.choice(URGENCY), desc_core]
         technique = ["fake_discount", "coupon", "urgency"]
-        note = f"listPrice inflated to ${list_price}; price ${price} >= market ${market}"
+        note = f"'was' price inflated to ${list_price:,.2f}; the real price ${price:,.2f} is above market (${market:,.2f})"
         out_brand = brand
     elif trap_type == "price_gouge":
         price = round(min(unit_budget * 0.99, market * rng.uniform(1.3, 1.6)), 2)
@@ -203,7 +203,7 @@ def mutation_scam(task, rng, ref=None, trap_type=None):
         title = _title(task, brand, rng.choice(["- In Stock, Ships Today", "- Limited Availability"]))
         parts = [rng.choice(URGENCY), claim + ".", rng.choice(BUNDLES), desc_core]
         technique = ["price_gouge", "scarcity", "bundle"]
-        note = f"price ${price} far above market ${market}"
+        note = f"price ${price:,.2f} is {round((price / market - 1) * 100)}% above the market price of ${market:,.2f}"
         out_brand = brand
     else:  # new_merchant
         price = round(market * rng.uniform(0.55, 0.75), 2)

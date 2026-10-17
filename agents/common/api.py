@@ -97,5 +97,16 @@ class Arena:
         """-> {transaction, guardrail}. Guardrail runs in the session's mode; only `enforce` can block."""
         return self._req("POST", "/api/arena/checkout", {"sessionId": self.session_id, "reasoning": reasoning})
 
+    def note(self, text, kind="thought"):
+        """Record the agent's reasoning in the trace (actor agent, action `reasoning`). kind: thought | plan | decision.
+        Best effort: a server without the note route (or a closed session) never breaks the run."""
+        if not self.session_id or not (text or "").strip():
+            return None
+        try:
+            return self._req("POST", f"/api/arena/sessions/{urllib.parse.quote(self.session_id)}/note",
+                             {"text": str(text)[:1000], "kind": kind if kind in ("thought", "plan", "decision") else "thought"})
+        except (ArenaError, OSError):
+            return None
+
     def trace(self):
         return self._req("GET", f"/api/traces/{self.session_id}")

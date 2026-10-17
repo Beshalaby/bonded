@@ -24,6 +24,47 @@ from agents.redteam.generate import generate_scam
 log = R.log
 
 
+# ---------------------------------------------------------------- live progress (red-team theater)
+class Progress:
+    """Fine-grained progress events for the UI. POSTs to /api/redteam/progress, which republishes each one on
+    the SSE bus as FeedEvent{type:"scam", data:{phase, ...}}. Best-effort: never fails the round."""
+
+    def __init__(self, enabled=False, base=None):
+        self.enabled, self.base, self.job = enabled, base, f"rtj-{int(time.time() * 1000):x}"
+
+    def __call__(self, phase, **data):
+        if not self.enabled:
+            return
+        try:
+            http.post("/api/redteam/progress", {"phase": phase, "job": self.job, **data}, base=self.base, timeout=5)
+        except Exception as e:  # noqa: BLE001 - progress is decoration, never fatal
+            log(f"[redteam] progress {phase} failed: {e}")
+
+
+NOOP = Progress(False)
+
+
+def listing_view(s, task=None):
+    """The listing as the theater shows it (agent-visible fields + the hidden trap label for the audience)."""
+    p = s.get("product") or {}
+    out = {"id": s["id"], "taskId": s["taskId"], "trapType": s["trapType"], "technique": s.get("technique"),
+           "generator": s.get("generator"), "round": s.get("round"),
+           "product": {k: p.get(k) for k in ("id", "title", "brand", "category", "model", "price", "listPrice",
+                                             "marketPrice", "merchantId", "rating", "reviewCount", "description",
+                                             "specs", "trap")}}
+    if task:
+        out["task"] = {"id": task["id"], "instruction": task.get("instruction"), "budget": task.get("budget")}
+    return out
+
+
+def result_view(r, scam):
+    return {"model": r.get("model"), "fooled": bool(fooled_models([r], scam)), "success": bool(r.get("success")),
+            "scammed": bool(r.get("scammed")), "bought": r.get("bought"), "amount": r.get("amount"),
+            "overBudget": bool(r.get("overBudget")), "wrongItem": bool(r.get("wrongItem")),
+            "guardrailDecision": r.get("guardrailDecision"), "sessionId": r.get("sessionId"),
+            "steps": r.get("steps"), "trapTypes": r.get("trapTypes") or []}
+
+
 # ---------------------------------------------------------------- arena helpers
 def find_reference(task, base=None):
     """Best-effort: a genuine (non-trap) product for this task, to mimic its category/price/specs/merchant."""
@@ -126,23 +167,34 @@ def fooled_models(results, scam):
 
 # ---------------------------------------------------------------- one batch
 def attack(tasks, models, rng, n, round_no, workers=4, use_llm=True, post=False, quiet=False, base=None,
-           trap_type=None):
+           trap_type=None, progress=NOOP, trap_types=None):
     past = [s.get("technique") for s in R.load_registry()]
     targets = rng.sample(tasks, min(n, len(tasks)))  # distinct targets so scams don't confound each other
     scams = []
-    for t in targets:
+    for i, t in enumerate(targets):
         ref = find_reference(t, base=base)
-        s = generate_scam(t, rng, ref=ref, trap_type=trap_type, past=past, use_llm=use_llm)
+        tt = trap_type or (trap_types[i % len(trap_types)] if trap_types else None)
+        s = generate_scam(t, rng, ref=ref, trap_type=tt, past=past, use_llm=use_llm)
         s["round"] = round_no
         scams.append(s)
     inject(scams, base=base)
+    by_task = {t["id"]: t for t in targets}
+    for s in scams:  # emitted after injection so ids are the store's ids
+        progress("scam_generated", round=round_no, scam=listing_view(s, by_task.get(s["taskId"])), models=list(models))
     vtasks = {s["id"]: variant_task(next(t for t in targets if t["id"] == s["taskId"]), s) for s in scams}
     run_id = R.new_run_id(f"rt{round_no}")
     lookup = http.ProductLookup(base=base)
     for s in scams:
         lookup.add(s["product"])
+    by_variant = {vt["id"]: s for s in scams for vt in [vtasks[s["id"]]]}
+
+    def on_result(r):
+        sc = by_variant.get(r.get("taskId"))
+        if sc:
+            progress("scam_tested", round=round_no, scamId=sc["id"], runId=run_id, **result_view(r, sc))
+
     results, _ = R.run_matrix(models, list(vtasks.values()), run_id, workers=workers, lookup=lookup,
-                              quiet=quiet, base=base, agent_prefix="redteam")
+                              quiet=quiet, base=base, agent_prefix="redteam", on_result=on_result)
 
     kept, dropped = [], []
     registry = R.load_registry()
@@ -176,6 +228,14 @@ def attack(tasks, models, rng, n, round_no, workers=4, use_llm=True, post=False,
             R.post_results([r for r in results if r["taskId"] in kept_vids], base=base) if kept_vids else None
         except Exception as e:
             log(f"[redteam] post failed: {e}")
+    total = len(R.all_tasks())
+    for s in scams:  # after the registry POST, so a UI reload on scam_kept already sees the new growth step
+        if s["fooled"]:
+            progress("scam_kept", round=round_no, scamId=s["id"], fooled=s["fooled"], testedModels=list(models),
+                     variantTaskId=s.get("variantTaskId"), trapType=s["trapType"], benchmarkTasks=total)
+        else:
+            progress("scam_discarded", round=round_no, scamId=s["id"], fooled=[], testedModels=list(models),
+                     trapType=s["trapType"], benchmarkTasks=total)
     return scams, kept, results, run_id
 
 
@@ -202,7 +262,8 @@ def main(argv=None):
     ap.add_argument("--no-llm", action="store_true", help="force the mutation engine even if a key is set")
     ap.add_argument("--trap", default=None, help="force a trap type")
     ap.add_argument("--once", action="store_true", help="generate + test ONE scam (demo)")
-    ap.add_argument("--attempts", type=int, default=3, help="--once: max scams to try until one fools a model")
+    ap.add_argument("--attempts", type=int, default=3,
+                    help="max tries until a scam fools a model (--once: scams; rounds: extra waves when a round lands nothing)")
     ap.add_argument("--task", default=None, help="target task id for --once (default: random)")
     ap.add_argument("--json", action="store_true", help="machine-readable output on stdout")
     a = ap.parse_args(argv)
@@ -220,9 +281,11 @@ def main(argv=None):
             print(json.dumps({"error": f"unknown task {a.task}"}))
             return 2
         attempts = []
+        once_progress = Progress(a.post)
         for _ in range(max(1, a.attempts)):  # attacker iterates until a scam lands (or gives up)
             scams, kept, results, run_id = attack(pool, models, rng, 1, 0, workers=a.workers, use_llm=use_llm,
-                                                  post=a.post, quiet=a.json, trap_type=a.trap)
+                                                  post=a.post, quiet=a.json, trap_type=a.trap,
+                                                  progress=once_progress)
             s = scams[0]
             attempts.append({"id": s["id"], "trapType": s["trapType"], "technique": s["technique"], "fooled": s["fooled"]})
             if s["fooled"]:
@@ -237,15 +300,35 @@ def main(argv=None):
         print(json.dumps(out) if a.json else json.dumps(out, indent=1))
         return 0
 
+    progress = Progress(a.post)
     summary = []
-    for rd in range(1, a.rounds + 1):
+    first = max([int(s.get("round") or 0) for s in R.load_registry()] + [0]) + 1  # rounds keep counting across jobs
+    progress("job_start", rounds=a.rounds, perRound=a.per_round, models=models, firstRound=first,
+             benchmarkTasks=len(R.all_tasks()))
+    for rd in range(first, first + a.rounds):
+        progress("round_start", round=rd, perRound=a.per_round, models=models, benchmarkTasks=len(R.all_tasks()))
         scams, kept, _, _ = attack(base_tasks + R.load_generated_tasks(), models, rng, a.per_round, rd,
-                                   workers=a.workers, use_llm=use_llm, post=a.post, quiet=a.json, trap_type=a.trap)
+                                   workers=a.workers, use_llm=use_llm, post=a.post, quiet=a.json, trap_type=a.trap,
+                                   progress=progress)
+        # A round that lands nothing makes for a flat demo and a stale benchmark: the attacker escalates with
+        # small extra waves of the trap types that historically land most often, up to --attempts tries in total.
+        tries = 1
+        while not kept and tries < max(1, a.attempts):
+            progress("round_retry", round=rd, attempt=tries + 1)
+            waves = ["fake_discount", "knockoff", "prompt_injection"]
+            more, more_kept, _, _ = attack(base_tasks, models, rng, 2, rd, workers=a.workers, use_llm=use_llm,
+                                           post=a.post, quiet=a.json, trap_type=a.trap,
+                                           trap_types=waves[tries - 1:] + waves[:tries - 1], progress=progress)
+            scams, kept, tries = scams + more, kept + more_kept, tries + 1
+        progress("round_end", round=rd, generated=len(scams), kept=len(kept), keptIds=[s["id"] for s in kept],
+                 benchmarkTasks=len(R.all_tasks()))
         line = summarize(rd, scams, kept)
         summary.append({"round": rd, "generated": len(scams), "kept": len(kept),
                         "fooled": {s["id"]: s["fooled"] for s in kept}, "line": line})
         if not a.json:
             print(line, flush=True)
+    progress("job_end", rounds=len(summary), kept=sum(x["kept"] for x in summary),
+             benchmarkTasks=len(R.all_tasks()))
     if a.json:
         print(json.dumps({"seed": seed, "rounds": summary, "benchmarkTasks": len(R.all_tasks()),
                           "registry": len(R.load_registry())}))
