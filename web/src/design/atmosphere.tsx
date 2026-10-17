@@ -62,7 +62,7 @@ export function Orb({
       className={cx("relative isolate shrink-0 rounded-full", className)}
       style={{
         width: s, height: s,
-        boxShadow: `0 ${s * 0.16}px ${s * 0.28}px -${s * 0.14}px color-mix(in oklch, ${core} 55%, transparent), 0 0 0 1px oklch(19% 0.006 275 / 0.05)`,
+        boxShadow: `0 ${s * 0.16}px ${s * 0.28}px -${s * 0.14}px color-mix(in oklch, ${core} 55%, transparent), 0 0 0 1px oklch(19% 0.012 70 / 0.05)`,
       }}>
       {/* glass body: tinted sky at the top, a pale horizon, then the glowing core (ref 3, in daylight) */}
       <div className="absolute inset-0 overflow-hidden rounded-full"
@@ -70,7 +70,7 @@ export function Orb({
         {/* inner glow: the breathing light, with a warm rim like a horizon at dusk */}
         <div className="absolute inset-0 will-change-transform"
           style={{
-            background: `radial-gradient(40% 25% at 50% 77%, color-mix(in oklch, ${core} 75%, oklch(22% 0.05 275)) 0%, ${core} 38%, oklch(80% 0.12 55 / 0.9) 60%, transparent 82%)`,
+            background: `radial-gradient(40% 25% at 50% 77%, color-mix(in oklch, ${core} 75%, oklch(30% 0.06 60)) 0%, ${core} 38%, oklch(80% 0.12 55 / 0.9) 60%, transparent 82%)`,
             filter: `blur(${Math.max(2, s * 0.03)}px)`,
             animation: `orb-breathe ${active ? 3.2 : 6}s ease-in-out infinite`,
             transformOrigin: "50% 77%",

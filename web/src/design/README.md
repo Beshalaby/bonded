@@ -1,190 +1,127 @@
-# Bonded design system: "soft instrument"
+# Bonded design system: "sunlit ledger"
 
-Calm, abstract, luxurious, and still a precise measuring instrument. Light only.
-The home page (`src/app/HomeView.tsx`) is the reference. When in doubt, copy what it does.
+White paper, warm ink, and light. Colour arrives as **bursts of gold and sage that fade into white**, never as boxes.
+The home page (`src/app/HomeView.tsx` + `src/components/home/*`) is the reference. When in doubt, copy what it does.
 
 ```ts
-import { Tile, Pill, MicroLabel, SectionHead, Stat, DotBar, ... } from "@/design";
+import { Tile, Pill, MicroLabel, Mark, DotBar, SPRING, EASE, C, HUES } from "@/design";
 ```
 
 Tokens live in two places that must stay in sync:
-- **CSS**: `src/app/globals.css`, `@theme` block. This generates Tailwind classes (`bg-canvas`, `text-ink-3`, `shadow-tile`, `rounded-capsule`, ...).
-- **JS**: `src/design/tokens.ts` (`C`, `HUES`, `SPACE`, `RADIUS`, `SPRING`, `EASE`). Use it for canvas, SVG fills and motion.
+- **CSS**: `src/app/globals.css`, `@theme` block → Tailwind classes (`bg-canvas`, `text-ink-3`, `text-accent`, `bg-gold`, `shadow-float`, …) plus the `.burst`, `.idle-float`, `.text-gold-sweep` and `.numeral` utilities.
+- **JS**: `src/design/tokens.ts` (`C`, `HUES`, `SPACE`, `RADIUS`, `SPRING`, `EASE`) for SVG, canvas and motion.
 
 ---
 
-## 1. The ten rules
+## 1. Principles
 
-1. **Shadows, not borders.** Surfaces are lifted by `shadow-tile` / `shadow-key`. The 1px ring is part of the shadow. Never use `border border-zinc-200`. The only hairline allowed is `border-divider`, between rows inside a table or list.
-2. **Everything is OKLCH.** Use the tokens. Do not write hex. Do not use Tailwind's `zinc-*`, `rose-*` or `emerald-*` palettes in new code; map them to the roles in §2.
-3. **The canvas is warm off-white, and content sits on white tiles.** `html` and `body` are already `bg-canvas`. Never put a page section straight on white.
-4. **Separate sections with space, not lines.** Use `mt-28` between home sections (`max-sm:mt-20`). `<Section>` from `ui.tsx` uses `mt-16 sm:mt-20`.
-5. **Nested radius = outer radius − padding.** See §4.
-6. **Tabular numbers everywhere.** This is set globally on `body`. Big numerals are thin (`font-light` or `font-extralight`).
-7. **Colour is atmosphere or meaning, never decoration.** Blue and violet appear as blooms and orbs, plus the one interactive hue (links, focus, primary data). Coral means risk. Green means pass.
-8. **There is one black pill per view.** That is the primary action (`Pill variant="ink"`, or `buttonClass("primary")`). Everything else is a white key (`surface`) or `ghost`.
-9. **Charts are dot-matrix.** Use `DotBar`, `DotHeatmap`, `DotSparkline`, `HalftoneField`, or the `.halftone` fill. There are no solid bars.
-10. **Motion is short, physical and optional.** Durations are 150–400ms. Use springs from `SPRING`. Ambient motion pauses offscreen, and everything respects reduced motion (§7).
+1. **One idea per screen.** A screen says one thing: a question, a ranking, a number, three steps, one command. If a section needs a legend, a filter bar and a caption, it belongs in the Lab.
+2. **Hide the machinery.** Runs, tasks, traces, red team, guardrail, compare, methodology, arena and the run launcher are fully working, but they live in **the Lab** (the nav's "Lab" sheet and the footer). They never appear on the home page or in the primary nav.
+3. **White is the material.** Lots of it. Sections are separated by space (`py-24 sm:py-36`), never by lines or cards.
+4. **Colour is light.** Use a `.burst` behind a moment, not a coloured box around it. Two bursts per section at most.
+5. **Big type, few words.** Display headings are 40–118px, tight tracking, balanced wraps. Body copy is one line where possible.
+6. **One black pill per view.** That's the primary action. Everything else is a quiet text link with an arrow.
+7. **Coral means risk, and only risk.** Sage is calm or pass. Gold is brand and data. Sky is the one cool accent, used as atmosphere only.
+8. **Motion is slow, physical and optional.** Things float, drift and fade. Everything honours `prefers-reduced-motion` (§6).
 
----
+## 2. Palette (`globals.css` @theme)
 
-## 2. Colour roles (`globals.css` @theme)
+| Role | Class / var | Value | Use |
+|---|---|---|---|
+| Canvas | `bg-canvas` | `oklch(99.4% .003 90)` | The page. A breath of ivory on white. |
+| Surface | `bg-surface` | white | Tiles, sheets, code pills. |
+| Ivory | `bg-ivory` | `oklch(98% .012 88)` | Hovered rows and links. |
+| Canvas sunk | `bg-canvas-sunk` | `oklch(96.6% .006 85)` | Tracks, inputs, skeletons. |
+| Ink → ink-5 | `text-ink`, `text-ink-2`, `text-ink-3`, `text-ink-4`, `text-ink-5` | warm, hue 70 | ink-3 is the lightest text that passes 4.5:1; ink-4/5 are decorative. |
+| **Accent (deep gold)** | `text-accent`, `bg-accent` | `oklch(52% .105 72)` | Links, focus, primary data, the #1 rank. 5:1 on white. |
+| Gold | `bg-gold`, `text-gold` | `oklch(78% .125 84)` | Bars, dots, glows. Never for text. |
+| Gold deep | `text-gold-deep` | `oklch(64% .13 75)` | The second line of a two-tone display headline (≥3:1 at display size). |
+| Sage | `bg-sage`, `text-sage-ink`, `bg-sage-soft` | hue 145–150 | Calm, the good-news finding, secondary glows. |
+| Sky | `bg-sky` | `oklch(83% .07 225)` | Atmosphere only (the connect section glow). |
+| Coral | `bg-coral`, `text-coral-ink`, `bg-coral-soft` | hue 30–35 | Risk: scammed, fooled, failed. Nothing else. |
+| Pass | `bg-pass`, `text-pass-ink` | hue 152 | Outcome: passed. |
 
-| Role | Class / var | Use |
+**Legacy names are remapped, not removed**, so every Lab page inherits the palette: `accent*` → deep gold, `violet*` → sage ink, `lavender` → deep gold, `HUES.blue` → gold, `HUES.violet` → sage. Don't use the legacy names in new code.
+
+## 3. Glow recipes
+
+`.burst` is a soft elliptical blob centred at `(--bx, --by)` of its positioned parent, `--bs` wide (aspect 1.3), at `z-index: -1`. Give the parent `relative isolate`. The gradient ends exactly at the blob's own edge (`closest-side`), so it never shows a hard line even when it spills into the next section. Masked grain is built in, so it never bands.
+
+```tsx
+<section className="relative isolate">
+  <div aria-hidden className="burst burst-gold" style={{ "--bx": "4%", "--by": "14%", "--bs": "min(860px,120vw)", "--bo": 0.7 }} />
+  …
+</section>
+```
+
+| Recipe | Where | Settings |
 |---|---|---|
-| Canvas | `bg-canvas` `oklch(97.2% .003 90)` | Page background (also on `<html>`). Also cells and wells *inside* a white tile. |
-| Canvas sunk | `bg-canvas-sunk` | Tracks, inputs, skeletons. |
-| Surface | `bg-surface` (white) | Tiles, capsules, keys. |
-| Glass | `bg-glass` + `backdrop-blur-xl` | Nav, tooltips, popovers. |
-| Ink | `text-ink` | Primary text and numerals. |
-| Ink 2 | `text-ink-2` | Secondary text, row labels. |
-| Ink 3 | `text-ink-3` | Muted text and micro-labels. This is the lightest tone that passes 4.5:1. |
-| Ink 4 / 5 | `text-ink-4`, `bg-ink-5` | Decorative only: axis ticks, off-dots, "–". Never put essential text in these. |
-| Divider | `border-divider` | Table/list row separators only. |
-| Accent (blue) | `text-accent`, `bg-accent`, `bg-accent-soft`, `--color-accent-dot` | Links, focus ring, the primary data series, "running". |
-| Violet | `text-violet`, `bg-violet-soft` | A secondary atmosphere hue: blooms, idle orbs, head-to-head dot. |
-| Lavender | `text-lavender` | **Only** the second line of a two-tone headline. |
-| Coral | `bg-coral` (dots and fills), `text-coral-ink` (text), `bg-coral-soft` | Risk: scammed, fooled, failed, over budget. |
-| Pass | `bg-pass`, `text-pass-ink`, `bg-pass-soft` | Pass, success, "Live" dot. |
-| Amber | `bg-amber`, `text-amber-ink`, `bg-amber-soft` | Warn: flagged, wrong item. |
+| Section corner wash | ranking | gold at (4%, 14%) 860px .7 + sage at (100%, 78%) 760px .6 |
+| Risk moment | finding (bad) | coral centred 1200px + small gold offset (68%, 64%) 560px .7 |
+| Good-news moment | finding (good) | sage centred 1200px + gold offset |
+| Object halo | how-it-works | the tone of the object, `--bs: 120%` of a square box |
+| Cool breath | connect | sky centred 1000px .9 |
+| Sheet / footer | Lab sheet, footer | gold top-right + sage bottom-left, small |
 
-Status colour always ships with a word or icon (`StatusCheck`, `Badge`), never colour alone.
+Clip horizontally on the page container (`overflow-x-clip`), never on the section, or the glow gets cut.
 
-## 3. Type
+## 4. Type
 
-| Style | How |
+Geist (sans) and Geist Mono. Numbers are tabular everywhere (set on `body`), except giant figures, which use `.pnum`.
+
+| Level | Size | Weight / tracking | Example |
+|---|---|---|---|
+| Hero | `clamp(42px, 6.7vw, 112px)`, leading .96 | 600, −0.055em | "Would you trust an AI / with your wallet?" (line 2 is `.text-gold-sweep`) |
+| Numeral | `clamp(88px, 19vw, 300px)`, `.numeral .pnum` | 600, −0.06em | "1 in 10" |
+| Section | `clamp(40px, 5.6vw, 72px)`, leading .98 | 600, −0.05em | "The ranking." (always a full stop) |
+| Step title | 24px | 580, −0.03em | "Every step is signed and graded." |
+| Lead | 17–20px, `text-ink-2` / `text-ink-3` | 400 | one line under a heading |
+| Row | 17–19px | 500, −0.02em | model name |
+| Score | 26–32px | 560, −0.04em, tabular | 98.7 |
+| Caption | 13px, `text-ink-4` | 400 | the single footnote under a list |
+
+Headings use `text-wrap: balance`; paragraphs use `pretty`. Keep line length ≤ 34ch for leads.
+
+## 5. Layout and components
+
+- **Home is full-bleed.** `PageMain` (`components/home/PageMain.tsx`) renders `/` without a container. Every other page gets the 1200px column, padded under the fixed 64px nav (`pt-24 sm:pt-28`).
+- **Nav** (`components/Nav.tsx`): logo, then Ranking (`/#ranking`), Watch (`/live`), Connect (`/connect`), and a quiet "Lab" with a dot that turns gold on Lab pages. It is transparent over the hero and becomes frosted white after 24px of scroll (and always off the home page). Phones get the logo plus a menu button. Both open the same **Lab sheet**: a dialog with a focus trap, Esc to close, and focus returned to the opener.
+- **The Lab list** lives in `lib/ui/lab.ts` (`LAB_LINKS`, `NEW_RUN`, `PRIMARY_LINKS`). The nav sheet and `SiteFooter` both read it. Add a Lab page there and nowhere else.
+- **Home sections** (`components/home/`): `Hero`, `Ranking`, `Finding`, `HowItWorks`, `ConnectStrip`, `SiteFooter`.
+- **Primitives** (`@/design`): `Tile`, `Pill`, `MicroLabel`, `SectionHead`, `DisplayTitle`, `Stat`, `CapsuleRow`, `Mark`, `DotBar`/`DotHeatmap`/`DotSparkline`, `Bloom`/`Orb`, `ScrollFade`, `MotionProvider`. All of them are still exported and used by Lab pages, and all of them are restyled by the tokens. On the home page, prefer plain type and `.burst` over tiles.
+- **Legacy** `components/ui.tsx` and `components/charts.tsx`: every export name is unchanged.
+
+## 6. Motion
+
+- **Hero parallax** (`components/home/Hero.tsx`). Each layer's speed is the extra translateY per px scrolled:
+  - background +0.30;
+  - far +0.12 (slightly soft-focus);
+  - mid −0.35;
+  - near −0.85, which also scales up to 1.24 and cross-fades to a pre-blurred twin.
+
+  On top of that: rotation per layer, a pointer parallax of 5/11/20px on fine pointers, a CSS `.idle-float` bob, and a staggered entrance. Only transforms and opacity move, driven by `motion` values (no React re-renders). Never animate `filter`; cross-fade a blurred copy instead.
+- **Reduced motion**: a motion value `k` (1 or 0) multiplies every scroll and pointer transform. It is set after mount, so server and client HTML match. The composition stays the same; it just doesn't move. CSS animations are neutralised globally in `globals.css`.
+- **Entrances**: `whileInView` once, `EASE = [0.2, 0.75, 0.15, 1]`, 0.8–1.1s, 60–120ms stagger. Big figures fade in from an 8–10px blur.
+- **Feedback**: 150–300ms; springs from `SPRING`.
+
+## 7. What's hidden in the Lab
+
+| Lab page | Holds what used to crowd the home page |
 |---|---|
-| Display (one per page, hero only) | `<DisplayTitle size="display" as="h1" line1 line2 animate />`. 40–76px, −0.045em, weight 560. Line 2 is lavender. |
-| Section title | `<SectionHead title={["Leaderboard.", "Ranked, with uncertainty."]} note label />`. 30–44px, two-tone. End line 1 with a full stop. |
-| Page title (inner pages) | `<PageHeader>` in `ui.tsx`: 40px, −0.035em. |
-| Card / tile title | 15–21px, `font-[540–560]`, `tracking-[-0.015em … -0.03em]`. |
-| Body | 13.5–16px, `text-ink-3` for prose next to big type, `leading-relaxed`. |
-| Micro-label | `<MicroLabel dot="pass">` or the `.micro` class: 11px uppercase +0.12em. Use it for eyebrows, column headers and captions. Smaller variant: `className="!text-[10px]"`. |
-| KPI numeral | `<Stat size="md / lg / xl">`: 34, 48 or 64px, `font-light`, tight tracking, micro-label below. |
-| Mono | Only for ids, hashes and money-per-task (`font-mono text-[11.5–12.5px]`). |
+| Runs, New run | latest runs, the run launcher |
+| Tasks, Arena | the task suite, the sandbox store |
+| Traces | every hash-chained session |
+| Red team | the scam gallery and benchmark growth |
+| Guardrail | what a spend guard would have stopped |
+| Compare | the head-to-head matrix and posteriors |
+| Methodology | scoring, intervals, trap heatmap logic |
 
-`h1`–`h4` get `text-wrap: balance` and `p`/`li` get `pretty` automatically. Big headings use `.optical-left` (−0.055em) so the glyph's side-bearing lines up with the text edge below. `DisplayTitle` already does this.
+The old home extras (findings grid, trap heatmap, head-to-head matrix, podium, KPI tiles, the orb live panel and the halftone landscape) are gone from `/`. `HalftoneField`, `HangingCards`, `HomeHero`, `LivePanel` and `Podium` were deleted. `KeyFindings` and `RollingNumber` stay because `/present` and the red-team views use them.
 
-## 4. Spacing, radius and shadow
+## 8. Gotchas
 
-**Spacing scale (px):** 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96 · 128. Tile padding is 24 (inner pages) to 28–36 (hero/KPI). Gaps between tiles are 16 (`gap-4`). Sections are 112 apart on home (`mt-28`).
-
-**Radius:**
-
-| Token | px | Use |
-|---|---|---|
-| `rounded-tile` | 28 | Top-level tiles (home). `ui.Card` and `ui.Table` use 24. |
-| `rounded-card` | 22 | Hanging cards, nested cards, phone list cards. |
-| `rounded-capsule` | 20 | List rows (`CapsuleRow`, leaderboard, runs). |
-| `rounded-key` | 14 | Icon tiles, small square buttons. |
-| `rounded-chip` | 10 | Heatmap and matrix cells. |
-| `rounded-full` | – | Pills, buttons, inputs, badges, tickers. |
-
-**Nested radius rule:** inner radius = outer radius − padding. `<Tile radius={28} pad={8}>` sets `--r` and `--p`, so a child with `.r-nested` gets 20px. In JS, use `nested(28, 8)`. A text-only tile with padding ≥ radius has square-ish inner content. That is correct; don't round its children.
-
-**Shadow levels:**
-
-| Class | When |
-|---|---|
-| `shadow-key` | Small things on a tile or on the canvas: capsule rows, icon tiles, white pills, round buttons. |
-| `shadow-tile` | Resting tiles. |
-| `shadow-raised` | Hover state of interactive tiles/rows, hanging cards, the hero figure. |
-| `shadow-float` | Things above the page: nav, drawer, tooltips. |
-| `shadow-well` | Inset wells: tickers, empty states, tracks. |
-| `shadow-ink` | Black pill buttons. |
-
-Hover = `shadow-key → shadow-raised` (plus at most a 1px lift). Do not scale tiles.
-
-## 5. Components (`@/design`)
-
-### Surfaces and layout
-- **`Tile`** `{ as?, pad=24, radius=28, level="tile"|"raised"|"float"|"flat", interactive?, grain?, className, style }`. Use it for every content block. With `interactive` it lifts on hover. `grain` adds noise; use it only over gradients.
-- **`SectionHead`** `{ title: [line1, line2?], note?, label?, dot?, actions?, id? }`. Use it as the head of every major section. Put `id` on it and `aria-labelledby` on the section.
-- **`DisplayTitle`** `{ line1, line2?, as, size="display"|"title", tone2="lavender"|"grey", animate? }`. With `animate` it uses a clip-path rise. Use it for the hero only.
-- **`MicroLabel`** `{ children, dot?: "pass"|"accent"|"coral"|"violet"|"amber"|"ink"|"muted", pulse? }`. A pulsing dot means *live*.
-- **`ScrollFade`** `{ children, fade=40, label?, className, innerClassName }`. Wrap every horizontally scrollable area in it, for example wide tables below `lg`. Edges fade only when there is more to scroll.
-
-### Controls
-- **`Pill`** `{ href? | onClick?, variant="ink"|"surface"|"soft"|"ghost"|"accent", size="sm"|"md"|"lg" }`. `pillClass(variant, size)` gives you the class string.
-- **`ArrowButton`** `{ href? | onClick?, label (required, aria), size=32, tone="ink"|"surface", direction="up-right"|"right" }`. Its hit area is 44px.
-- **`PlusButton`** `{ onClick, label }`: a round-cornered "+" key.
-- **`IconTile`** `{ children (lucide icon ~18px), size=44, tone }`: a square white key for list leading icons.
-- **`CapsuleRow`** `{ href?, leading?, title, subtitle?, trailing?, children? }`: list rows like reference 1/3. Use it for task lists, trace lists, guardrail decisions and red-team scams.
-- **`StatusCheck`** `{ tone="pass"|"fail"|"warn"|"neutral", children }` renders "✓ Passed" or "✕ Scammed" as coloured text. Prefer it over a badge when the status sits in a row's trailing slot.
-- **`Stat`** `{ label, value, sub?, size, tone?: "pass"|"coral"|"accent", labelPosition }`. Wrap a group of them in `<dl>`. `ui.Stat` (smaller, label-above) still exists for dense pages.
-- **`Mark`**: the logo glyph.
-
-### Live and atmosphere
-- **`Bloom`** `{ tone="blue-violet"|"dusk"|"blue"|"violet"|"coral"|"green"|"ink", placement="top"|"top-right"|"bottom"|"center"|"bottom-left", intensity=1, drift }`. It fills the nearest positioned ancestor at `-z-10`, so the parent needs `relative isolate`. Use at most **one per page**, behind the page hero. For full bleed, wrap it in `absolute left-1/2 w-screen -translate-x-1/2`. `html` and `body` clip x-overflow.
-- **`Orb` / `GlassSphere`** `{ size=200, hue, active?, label?, children }`. Use it **only for live state**: run in progress (`active`, blue), idle (violet), benchmark health. Put one short line plus one number inside. Don't use it as decoration or as an avatar.
-- **`OrbDot`** is a tiny orb for inline live indicators.
-
-### Data
-- **`HalftoneField`** `{ ridges: Ridge[], domain=[0,1], axisTicks, axisLabel, rowHeight, overlap=2.1, spacing, format, valueLabel }` renders a canvas dot-matrix ridgeline.
-  - Ridge type: `{ key, label, sub?, href?, beta?: {a,b} | pdf?: (x)=>number, interval: {mean,lower,upper}, n?, tone? }`.
-  - Use `betaFromMean(mean, n)` to rebuild the Beta(1+s, 1+f) posterior from `ModelStats.reliability`.
-  - Encoding: height ∝ √density on a shared scale; the dense core is the interval, pale skirts are the tails, the dotted ink stem is the mean. Hovering dims the other ridges and shows a tooltip. Labels are real links.
-  - Use it for any distribution-per-entity view, such as a model page's posterior or a red-team round's score landscape.
-- **`DotBar`** `{ value 0–1, interval?, dots=30, pitch=5, rows=1–3, tone="accent"|"coral"|"pass"|"violet"|"ink", label (aria) }` replaces every progress bar, CI bar and meter in new code.
-- **`DotCell` / `DotHeatmap` / `DotScaleLegend`**: a rate as ordered-dither density (32 dots). `charts.Heatmap` and `charts.ScaleLegend` already render these.
-- **`DotSparkline`** `{ values, base?, height, pitch, tone, endLabel, label }`: columns of dots, with the last column in ink.
-- **`.halftone` CSS class** gives a dot-screen fill for any div. Set `--dot` (colour) and `--dot-size`. `charts.RateBars` and `charts.CountBars` use it.
-- **`HangingCards`** `{ cards: HangingCard[] }`, where a card is `{ key, eyebrow, index, title, subtitle?, body?, back, href?, hrefLabel?, iridescent? }`. It is a podium or showcase for 3–5 items. Exactly one card is `iridescent` (the #1). Use it once per page at most; it is a moment, not a list.
-
-### Hooks
-`useInView(ref)`, `useSize()`, `useReducedMotionPref()`, `usePageVisible()`.
-
-### Legacy (`components/ui.tsx`, `components/charts.tsx`)
-All names and props are unchanged and restyled onto these tokens. They are fine to keep using: `Card`, `Section`, `PageHeader`, `Table`/`Th`/`Td`/`Tr`, `Badge`, `Chip`, `buttonClass`, `CIBar`, `Heatmap`, `RateBars`, `LineChart`, and the rest. When you touch a page, prefer upgrading to `Tile`, `SectionHead`, `CapsuleRow`, `DotBar` and `Pill`.
-
-## 6. Do / don't
-
-| Do | Don't |
-|---|---|
-| Put a white tile on the canvas, and canvas-coloured cells inside the tile. | Use grey tiles, or white-on-white without a shadow. |
-| Use one black pill per view. | Use blue filled buttons (`bg-accent`) for primary actions. |
-| Use a micro-label for every eyebrow and column header. | Use bold 12px grey headers. |
-| Use a thin 48–64px numeral with a micro-label under it. | Use semibold KPI numbers. |
-| Use dots for magnitude (`DotBar`, `.halftone`). | Use solid rectangles, gradients-as-data or rainbow ramps. |
-| Use coral only for risk outcomes. | Use coral for a "series 4" or for emphasis. |
-| Use a bloom behind a hero, at low intensity. | Use blooms behind data, or several per page. |
-| Use `ScrollFade` around overflow-x areas. | Show bare scrollbars on wide content. |
-| Make capsule rows whole-row links (stretched `after:absolute after:inset-0`). | Nest links inside links. |
-| Give hit targets ≥ 40–44px (`.hit`, `.tap`). | Use 24px icon buttons without padding. |
-
-## 7. Motion
-
-- Use these springs (`SPRING` in tokens.ts): `snappy` for toggles and indicators (~180ms), `soft` for layout and entrances (~300ms), `pendulum` for hanging things only, and `flip` for card flips. The CSS ease is `var(--ease-out-soft)`; the JS ease is `EASE`.
-- Entrances are one fade/rise of ≤8–16px, 500–700ms, with a stagger of 50–80ms. Never bounce text.
-- Ambient motion runs as CSS keyframes, which cost nothing per frame. Orbs breathe slowly (6s idle, 3.2s active), blooms drift over 22s, and cards sway at ±0.5°. `HalftoneField` breathes on canvas at about 30fps and only while visible.
-- Pause offscreen: `useInView`, then add the `.paused` class or skip the rAF loop. Canvas also stops when the tab is hidden.
-- Reduced motion has three layers:
-  - The global CSS media query kills keyframes and transitions.
-  - `<MotionProvider>` (in the root layout) sets `MotionConfig reducedMotion="user"`.
-  - Canvas code checks `useReducedMotionPref()` and draws one static frame.
-- Do **not** branch render output on `useReducedMotion()` during SSR; it causes hydration mismatches. Let the provider handle it.
-- Numbers roll (`components/home/RollingNumber`), and live tickers swap with a 10px slide (`AnimatePresence mode="popLayout"`).
-
-## 8. Craft checklist (reference 6), and where each item lives
-
-| Item | Where |
-|---|---|
-| OKLCH | `@theme`, `tokens.ts` |
-| Noise grain | `.grain` (masked to the bloom, iridescent card) |
-| Shadows not borders | `--shadow-*` |
-| Nested radius | `Tile` `--r`/`--p` + `.r-nested`, `nested()` |
-| Tabular numbers | `body` |
-| Optical alignment | `.optical-left` |
-| Letter spacing | display −0.045em, micro +0.12em |
-| Text wrapping | base layer |
-| Hit areas | `.hit` (44px), `.tap` (40px below lg) |
-| HTML background | `html { background: canvas }` + `viewport.themeColor` |
-| clip-path | `.rise-in` headline reveal |
-| Scroll fades | `ScrollFade` + `.scroll-fade` |
-
-## 9. Gotchas
-
-- Custom utilities (`.micro`, `.grain`, `.hit`, `.halftone`, …) live in `@layer components`, so Tailwind utilities override them. You can write `className="micro text-ink"` without `!`. (Some home code still uses `!text-[10px]`; it's harmless.)
-- `overflow-x-auto` clips shadows vertically. Give scrolling containers `pt-1 pb-3` and a negative margin with matching padding (see `LeaderboardTable`).
-- In flex/3D stacks, don't put a top margin on the first child of a transformed wrapper: margins collapse through it and offset absolutely positioned siblings. Use padding.
-- The nav switches to the drawer below **1180px** (`DRAWER_MQ` in `Nav.tsx`).
+- `.burst` uses `translate` (not `transform`), so you can still transform its parent.
+- Tailwind v4 `translate-*` utilities use the `translate` property, so they compose with `motion`'s `transform`.
+- `next/image` qualities: use the default (75). Other values warn until `images.qualities` is configured.
+- Hero images that are hidden at a breakpoint still get `sizes` small enough not to waste bytes.
+- Anchors land below the fixed nav via `scroll-padding-top: 80px` on `html`.

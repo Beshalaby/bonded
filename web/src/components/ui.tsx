@@ -181,9 +181,9 @@ export function ButtonLink({ href, children, variant = "primary", className }: {
 /** Pill buttons. primary = the black ink pill (one per view), secondary = white key, ghost = text. */
 export function buttonClass(variant: "primary" | "secondary" | "ghost" = "primary") {
   const base = "inline-flex h-9 max-lg:h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[13px] font-medium tracking-[-0.005em] transition-[background-color,box-shadow,color,transform] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45";
-  if (variant === "primary") return cx(base, "bg-ink text-white shadow-ink hover:bg-[oklch(28%_0.008_275)]");
+  if (variant === "primary") return cx(base, "bg-ink text-white shadow-ink hover:bg-[oklch(28%_0.012_70)]");
   if (variant === "secondary") return cx(base, "bg-surface text-ink shadow-key hover:shadow-raised");
-  return cx(base, "text-ink-2 hover:bg-[oklch(19%_0.006_275/0.05)] hover:text-ink");
+  return cx(base, "text-ink-2 hover:bg-[oklch(19%_0.012_70/0.05)] hover:text-ink");
 }
 
 export function TextLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
@@ -295,7 +295,7 @@ export function Chip({ active, children, onClick, count }: { active?: boolean; c
   );
 }
 
-const FIELD = "h-9 max-lg:h-11 max-md:text-[16px] rounded-full bg-surface text-[13px] text-ink shadow-key outline-none transition-shadow focus:shadow-[0_0_0_1px_var(--color-accent),0_0_0_4px_oklch(55%_0.215_262/0.14)]";
+const FIELD = "h-9 max-lg:h-11 max-md:text-[16px] rounded-full bg-surface text-[13px] text-ink shadow-key outline-none transition-shadow focus:shadow-[0_0_0_1px_var(--color-accent),0_0_0_4px_oklch(52%_0.105_72/0.14)]";
 
 export function Select({ value, onChange, children, className, label }: { value: string; onChange: (v: string) => void; children: ReactNode; className?: string; label?: string }) {
   return (

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* =====================================================================================================
-   Bonded design system: "soft instrument".  Spec: src/design/README.md
+   Bonded design system: "sunlit ledger" (minimal, white, bursts of gold and sage).  Spec: src/design/README.md
    Light only. Every colour is OKLCH. Surfaces are lifted by layered shadows, not borders.
    ===================================================================================================== */
 
@@ -11,38 +11,48 @@
 }
 
 @theme {
-  /* ---------------------------------------------------------------- colour roles */
+  /* ---------------------------------------------------------------- colour roles
+     "Sunlit ledger": white paper, warm ink, champagne gold, sage. Colour arrives as light (glows), not boxes.
+     Old role names (accent, violet, lavender, sky) are kept and remapped so every Lab page inherits the palette. */
   /* canvas & surfaces */
-  --color-canvas: oklch(97.2% 0.003 90);        /* page + <html> background: warm-neutral off-white */
-  --color-canvas-sunk: oklch(94.6% 0.004 90);   /* wells: inputs, tracks, empty cells */
+  --color-canvas: oklch(99.4% 0.003 90);        /* page + <html>: a breath of ivory on white */
+  --color-canvas-sunk: oklch(96.6% 0.006 85);   /* wells: inputs, tracks, empty cells */
   --color-surface: oklch(100% 0 0);             /* tiles */
   --color-glass: oklch(100% 0 0 / 0.72);        /* nav, tooltips (with backdrop blur) */
+  --color-ivory: oklch(98% 0.012 88);           /* warm paper for hovered rows and code pills */
 
-  /* ink (text + chrome). ink-3 is the lightest that passes 4.5:1 on white */
-  --color-ink: oklch(19% 0.006 275);
-  --color-ink-2: oklch(42% 0.008 275);
-  --color-ink-3: oklch(54% 0.008 275);
-  --color-ink-4: oklch(72% 0.006 275);           /* decorative only: disabled, axis ticks, off-dots */
-  --color-ink-5: oklch(86% 0.005 275);           /* off-dots in dot-matrix charts */
-  --color-divider: oklch(19% 0.006 275 / 0.07);  /* the only hairline: rows inside tables/lists */
+  /* ink (text + chrome), warm. ink-3 is the lightest that passes 4.5:1 on white */
+  --color-ink: oklch(20% 0.012 70);
+  --color-ink-2: oklch(41% 0.012 70);
+  --color-ink-3: oklch(52% 0.011 70);
+  --color-ink-4: oklch(72% 0.009 75);           /* decorative only: disabled, axis ticks, off-dots */
+  --color-ink-5: oklch(87% 0.007 80);           /* off-dots in dot-matrix charts */
+  --color-divider: oklch(20% 0.012 70 / 0.07);  /* the only hairline: rows inside tables/lists */
 
-  /* accents: used as atmosphere (blooms, orbs) and as the one interactive hue */
-  --color-accent: oklch(55% 0.215 262);          /* electric blue: links, focus, primary data series */
-  --color-accent-hover: oklch(49% 0.22 264);
-  --color-accent-soft: oklch(96% 0.025 262);
-  --color-accent-dot: oklch(62% 0.19 258);       /* data dots on white */
-  --color-sky: oklch(78% 0.13 230);              /* bloom highlight */
-  --color-violet: oklch(55% 0.24 295);
-  --color-violet-soft: oklch(95.5% 0.03 295);
-  --color-lavender: oklch(64% 0.1 288);          /* two-tone headline second line (>=3:1 at display size) */
+  /* brand: champagne gold + sage. accent = deep gold, readable on white (5:1) */
+  --color-gold: oklch(78% 0.125 84);            /* light: glows, bars, dots */
+  --color-gold-deep: oklch(64% 0.13 75);        /* two-tone display line (>=3:1 at display size) */
+  --color-gold-soft: oklch(96.5% 0.03 88);
+  --color-sage: oklch(70% 0.065 145);
+  --color-sage-ink: oklch(47% 0.06 150);
+  --color-sage-soft: oklch(96.5% 0.018 140);
 
-  /* outcome roles (reserved: never use for decoration) */
-  --color-coral: oklch(68% 0.15 35);             /* risk / scammed / fooled: dots and fills */
-  --color-coral-ink: oklch(53% 0.17 30);         /* risk text on white */
-  --color-coral-soft: oklch(95.5% 0.03 35);
-  --color-pass: oklch(66% 0.15 152);             /* pass: dots and fills */
-  --color-pass-ink: oklch(50% 0.13 152);         /* "✓ Passed" text */
-  --color-pass-soft: oklch(96% 0.035 152);
+  --color-accent: oklch(52% 0.105 72);          /* deep gold: links, focus, primary data series */
+  --color-accent-hover: oklch(46% 0.1 70);
+  --color-accent-soft: oklch(96.5% 0.03 85);
+  --color-accent-dot: oklch(72% 0.13 80);       /* data dots on white: champagne */
+  --color-sky: oklch(83% 0.07 225);             /* the one cool accent: atmosphere only */
+  --color-violet: oklch(50% 0.07 150);          /* legacy name -> sage ink */
+  --color-violet-soft: oklch(96.5% 0.018 140);
+  --color-lavender: oklch(64% 0.13 75);         /* legacy two-tone headline line -> deep gold */
+
+  /* outcome roles (reserved: never use for decoration). coral = risk, and only risk */
+  --color-coral: oklch(68% 0.15 35);            /* risk / scammed / fooled: dots and fills */
+  --color-coral-ink: oklch(53% 0.17 30);        /* risk text on white */
+  --color-coral-soft: oklch(96% 0.028 35);
+  --color-pass: oklch(64% 0.12 152);            /* pass: dots and fills */
+  --color-pass-ink: oklch(48% 0.1 152);         /* "Passed" text */
+  --color-pass-soft: oklch(96.5% 0.03 150);
   --color-amber: oklch(76% 0.14 75);
   --color-amber-ink: oklch(52% 0.12 65);
   --color-amber-soft: oklch(96.5% 0.035 85);
@@ -57,34 +67,34 @@
   /* ---------------------------------------------------------------- shadows (3 levels + key + well) */
   /* ring (a 1px shadow, never a border) + contact + ambient + top highlight */
   --shadow-tile:
-    0 0 0 1px oklch(19% 0.006 275 / 0.045),
-    0 1px 2px oklch(19% 0.006 275 / 0.04),
-    0 6px 16px -4px oklch(19% 0.006 275 / 0.05),
-    0 24px 48px -24px oklch(19% 0.006 275 / 0.08),
+    0 0 0 1px oklch(20% 0.012 70 / 0.045),
+    0 1px 2px oklch(20% 0.012 70 / 0.04),
+    0 6px 16px -4px oklch(20% 0.012 70 / 0.05),
+    0 24px 48px -24px oklch(20% 0.012 70 / 0.08),
     inset 0 1px 0 oklch(100% 0 0 / 0.9);
   --shadow-raised:
-    0 0 0 1px oklch(19% 0.006 275 / 0.05),
-    0 2px 4px oklch(19% 0.006 275 / 0.05),
-    0 12px 24px -6px oklch(19% 0.006 275 / 0.09),
-    0 36px 64px -28px oklch(19% 0.006 275 / 0.16),
+    0 0 0 1px oklch(20% 0.012 70 / 0.05),
+    0 2px 4px oklch(20% 0.012 70 / 0.05),
+    0 12px 24px -6px oklch(20% 0.012 70 / 0.09),
+    0 36px 64px -28px oklch(20% 0.012 70 / 0.16),
     inset 0 1px 0 oklch(100% 0 0 / 0.9);
   --shadow-float:
-    0 0 0 1px oklch(19% 0.006 275 / 0.06),
-    0 4px 10px -2px oklch(19% 0.006 275 / 0.07),
-    0 18px 40px -12px oklch(19% 0.006 275 / 0.16),
+    0 0 0 1px oklch(20% 0.012 70 / 0.06),
+    0 4px 10px -2px oklch(20% 0.012 70 / 0.07),
+    0 18px 40px -12px oklch(20% 0.012 70 / 0.16),
     inset 0 1px 0 oklch(100% 0 0 / 0.8);
   --shadow-key:
-    0 0 0 1px oklch(19% 0.006 275 / 0.06),
-    0 1px 2px oklch(19% 0.006 275 / 0.06),
-    0 3px 8px -2px oklch(19% 0.006 275 / 0.07),
+    0 0 0 1px oklch(20% 0.012 70 / 0.06),
+    0 1px 2px oklch(20% 0.012 70 / 0.06),
+    0 3px 8px -2px oklch(20% 0.012 70 / 0.07),
     inset 0 1px 0 oklch(100% 0 0 / 0.9);
   --shadow-well:
-    inset 0 0 0 1px oklch(19% 0.006 275 / 0.04),
-    inset 0 1px 2px oklch(19% 0.006 275 / 0.06);
+    inset 0 0 0 1px oklch(20% 0.012 70 / 0.04),
+    inset 0 1px 2px oklch(20% 0.012 70 / 0.06);
   --shadow-ink: /* black pill buttons */
-    0 0 0 1px oklch(19% 0.006 275),
-    0 1px 2px oklch(19% 0.006 275 / 0.2),
-    0 6px 14px -6px oklch(19% 0.006 275 / 0.45),
+    0 0 0 1px oklch(20% 0.012 70),
+    0 1px 2px oklch(20% 0.012 70 / 0.2),
+    0 6px 14px -6px oklch(20% 0.012 70 / 0.45),
     inset 0 1px 0 oklch(100% 0 0 / 0.16);
 
   /* ---------------------------------------------------------------- motion */
@@ -106,6 +116,8 @@ html {
   color-scheme: light;
   background: var(--color-canvas);       /* HTML background: overscroll + safe areas match the canvas */
   -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 80px;              /* anchors land below the fixed nav */
+  scroll-behavior: smooth;
 }
 html, body { overflow-x: clip; }          /* full-bleed blooms never create a horizontal scrollbar */
 body {
@@ -125,7 +137,7 @@ h1, h2, h3, h4 { text-wrap: balance; }
 p, li, dd, figcaption { text-wrap: pretty; }
 
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
-::selection { background: oklch(88% 0.07 262); color: var(--color-ink); }
+::selection { background: oklch(92% 0.07 88); color: var(--color-ink); }
 
 .tnum { font-variant-numeric: tabular-nums; }
 .pnum { font-variant-numeric: proportional-nums; }
@@ -222,3 +234,42 @@ p, li, dd, figcaption { text-wrap: pretty; }
   .tap { position: relative; }
   .tap::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 40px); height: max(100%, 40px); transform: translate(-50%, -50%); }
 }
+
+/* ------------------------------------------------------------------ bursts: colour as light, fading into white
+   <div class="burst burst-gold" style="--bx:50%;--by:40%;--bs:720px"> is a soft elliptical blob centred at (--bx, --by)
+   of its positioned parent, --bs wide. The gradient ends exactly at the blob's own edge (closest-side), so it never
+   shows a hard line, even when it spills past its section. A saturated core, a pale halo, and masked grain (no banding).
+   Tones: gold (brand), sage (calm/pass), sky (the one cool accent), coral (risk only). */
+.burst {
+  position: absolute; left: var(--bx, 50%); top: var(--by, 50%); z-index: -1;
+  width: var(--bs, 640px); aspect-ratio: 1.3; translate: -50% -50%;
+  pointer-events: none; opacity: var(--bo, 1);
+  background: radial-gradient(closest-side, var(--b1) 0%, var(--b2) 42%, transparent 100%);
+}
+.burst::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px; opacity: 0.24; mix-blend-mode: soft-light;
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 0%, transparent 100%);
+}
+.burst-gold  { --b1: oklch(86% 0.11 86 / 0.75); --b2: oklch(94% 0.05 90 / 0.7); }
+.burst-sage  { --b1: oklch(86% 0.07 145 / 0.7); --b2: oklch(95% 0.03 140 / 0.7); }
+.burst-sky   { --b1: oklch(88% 0.06 225 / 0.6); --b2: oklch(96% 0.025 225 / 0.6); }
+.burst-coral { --b1: oklch(80% 0.12 38 / 0.6);  --b2: oklch(93% 0.05 45 / 0.65); }
+
+/* Gold display text: a champagne-to-deep-gold sweep, deep enough for 3:1 at display size. */
+.text-gold-sweep {
+  background: linear-gradient(100deg, oklch(60% 0.125 70) 0%, oklch(70% 0.135 82) 45%, oklch(62% 0.12 72) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Idle float: slow sine bob + slight rotation. Durations/delays per element via --fd / --fdl / --fr. */
+@keyframes idle-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(calc(var(--fr, 3deg) * -1)); }
+  50% { transform: translate3d(0, var(--fy, -14px), 0) rotate(var(--fr, 3deg)); }
+}
+.idle-float { animation: idle-float var(--fd, 9s) ease-in-out var(--fdl, 0s) infinite; will-change: transform; }
+
+/* Display numerals: tight, tabular, optical. */
+.numeral { font-variant-numeric: proportional-nums; letter-spacing: -0.06em; line-height: 0.86; }

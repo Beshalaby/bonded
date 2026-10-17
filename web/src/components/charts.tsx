@@ -5,7 +5,7 @@ import { cx } from "./ui";
 import { C, DotHeatmap, DotScaleLegend, ScrollFade } from "@/design";
 
 /* Chart chrome tokens (light only, OKLCH from the design system). Data is the only loud thing. */
-const INK = { primary: C.ink, secondary: C.ink2, muted: C.ink4, grid: "oklch(19% 0.006 275 / 0.06)", axis: C.ink5, surface: C.surface };
+const INK = { primary: C.ink, secondary: C.ink2, muted: C.ink4, grid: "oklch(19% 0.012 70 / 0.06)", axis: C.ink5, surface: C.surface };
 const SERIES = C.accentDot; // single-series charts use the accent hue
 const FOOLED = C.coral;     // "fooled" rate bars: coral (risk role)
 

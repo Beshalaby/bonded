@@ -109,11 +109,11 @@ export function SectionHead({
 /* ------------------------------------------------------------------ Pill buttons */
 
 const PILL_VARIANT = {
-  ink: "bg-ink text-white shadow-ink hover:bg-[oklch(28%_0.008_275)]",
+  ink: "bg-ink text-white shadow-ink hover:bg-[oklch(28%_0.012_70)]",
   surface: "bg-surface text-ink shadow-key hover:shadow-raised",
   soft: "bg-canvas-sunk text-ink-2 hover:text-ink hover:bg-[oklch(92.5%_0.004_90)]",
-  ghost: "text-ink-2 hover:bg-[oklch(19%_0.006_275/0.05)] hover:text-ink",
-  accent: "bg-accent text-white shadow-[0_0_0_1px_var(--color-accent),0_6px_14px_-6px_oklch(55%_0.215_262/0.6),inset_0_1px_0_oklch(100%_0_0/0.2)] hover:bg-accent-hover",
+  ghost: "text-ink-2 hover:bg-[oklch(19%_0.012_70/0.05)] hover:text-ink",
+  accent: "bg-accent text-white shadow-[0_0_0_1px_var(--color-accent),0_6px_14px_-6px_oklch(52%_0.105_72/0.6),inset_0_1px_0_oklch(100%_0_0/0.2)] hover:bg-accent-hover",
 } as const;
 const PILL_SIZE = {
   sm: "h-8 px-3.5 text-[12.5px] gap-1.5",
@@ -155,7 +155,7 @@ export function ArrowButton({
   const Icon = direction === "right" ? ArrowRight : ArrowUpRight;
   const cls = cx(
     "hit group/arrow inline-flex shrink-0 items-center justify-center rounded-full transition-[transform,box-shadow,background-color] duration-200 ease-out active:scale-95",
-    tone === "ink" ? "bg-ink text-white shadow-ink hover:bg-[oklch(30%_0.01_275)]" : "bg-surface text-ink shadow-key hover:shadow-raised",
+    tone === "ink" ? "bg-ink text-white shadow-ink hover:bg-[oklch(30%_0.012_70)]" : "bg-surface text-ink shadow-key hover:shadow-raised",
     className,
   );
   const icon = <Icon size={Math.round(size * 0.47)} strokeWidth={2} aria-hidden
@@ -273,7 +273,7 @@ export function Mark({ size = 24, className }: { size?: number; className?: stri
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden className={className}>
       <rect width="24" height="24" rx="7.5" fill="var(--color-ink)" />
-      {d.map(([c, r]) => <circle key={`${c}${r}`} cx={7 + c * 5} cy={7 + r * 5} r={1.7} fill="white" opacity={r === 0 ? 0.55 : 1} />)}
+      {d.map(([c, r]) => <circle key={`${c}${r}`} cx={7 + c * 5} cy={7 + r * 5} r={1.7} fill={r === 0 ? "var(--color-gold)" : "white"} />)}
     </svg>
   );
 }

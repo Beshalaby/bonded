@@ -12,8 +12,8 @@ const TONE = {
   accent: { on: C.accentDot, soft: "oklch(62% 0.19 258 / 0.32)" },
   coral: { on: C.coral, soft: "oklch(68% 0.15 35 / 0.35)" },
   pass: { on: C.pass, soft: "oklch(66% 0.15 152 / 0.35)" },
-  violet: { on: "oklch(60% 0.2 295)", soft: "oklch(60% 0.2 295 / 0.32)" },
-  ink: { on: C.ink2, soft: "oklch(42% 0.008 275 / 0.3)" },
+  violet: { on: "oklch(55% 0.07 150)", soft: "oklch(55% 0.07 150 / 0.32)" },
+  ink: { on: C.ink2, soft: "oklch(41% 0.012 70 / 0.3)" },
 } as const;
 export type DotTone = keyof typeof TONE;
 

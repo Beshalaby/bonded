@@ -3,34 +3,44 @@
 
 /** Colour roles as OKLCH strings (canvas 2D and SVG both accept oklch() in every evergreen browser). */
 export const C = {
-  canvas: "oklch(97.2% 0.003 90)",
-  canvasSunk: "oklch(94.6% 0.004 90)",
+  canvas: "oklch(99.4% 0.003 90)",
+  canvasSunk: "oklch(96.6% 0.006 85)",
   surface: "oklch(100% 0 0)",
-  ink: "oklch(19% 0.006 275)",
-  ink2: "oklch(42% 0.008 275)",
-  ink3: "oklch(54% 0.008 275)",
-  ink4: "oklch(72% 0.006 275)",
-  ink5: "oklch(86% 0.005 275)",
-  accent: "oklch(55% 0.215 262)",
-  accentDot: "oklch(62% 0.19 258)",
-  accentSoft: "oklch(96% 0.025 262)",
-  sky: "oklch(78% 0.13 230)",
-  violet: "oklch(55% 0.24 295)",
-  lavender: "oklch(64% 0.1 288)",
+  ink: "oklch(20% 0.012 70)",
+  ink2: "oklch(41% 0.012 70)",
+  ink3: "oklch(52% 0.011 70)",
+  ink4: "oklch(72% 0.009 75)",
+  ink5: "oklch(87% 0.007 80)",
+  gold: "oklch(78% 0.125 84)",
+  goldDeep: "oklch(64% 0.13 75)",
+  sage: "oklch(70% 0.065 145)",
+  sageInk: "oklch(47% 0.06 150)",
+  accent: "oklch(52% 0.105 72)",
+  accentDot: "oklch(72% 0.13 80)",
+  accentSoft: "oklch(96.5% 0.03 85)",
+  sky: "oklch(83% 0.07 225)",
+  violet: "oklch(50% 0.07 150)",     // legacy name -> sage ink
+  lavender: "oklch(64% 0.13 75)",    // legacy name -> deep gold
   coral: "oklch(68% 0.15 35)",
   coralInk: "oklch(53% 0.17 30)",
-  pass: "oklch(66% 0.15 152)",
-  passInk: "oklch(50% 0.13 152)",
+  pass: "oklch(64% 0.12 152)",
+  passInk: "oklch(48% 0.1 152)",
   amber: "oklch(76% 0.14 75)",
 } as const;
 
-/** Hue families for atmospheric elements (Bloom, Orb). [core, mid, highlight] */
+/** Hue families for atmospheric elements (bursts, Bloom, Orb). [core, mid, highlight]
+ *  Legacy keys remap: blue -> gold, violet -> sage, so older call sites inherit the new palette. */
+const GOLD = ["oklch(72% 0.14 78)", "oklch(84% 0.1 86)", "oklch(95% 0.04 92)"] as const;
+const SAGE = ["oklch(62% 0.08 148)", "oklch(80% 0.06 142)", "oklch(94% 0.025 135)"] as const;
 export const HUES = {
-  blue: ["oklch(58% 0.22 262)", "oklch(72% 0.16 240)", "oklch(88% 0.07 225)"],
-  violet: ["oklch(54% 0.25 295)", "oklch(70% 0.17 300)", "oklch(90% 0.06 300)"],
+  gold: GOLD,
+  sage: SAGE,
+  sky: ["oklch(66% 0.1 230)", "oklch(82% 0.07 225)", "oklch(95% 0.025 220)"],
+  blue: GOLD,
+  violet: SAGE,
   coral: ["oklch(62% 0.18 32)", "oklch(76% 0.13 45)", "oklch(92% 0.05 60)"],
-  green: ["oklch(60% 0.16 152)", "oklch(78% 0.13 160)", "oklch(93% 0.05 165)"],
-  ink: ["oklch(30% 0.01 275)", "oklch(60% 0.01 275)", "oklch(92% 0.005 275)"],
+  green: ["oklch(60% 0.14 152)", "oklch(78% 0.11 158)", "oklch(93% 0.045 160)"],
+  ink: ["oklch(30% 0.012 70)", "oklch(60% 0.01 70)", "oklch(92% 0.006 80)"],
 } as const;
 export type Hue = keyof typeof HUES;
 
