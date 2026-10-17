@@ -1,0 +1,12 @@
+node_modules
+.next
+web/.data
+__pycache__
+*.pyc
+.env*
+!.env.example
+agents/results
+.next-*
+.data-*
+web/.next-*
+web/.data-*
