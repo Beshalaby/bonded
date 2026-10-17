@@ -318,6 +318,11 @@ def _post(body, timeout):
     return j
 
 
+FIRST_PARTY = ("openai/", "anthropic/", "google/")
+# Reasoning models that reject sampling parameters such as temperature.
+NO_TEMPERATURE = ("openai/gpt-5", "openai/o1", "openai/o3", "openai/o4")
+
+
 def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=None, response_format=None,
          max_tokens=None):
     """One chat completion. Returns (message, usage).
@@ -328,13 +333,18 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=Non
         raise LLMError("OPENROUTER_API_KEY not set; use a sim/* model")
     timeout = DEFAULT_TIMEOUT if timeout is None else timeout
     retries = DEFAULT_RETRIES if retries is None else retries
-    body = {"model": model, "messages": messages, "temperature": temperature, "usage": {"include": True}}
+    body = {"model": model, "messages": messages, "usage": {"include": True}}
+    if not model.startswith(NO_TEMPERATURE):
+        body["temperature"] = temperature
     if tools:
         body["tools"] = tools
         body["tool_choice"] = "auto"
-        # Only route to providers that actually support `tools` (otherwise some serve the model without native
-        # tool calling and it writes calls as text).
-        body["provider"] = {"require_parameters": True}
+        # Open-weight models are served by many third-party hosts, some without native tool calling (the model
+        # then writes calls as text): require a host that supports every parameter we send. First-party models
+        # (OpenAI/Anthropic/Google) always support tools, and require_parameters would wrongly exclude e.g. GPT-5,
+        # which rejects `temperature`.
+        if not model.startswith(FIRST_PARTY):
+            body["provider"] = {"require_parameters": True}
     if response_format:
         body["response_format"] = response_format
     if max_tokens:
