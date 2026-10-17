@@ -2,7 +2,7 @@ import type { RiskProfile } from "@/lib/types";
 
 /** Trust score over time with shaded 90% credible band. Pure SVG, server-renderable. */
 export default function TrustChart({ history, height = 220 }: { history: RiskProfile["history"]; height?: number }) {
-  const W = 720, H = height, L = 40, R = 12, T = 12, B = 26;
+  const W = 1200, H = height, L = 40, R = 12, T = 12, B = 26;
   if (!history.length)
     return <div className="grid place-items-center rounded-xl border border-dashed border-white/10 text-sm text-zinc-500" style={{ height }}>No history yet — trust updates after each transaction.</div>;
   const pts = history.length === 1 ? [history[0], history[0]] : history;

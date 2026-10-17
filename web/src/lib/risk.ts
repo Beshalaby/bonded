@@ -11,8 +11,9 @@
 // * Agent         alpha = a + successes, beta = b + FAIL_WEIGHT * failures (a paid claim counts 3x).
 //                 Successes = completed tx not later claimed (txCount - failCount).
 // * trustScore = posterior mean; [lower, upper] = 90% equal-tailed credible interval (5% / 95% quantiles).
-// * spendLimit = $50 * e^(3*lower) * (1 + 0.4*ln(1+txCount)), rounded, clamped [$25, $5000]  (credit line).
-// * premiumRate = 0.5% + (1-trust) * 0.6 * (1 + (upper-lower)), clamped [0.5%, 25%]          (expected loss).
+// * spendLimit = $25 * e^(4*lower) * (1 + 0.25*ln(1+txCount)), rounded, clamped [$25, $5000]  (credit line).
+//   Confidence dominates volume, so a high-volume sloppy agent can't out-limit a careful one.
+// * premiumRate = 0.5% + (1-trust) * 0.6 * (1 + (upper-lower)), clamped [0.5%, 40%]          (expected loss).
 import type { RiskProfile, RiskQuote, DB } from "./types";
 import { mutate, read } from "./db";
 import { publish } from "./events";
@@ -112,14 +113,15 @@ export function modelPrior(model: string, db: DB = read()): Prior {
 }
 
 // ------------------------------------------------------------------ derived quantities
+const LIMIT_SCALE = 25, CONF_K = 4, PROOF_K = 0.25;
 export function spendLimitFor(lower: number, txCount: number): number {
-  const raw = BASE_LIMIT * Math.exp(3 * lower) * (1 + 0.4 * Math.log(1 + txCount));
+  const raw = LIMIT_SCALE * Math.exp(CONF_K * lower) * (1 + PROOF_K * Math.log(1 + txCount));
   const step = raw < 200 ? 5 : raw < 1000 ? 10 : 50;
   return Math.min(5000, Math.max(25, Math.round(raw / step) * step));
 }
 export function premiumRateFor(trust: number, lower: number, upper: number): number {
   const r = 0.005 + (1 - trust) * LOSS_SEVERITY * (1 + (upper - lower));
-  return +Math.min(0.25, Math.max(0.005, r)).toFixed(4);
+  return +Math.min(0.4, Math.max(0.005, r)).toFixed(4);
 }
 
 function derive(p: RiskProfile, db: DB) {
@@ -140,13 +142,13 @@ const point = (p: RiskProfile, event: string) => ({ ts: new Date().toISOString()
 export function explainLimit(profile: RiskProfile): string {
   const prior = modelPrior(profile.model);
   const s = Math.max(0, profile.txCount - profile.failCount);
-  const proof = 1 + 0.4 * Math.log(1 + profile.txCount);
+  const proof = 1 + PROOF_K * Math.log(1 + profile.txCount);
   return (
     `Prior: ${prior.source} = Beta(${prior.alpha.toFixed(1)}, ${prior.beta.toFixed(1)}). ` +
     `Evidence: ${s} good transaction${s === 1 ? "" : "s"}, ${profile.failCount} paid claim${profile.failCount === 1 ? "" : "s"} (×${FAIL_WEIGHT}). ` +
     `Posterior Beta(${profile.alpha.toFixed(1)}, ${profile.beta.toFixed(1)}): trust ${(profile.trustScore * 100).toFixed(1)}%, ` +
     `90% CI ${(profile.lower * 100).toFixed(1)}–${(profile.upper * 100).toFixed(1)}%. ` +
-    `Limit = $${BASE_LIMIT} × e^(3×${profile.lower.toFixed(2)}) [${Math.exp(3 * profile.lower).toFixed(2)}× for confidence] × ` +
+    `Limit = $${LIMIT_SCALE} × e^(${CONF_K}×${profile.lower.toFixed(2)}) [${Math.exp(CONF_K * profile.lower).toFixed(2)}× for confidence] × ` +
     `${proof.toFixed(2)} [track record of ${profile.txCount} tx] ≈ $${profile.spendLimit}. ` +
     `Premium ${(profile.premiumRate * 100).toFixed(2)}% = 0.5% + (1−trust)×${LOSS_SEVERITY}×(1+CI width).`
   );

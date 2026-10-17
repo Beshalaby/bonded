@@ -77,7 +77,7 @@ export default function LiveFeed({ initial, limit = 12 }: { initial: TxView[]; l
                 <span>·</span>
                 <span className="font-mono">{t.model}</span>
                 <span>·</span>
-                <span>{timeAgo(t.createdAt)}</span>
+                <span suppressHydrationWarning>{timeAgo(t.createdAt)}</span>
                 {t.quote && t.status === "approved" && <span className="ml-auto text-zinc-500">premium {money(t.quote.premium)}</span>}
               </div>
               {t.guardian?.reasons?.length > 0 && (

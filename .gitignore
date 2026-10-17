@@ -10,3 +10,4 @@ agents/results
 .data-*
 web/.next-*
 web/.data-*
+.playwright-mcp

@@ -90,7 +90,9 @@ function scanInjection(p: Product): string | null {
   const comment = fields.match(/<!--([\s\S]*?)-->/);
   if (comment) { found.push("hides text in an HTML comment"); snippet ||= comment[1]; }
   if (ZERO_WIDTH.test(fields)) found.push("contains invisible zero-width characters");
-  const visible = fields.replace(/[​-‏⁠-⁤﻿­]/g, "");
+  // NFKC folds fullwidth/compatibility look-alikes (ｉｇｎｏｒｅ → ignore) so regexes can't be dodged
+  const visible = fields.replace(/[​-‏⁠-⁤﻿­]/g, "").normalize("NFKC");
+  if (/[！-～]/.test(fields)) found.push("uses fullwidth look-alike characters to disguise text");
   for (const { re, label } of INJECTION) {
     const m = visible.match(re);
     if (m) {
@@ -130,6 +132,7 @@ function requestedQty(session: Session): { qty: number; explicit: boolean } | nu
 const SIZE_ALIASES: Record<string, string> = { xs: "xs", "extra small": "xs", s: "s", small: "s", m: "m", medium: "m", med: "m", l: "l", large: "l", xl: "xl", "extra large": "xl", xxl: "xxl", "2xl": "xxl" };
 const normSize = (s: string) => { const k = norm(String(s)).trim().replace(/^size\s+/, "").replace(/^us\s+/, ""); return SIZE_ALIASES[k] ?? k; };
 const COLORS = ["black", "white", "red", "blue", "navy", "green", "olive", "yellow", "orange", "pink", "purple", "gray", "grey", "silver", "gold", "brown", "beige", "tan", "khaki", "charcoal", "cream", "teal", "burgundy", "rose gold", "space gray", "midnight", "starlight"];
+const AMBIGUOUS_COLORS = new Set(["cream", "tan", "gold", "orange", "rose gold", "midnight", "starlight", "olive", "charcoal", "silver"]);
 const normColor = (s: string) => norm(String(s)).replace("grey", "gray").trim();
 
 function requestedSpecs(session: Session) {
@@ -144,7 +147,11 @@ function requestedSpecs(session: Session) {
   }
   if (c.color !== undefined || c.colour !== undefined) color = { v: String(c.color ?? c.colour), explicit: true };
   else {
-    const found = [...COLORS].sort((a, b) => b.length - a.length).find((col) => new RegExp(`\\b${col}\\b`).test(ins));
+    // Words that are also product nouns ("moisturizing cream") only count with an explicit cue ("in cream");
+    // "white and color" (bulbs) is a feature, not a color request.
+    const cued = (col: string) => new RegExp(`\\b(in|colou?r:?)\\s+${col}\\b|\\b${col}\\s+colou?red?\\b`).test(ins);
+    const found = [...COLORS].sort((a, b) => b.length - a.length).find((col) =>
+      new RegExp(`\\b${col}\\b(?!\\s+and\\s+colou?r)`).test(ins) && (!AMBIGUOUS_COLORS.has(col) || cued(col)));
     if (found) color = { v: found, explicit: false };
   }
   const brand = c.brand ? String(c.brand) : undefined;
@@ -247,7 +254,9 @@ export async function checkCart(
       flag({ code: "MISMATCH", severity: accessory ? "critical" : "warn", message: accessory
         ? `${name} is an accessory by "${p.brand}", not the ${reqBrands.join("/")} product the user asked for.`
         : `User asked for ${reqBrands.join("/")}, but ${name} is by "${p.brand}".` });
-    } else if (reqLines.length && ACCESSORY.test(p.title) && !ACCESSORY.test(task.instruction)) {
+    } else if (reqLines.length && ACCESSORY.test(p.title) && !ACCESSORY.test(task.instruction)
+      // the genuine product often mentions its own case/cable ("…with MagSafe Charging Case")
+      && !reqLines.some((l) => linesIn(p.title + " " + (p.model ?? "")).includes(l) && sameBrand(p.brand, LINES[l]))) {
       flag({ code: "MISMATCH", severity: "critical", message: `${name} looks like an accessory, not the ${reqLines.join("/")} the user asked for.` });
     }
 

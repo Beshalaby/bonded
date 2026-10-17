@@ -50,11 +50,11 @@ const SHOE = ["8", "9", "10", "11"];
 export const ITEMS: BaseItem[] = [
   // ---------------- audio ----------------
   { key: "airpods-pro-2", brand: "Apple", model: "AirPods Pro 2", category: "audio", market: 249,
-    title: "Apple AirPods Pro 2 Wireless Earbuds, Active Noise Cancellation, USB-C MagSafe Charging Case",
+    title: "Apple AirPods Pro 2 Wireless Earbuds, Active Noise Cancellation, Hearing Health, USB-C MagSafe Charging",
     colors: ["White"], features: ["Up to 2x more Active Noise Cancellation", "Adaptive Audio and Transparency mode", "Personalized Spatial Audio", "Up to 6 hours listening time (30 with case)", "USB-C MagSafe charging case with speaker"],
     extraSpecs: { connectivity: "Bluetooth 5.3", chip: "H2" }, listings: 0 },
   { key: "airpods-4", brand: "Apple", model: "AirPods 4", category: "audio", market: 129,
-    title: "Apple AirPods 4 Wireless Earbuds, Bluetooth Headphones, USB-C Charging Case",
+    title: "Apple AirPods 4 Wireless Earbuds, Bluetooth Headphones, USB-C Charging",
     colors: ["White"], features: ["Redesigned for comfort", "Personalized Spatial Audio", "H2 chip", "Up to 30 hours total battery"], listings: 4 },
   { key: "airpods-max", brand: "Apple", model: "AirPods Max", category: "audio", market: 549,
     title: "Apple AirPods Max Over-Ear Headphones - {color}",
@@ -275,7 +275,7 @@ export const ITEMS: BaseItem[] = [
 
   // ---------------- gaming ----------------
   { key: "ps5-slim", brand: "Sony", model: "PlayStation 5 Slim", category: "gaming", market: 499,
-    title: "Sony PlayStation 5 Slim Console - {variant}",
+    title: "Sony PlayStation 5 Slim Console (PS5) - {variant}",
     colors: ["White"], variants: [{ name: "Disc Edition", specKey: "edition", delta: 0 }, { name: "Digital Edition", specKey: "edition", delta: -50 }],
     features: ["1TB SSD", "4K gaming", "DualSense wireless controller included"], listings: 6 },
   { key: "xbox-series-x", brand: "Microsoft", model: "Xbox Series X", category: "gaming", market: 499,
@@ -356,7 +356,7 @@ export const ITEMS: BaseItem[] = [
   { key: "psych-money", brand: "Harriman House", model: "The Psychology of Money", category: "books", market: 20,
     title: "The Psychology of Money by Morgan Housel (Paperback)",
     colors: ["N/A"], features: ["Timeless lessons on wealth, greed, and happiness"], extraSpecs: { author: "Morgan Housel", format: "Paperback" }, listings: 4 },
-  { key: "dune", brand: "Ace", model: "Dune", category: "books", market: 18,
+  { key: "dune", brand: "Ace Books", model: "Dune", category: "books", market: 18,
     title: "Dune by Frank Herbert (Mass Market Paperback)",
     colors: ["N/A"], features: ["Science fiction classic", "Hugo and Nebula award winner"], extraSpecs: { author: "Frank Herbert", format: "Paperback" }, listings: 4 },
   { key: "thinking-fast-slow", brand: "FSG", model: "Thinking, Fast and Slow", category: "books", market: 20,
@@ -383,7 +383,7 @@ export const ITEMS: BaseItem[] = [
     title: "Fitbit Charge 6 Fitness Tracker with Google apps - {color}",
     colors: ["Obsidian", "Porcelain", "Coral"], features: ["Built-in GPS", "Heart rate on equipment", "7-day battery"], listings: 4 },
   { key: "apple-watch-s10", brand: "Apple", model: "Apple Watch Series 10", category: "fitness", market: 399,
-    title: "Apple Watch Series 10 GPS 42mm Aluminum Case - {color}",
+    title: "Apple Watch Series 10 GPS 42mm Aluminum - {color}",
     colors: ["Jet Black", "Rose Gold", "Silver"], features: ["Thinnest Apple Watch", "Sleep apnea notifications", "Fast charging"], listings: 5 },
   { key: "theragun-prime", brand: "Therabody", model: "Theragun Prime", category: "fitness", market: 299,
     title: "Theragun Prime Percussive Massage Gun",

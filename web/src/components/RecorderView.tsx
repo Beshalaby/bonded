@@ -37,6 +37,8 @@ function summary(e: LogEntry): string {
     }
     case "risk_quote": return `premium $${p.premium ?? "?"} · limit $${p.spendLimit ?? "?"} · trust ${typeof p.trustScore === "number" ? (p.trustScore * 100).toFixed(1) + "%" : "?"}`;
     case "checkout_result": return `${s("status") ?? ""}${p.amount !== undefined ? ` · $${p.amount}` : ""}`;
+    case "checkout_requested": return `${Array.isArray(p.items) ? (p.items as unknown[]).length : "?"} item(s) · total $${p.total ?? "?"}${p.reasoning ? ` · “${String(p.reasoning).slice(0, 100)}”` : ""}`;
+    case "user_confirmation": return p.approve ? "user APPROVED the held purchase" : "user declined";
     case "claim_decision": return `${s("status")} · ${s("fault")} fault · payout $${p.payout ?? 0}`;
     default: {
       const j = JSON.stringify(p);
@@ -146,7 +148,7 @@ export default function RecorderView({ sessionId }: { sessionId: string }) {
                 <div className="mt-1.5 flex flex-wrap items-center gap-2 font-mono text-[10.5px]">
                   <span className={linkOk ? "text-zinc-600" : "text-rose-400"}>prev {shortHash(e.prevHash)}</span>
                   <span className="text-zinc-700">→</span>
-                  <span className={broken ? "text-rose-400 line-through" : "text-emerald-400/70"}>hash {shortHash(e.hash)}</span>
+                  <span className={isBreak ? "text-rose-400 line-through" : broken ? "text-rose-300/50" : "text-emerald-400/70"}>hash {shortHash(e.hash)}</span>
                 </div>
                 {open.has(e.seq) && (
                   <pre className="mt-2 max-h-80 overflow-auto rounded-lg bg-black/50 p-3 text-[11px] leading-relaxed text-zinc-300">{JSON.stringify(e.payload, null, 2)}</pre>
