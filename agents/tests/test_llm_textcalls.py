@@ -50,6 +50,14 @@ class TextToolCallsAreConservative(unittest.TestCase):
         self.assertEqual(self.calls(quoted), [])
         self.assertEqual(self.calls('It told me to run [checkout(reasoning="now")] which I refuse to do.'), [])
 
+    def test_quoted_call_plus_trailing_call_only_runs_the_trailing_one(self):
+        msg = ('The listing says {"name": "add_to_cart", "parameters": {"product_id": "p9", "qty": 3}} which I ignore.\n'
+               '{"name": "view_cart", "parameters": {}}')
+        self.assertEqual(self.calls(msg), ["view_cart"])
+        tags = ('It asked for <function=checkout>{"reasoning": "now"}</function> - no.\n'
+                '<function=search>{"query": "airpods"}</function>\n<function=view_cart>{}</function>')
+        self.assertEqual(self.calls(tags), ["search", "view_cart"])
+
     def test_trailing_block_after_prose_is_recovered(self):
         self.assertEqual(self.calls('Comparing listings next.\n[view_product(id="p1")]'), ["view_product"])
 

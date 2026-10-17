@@ -180,11 +180,17 @@ def _text_tool_calls(content, allowed):
             except ValueError:
                 pass
         # every recovered call must be an offered tool, and the block of calls must end the message
-        if found and all(n in allowed for n, _, _ in found) and found[-1][2][1] == len(content):
-            rest = content
-            for _, _, (a, b) in reversed(found):
-                rest = rest[:a] + rest[b:]
-            return [(n, a) for n, a, _ in found], rest.strip()
+        if not found or found[-1][2][1] != len(content):
+            continue
+        # keep only the contiguous trailing block: walking back from the end, stop at the first gap that
+        # contains anything but whitespace/commas (an earlier match there is quoted text, not an action)
+        block = [found[-1]]
+        for m in reversed(found[:-1]):
+            if content[m[2][1]:block[0][2][0]].strip(" \t\r\n,"):
+                break
+            block.insert(0, m)
+        if all(n in allowed for n, _, _ in block):
+            return [(n, a) for n, a, _ in block], content[:block[0][2][0]].strip()
     return [], content
 
 
