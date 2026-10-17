@@ -59,7 +59,8 @@ export interface Session {
   status: "active" | "checked_out" | "blocked" | "held" | "abandoned";
   createdAt: string;
   transactionId?: string;
-  agentKeyId?: string;          // set when created with an agent key; later calls must present the same key
+  agentKeyId?: string;
+  unverified?: boolean;         // agentId was self-asserted (no agent key, not the internal runner)          // set when created with an agent key; later calls must present the same key
   runId?: string;               // eval run this session belongs to
   guardrail?: GuardrailMode;    // default "observe"
 }

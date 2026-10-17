@@ -9,7 +9,7 @@
 // `bank_error` trace entry and carry on.
 import crypto from "node:crypto";
 import { mutate, read } from "../db";
-import { append } from "../recorder";
+import { append, getChain } from "../recorder";
 import { displayName } from "../bench";
 import type { CartItem, Merchant as ArenaMerchant, NessieBackendCache, NessieLedgerEntry, NessieWallet, Product, Session } from "../types";
 import { NessieClient, backendConfig, redact, type NessieApi } from "./client";
@@ -238,14 +238,22 @@ export async function walletSummary(agentId: string, limit = 200): Promise<{ wal
 const errMsg = (e: unknown) => redact(String((e as Error)?.message || e)).slice(0, 300);
 
 /** Session start: ensure the wallet and deposit the budget in the background. Returns immediately. */
-export function onSessionStart(session: Pick<Session, "id" | "agentId" | "model" | "task">): void {
+/** Wallet identity. Self-asserted agentIds get their own namespace so an unverified caller can't fund or
+ *  charge a verified agent's account by claiming its id. */
+export function walletKey(s: Pick<Session, "agentId" | "unverified">): string {
+  return s.unverified ? `unverified:${s.agentId}` : s.agentId;
+}
+/** Hard cap on what a single task can deposit, whatever budget the caller claims. */
+export const MAX_TASK_FUNDING = 10_000;
+
+export function onSessionStart(session: Pick<Session, "id" | "agentId" | "model" | "task" | "unverified">): void {
   let api: NessieApi;
   try { api = backend(); } catch (e) { console.error("[nessie]", errMsg(e)); return; }
   const info = providerInfo(api);
   const p = (async () => {
     try {
-      const wallet = await ensureAgentWallet(session.agentId, session.model);
-      const dep = await fundForTask(wallet, session.task.budget, session.id);
+      const wallet = await ensureAgentWallet(walletKey(session), session.model);
+      const dep = await fundForTask(wallet, Math.min(Math.max(0, Number(session.task.budget) || 0), MAX_TASK_FUNDING), session.id);
       append(session.id, "system", "bank_funded", { provider: info.provider, simulated: info.simulated, accountLast4: wallet.accountLast4, amount: dep.amount, depositId: dep.depositId });
       return wallet;
     } catch (e) {
@@ -271,7 +279,7 @@ export interface CheckoutBank {
  * waiting after `waitMs` (the charge then finishes in the background and still lands in the trace).
  */
 export async function onCheckout(o: {
-  session: Pick<Session, "id" | "agentId" | "model">; status: "completed" | "blocked"; items: CartItem[]; products: Product[];
+  session: Pick<Session, "id" | "agentId" | "model" | "unverified">; status: "completed" | "blocked"; items: CartItem[]; products: Product[];
   merchants: ArenaMerchant[]; total: number; reason?: string; waitMs?: number;
 }): Promise<CheckoutBank> {
   let api: NessieApi;
@@ -282,7 +290,13 @@ export async function onCheckout(o: {
   const work = (async (): Promise<CheckoutBank> => {
     try {
       const funded: NessieWallet | null = await withTimeout<NessieWallet | null>(funding.get(o.session.id) ?? Promise.resolve(null), 12_000).catch(() => null);
-      const wallet = funded ?? await ensureAgentWallet(o.session.agentId, o.session.model);
+      // idempotent per session: never charge or decline twice
+      const prior = getChain(o.session.id).find((e) => e.action === "bank_charge" || e.action === "bank_declined");
+      if (prior) {
+        const pl = prior.payload as { accountLast4?: string };
+        return { ...base, status: prior.action === "bank_charge" ? "charged" : "declined", accountLast4: pl.accountLast4 } as CheckoutBank;
+      }
+      const wallet = funded ?? await ensureAgentWallet(walletKey(o.session), o.session.model);
       if (o.status === "blocked") {
         append(o.session.id, "system", "bank_declined", { provider: info.provider, simulated: info.simulated, accountLast4: wallet.accountLast4, amount: o.total, reason: o.reason ?? "guardrail block" });
         return { ...base, status: "declined", accountLast4: wallet.accountLast4 };

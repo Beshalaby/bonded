@@ -156,7 +156,7 @@ export function createSession(b: { agentId?: string; model?: string; instruction
   const runId = typeof b.runId === "string" && b.runId ? b.runId.slice(0, 120) : undefined;
   const agentId = b.agentId || `agent-${slugModel(model)}`;
   const task: TaskSpec = { instruction: b.instruction, budget, ...(b.constraints ? { constraints: b.constraints } : {}), ...(b.taskId ? { taskId: b.taskId } : {}) };
-  const session: Session = { id: uid("ses"), agentId, model, task, status: "active", createdAt: new Date().toISOString(), guardrail, ...(runId ? { runId } : {}), ...(auth?.keyId ? { agentKeyId: auth.keyId } : {}) };
+  const session: Session = { id: uid("ses"), agentId, model, task, status: "active", createdAt: new Date().toISOString(), guardrail, ...(runId ? { runId } : {}), ...(auth?.keyId ? { agentKeyId: auth.keyId } : !auth?.internal ? { unverified: true } : {}) };
   mutate((db) => {
     if (!db.agents.find((a) => a.id === agentId)) db.agents.push({ id: agentId, name: agentId, model, createdAt: session.createdAt });
     db.sessions.push(session);
@@ -260,9 +260,24 @@ export function removeFromCart(sessionId: string, productId: string) {
  *   observe  → verdict recorded (trace + transaction), always completes   [default; what evals measure]
  *   enforce  → a "block" verdict stops the purchase (agent may fix the cart and retry)
  */
+const g = globalThis as unknown as { __bondedCheckouts?: Set<string> };
+const inflight: Set<string> = g.__bondedCheckouts ?? (g.__bondedCheckouts = new Set());
+
 export async function checkout(sessionId: string, reasoning?: string) {
   const session = requireSession(sessionId);
   if (session.status === "checked_out") throw new ArenaError(409, "session already checked_out");
+  // Concurrent checkouts for one session would both pass the status check before either awaits the
+  // guardrail/bank, double-charging the card. Check-and-set synchronously, release when done.
+  if (inflight.has(sessionId)) throw new ArenaError(409, "checkout already in progress for this session");
+  inflight.add(sessionId);
+  try {
+    return await checkoutLocked(session, sessionId, reasoning);
+  } finally {
+    inflight.delete(sessionId);
+  }
+}
+
+async function checkoutLocked(session: Session, sessionId: string, reasoning?: string) {
   const mode: GuardrailMode = session.guardrail ?? "observe";
   const db = read();
   const cart: Cart = JSON.parse(JSON.stringify(db.carts.find((c) => c.sessionId === sessionId) || { sessionId, items: [] }));
