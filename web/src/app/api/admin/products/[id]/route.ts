@@ -1,4 +1,4 @@
-// OWNER: Team 1. Full product (incl. trap, marketPrice, source) + merchant, for grading.
+// Full product (incl. trap, marketPrice, source) + merchant, for grading.
 import { ArenaError, getMerchant, getProduct, handle } from "@/lib/arena";
 export const dynamic = "force-dynamic";
 

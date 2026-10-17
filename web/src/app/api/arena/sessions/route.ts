@@ -1,4 +1,4 @@
-// OWNER: Team 1. POST {agentId, model, instruction, budget, constraints?, taskId?} -> {sessionId, agentId}
+// POST {agentId, model, instruction, budget, constraints?, taskId?, runId?, guardrail?} -> {sessionId, agentId, runId, guardrail}
 import { body, createSession, handle } from "@/lib/arena";
 export const dynamic = "force-dynamic";
 

@@ -1,5 +1,5 @@
-// Fail-closed switch for demo/admin routes: on in dev, off in production unless BONDED_DEMO=1.
+// Fail-closed switch for admin + process-spawning routes: on in dev, off under `next start` unless SPENDBENCH_DEMO=1.
 export function demoEnabled() {
-  if (process.env.BONDED_DEMO === "0") return false;
-  return process.env.BONDED_DEMO === "1" || process.env.NODE_ENV !== "production";
+  if (process.env.SPENDBENCH_DEMO === "0") return false;
+  return process.env.SPENDBENCH_DEMO === "1" || process.env.NODE_ENV !== "production";
 }

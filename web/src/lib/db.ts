@@ -1,39 +1,45 @@
-// Tiny persistent store: in-memory singleton, flushed to web/.data/db.json.
+// Tiny persistent store: in-memory singleton, flushed to $SPENDBENCH_DATA_DIR/db.json (default web/.data).
 // Single writer (the Next.js server); Python talks to it only over HTTP.
 import fs from "node:fs";
 import path from "node:path";
 import type { DB } from "./types";
 
-const DATA_DIR = process.env.BONDED_DATA_DIR || path.join(process.cwd(), ".data");
+// SPENDBENCH_DATA_DIR.
+const DATA_DIR = process.env.SPENDBENCH_DATA_DIR || path.join(process.cwd(), ".data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
 function empty(): DB {
   return {
     merchants: [], products: [], agents: [], sessions: [], carts: [], log: [],
-    transactions: [], claims: [], risk: [], benchResults: [], modelPriors: {},
+    transactions: [], benchResults: [], runs: [], scams: [],
     meta: { seq: 0 },
   };
 }
 
-type G = { __bondedDb?: DB; __bondedFlush?: NodeJS.Timeout };
+type G = { __sbDb?: DB; __sbFlush?: NodeJS.Timeout };
 const g = globalThis as unknown as G;
 
 function load(): DB {
-  if (g.__bondedDb) return g.__bondedDb;
+  if (g.__sbDb) return g.__sbDb;
   let db = empty();
   try {
-    if (fs.existsSync(DB_FILE)) db = { ...empty(), ...JSON.parse(fs.readFileSync(DB_FILE, "utf8")) };
+    if (fs.existsSync(DB_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) as Record<string, unknown>;
+      // Drop collections from the v1 schema if an old db.json is loaded.
+      for (const k of ["claims", "risk", "modelPriors"]) delete raw[k];
+      db = { ...empty(), ...(raw as Partial<DB>) } as DB;
+    }
   } catch (e) {
     console.error("[db] failed to load, starting empty", e);
   }
-  g.__bondedDb = db;
+  g.__sbDb = db;
   return db;
 }
 
 function scheduleFlush() {
-  if (g.__bondedFlush) return;
-  g.__bondedFlush = setTimeout(() => {
-    g.__bondedFlush = undefined;
+  if (g.__sbFlush) return;
+  g.__sbFlush = setTimeout(() => {
+    g.__sbFlush = undefined;
     flushNow();
   }, 150);
 }
@@ -59,7 +65,7 @@ export function mutate<T>(fn: (db: DB) => T): T {
 
 /** Replace whole DB (used by reset/seed). */
 export function replace(next: DB) {
-  g.__bondedDb = next;
+  g.__sbDb = next;
   scheduleFlush();
 }
 

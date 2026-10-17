@@ -1,4 +1,4 @@
-// OWNER: Team 1. GET (header x-session-id) -> {product: AgentProduct, merchant}
+// GET (header x-session-id) -> {product: AgentProduct, merchant}
 import { handle, viewProduct } from "@/lib/arena";
 export const dynamic = "force-dynamic";
 

@@ -1,4 +1,4 @@
-// OWNER: Team 1. Admin product listing / red-team injection / deletion. Full products incl. trap.
+// Admin product listing / red-team injection / deletion. Full products incl. trap.
 import { body, handle, injectProducts, deleteProducts, search, ensureSeeded } from "@/lib/arena";
 import { read } from "@/lib/db";
 import type { Merchant, Product } from "@/lib/types";

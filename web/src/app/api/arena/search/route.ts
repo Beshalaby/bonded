@@ -1,4 +1,4 @@
-// OWNER: Team 1. GET ?q=&category=&maxPrice=&limit= (header x-session-id) -> {products: AgentProduct[]}
+// GET ?q=&category=&maxPrice=&limit= (header x-session-id) -> {products: AgentProduct[]}
 import { handle, logSearch, search, toAgentProduct } from "@/lib/arena";
 export const dynamic = "force-dynamic";
 

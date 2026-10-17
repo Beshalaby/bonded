@@ -57,11 +57,15 @@ class Arena:
         return self._req("GET", f"/api/admin/products/{urllib.parse.quote(pid)}")
 
     # session
-    def start_session(self, agent_id, model, instruction, budget, constraints=None, task_id=None):
-        r = self._req("POST", "/api/arena/sessions", {
-            "agentId": agent_id, "model": model, "instruction": instruction, "budget": budget,
-            "constraints": constraints or None, "taskId": task_id,
-        })
+    def start_session(self, agent_id, model, instruction, budget, constraints=None, task_id=None,
+                      run_id=None, guardrail=None):
+        body = {"agentId": agent_id, "model": model, "instruction": instruction, "budget": budget,
+                "constraints": constraints or None, "taskId": task_id}
+        if run_id:
+            body["runId"] = run_id
+        if guardrail:
+            body["guardrail"] = guardrail  # off | observe (default) | enforce
+        r = self._req("POST", "/api/arena/sessions", body)
         self.session_id = r["sessionId"]
         return r
 
@@ -90,10 +94,8 @@ class Arena:
         return self._req("GET", "/api/arena/cart?" + urllib.parse.urlencode({"sessionId": self.session_id}))
 
     def checkout(self, reasoning=""):
+        """-> {transaction, guardrail}. Guardrail runs in the session's mode; only `enforce` can block."""
         return self._req("POST", "/api/arena/checkout", {"sessionId": self.session_id, "reasoning": reasoning})
 
-    def confirm(self, tx_id, approve):
-        return self._req("POST", f"/api/arena/transactions/{tx_id}/confirm", {"approve": bool(approve)})
-
-    def recorder(self):
-        return self._req("GET", f"/api/recorder/{self.session_id}")
+    def trace(self):
+        return self._req("GET", f"/api/traces/{self.session_id}")

@@ -1,10 +1,12 @@
 """SpendBench runner.
 
   python3 -m agents.spendbench.runner --models sim/careful,sim/gullible --tasks 20 --workers 4 [--post]
+  python3 -m agents.spendbench.runner --models sims --task-ids a,b,c --run-id run_x --guardrail observe --post
 
 Runs tasks x models in parallel threads against the Arena (ARENA_URL, default http://localhost:3000),
-grades each run, prints a leaderboard, writes agents/results/<runId>.json and (with --post) sends the
-results to POST /api/bench/results (which also refreshes the risk engine's model priors).
+grades each run, prints a leaderboard and writes agents/results/<runId>.json. With --post every result is sent
+to POST /api/bench/results as soon as it is graded (the server attributes failures and streams progress).
+Every Arena session is tagged with the run id and the guardrail mode (off | observe (default) | enforce).
 """
 import argparse
 import hashlib
@@ -131,19 +133,16 @@ def task_spec(task):
             "budget": task["budget"], "constraints": task.get("constraints") or {}}
 
 
-def _run_agent(model, task, agent_id, seed):
-    from agents.harness.agent import run_agent  # Team 1
-    try:
-        return run_agent(model, task_spec(task), agent_id=agent_id, seed=seed)
-    except TypeError:
-        return run_agent(model, task_spec(task), agent_id=agent_id)
+def _run_agent(model, task, agent_id, seed, run_id=None, guardrail=None):
+    from agents.harness.agent import run_agent
+    return run_agent(model, task_spec(task), agent_id=agent_id, seed=seed, run_id=run_id, guardrail=guardrail)
 
 
-def run_one(model, task, run_id, lookup, seed=0, agent_prefix="bench"):
+def run_one(model, task, run_id, lookup, seed=0, agent_prefix="bench", guardrail=None):
     t0 = time.time()
     agent_id = f"{agent_prefix}-{slug(model)}"
     try:
-        rr = _run_agent(model, task, agent_id, stable_seed(seed, model, task["id"]))
+        rr = _run_agent(model, task, agent_id, stable_seed(seed, model, task["id"]), run_id=run_id, guardrail=guardrail)
     except Exception as e:  # harness crash = failed run, not a crashed benchmark
         rr = {"model": model, "agentId": agent_id, "error": f"{type(e).__name__}: {e}",
               "latencyMs": int((time.time() - t0) * 1000), "steps": 0, "costUsd": 0}
@@ -178,25 +177,32 @@ def resolve_models(spec):
     return keep
 
 
-def run_matrix(models, tasks, run_id, workers=4, seed=0, lookup=None, base=None, quiet=False, agent_prefix="bench"):
+def run_matrix(models, tasks, run_id, workers=4, seed=0, lookup=None, base=None, quiet=False, agent_prefix="bench",
+               guardrail=None, on_result=None):
+    """on_result(res) is called (in this thread) as soon as each result is graded."""
     lookup = lookup or http.ProductLookup(base=base)
     jobs = [(m, t) for t in tasks for m in models]
     results, raws = [], []
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-        futs = {ex.submit(run_one, m, t, run_id, lookup, seed, agent_prefix): (m, t) for m, t in jobs}
+        futs = {ex.submit(run_one, m, t, run_id, lookup, seed, agent_prefix, guardrail): (m, t) for m, t in jobs}
         for f in as_completed(futs):
             m, t = futs[f]
             res, rr = f.result()
             results.append(res)
             raws.append(rr)
             done += 1
+            if on_result:
+                try:
+                    on_result(res)
+                except Exception as e:  # never let a reporting failure kill the run
+                    log(f"[bench] on_result failed: {e}")
             if not quiet:
                 flag = "OK " if res["success"] else ("SCAM" if res["scammed"] else
                                                      "OVER" if res["overBudget"] else
                                                      "WRONG" if res["wrongItem"] else "NOBUY")
                 extra = f" traps={','.join(res['trapTypes'])}" if res["trapTypes"] else ""
-                g = f" guardian={res['guardianDecision']}" if res.get("guardianDecision") else ""
+                g = f" guardrail={res['guardrailDecision']}" if res.get("guardrailDecision") else ""
                 err = f" err={res['error'][:80]}" if res.get("error") else ""
                 log(f"[{done:>4}/{len(jobs)}] {flag:<5} {m:<22} {t['id']:<28} ${res['amount']:<8}{extra}{g}{err}")
     return results, raws
@@ -218,7 +224,7 @@ def leaderboard(results):
         rows.append({"model": model, "displayName": DISPLAY.get(model, model), "tasks": len(rs),
                      "successRate": round(sr, 3), "budgetDiscipline": round(1 - ob, 3),
                      "wrongItemRate": round(wi, 3), "scamRate": round(sc, 3),
-                     "guardianCaught": sum(1 for r in rs if r.get("guardianCaught")),
+                     "guardrailCaught": sum(1 for r in rs if r.get("guardrailCaught")),
                      "avgCostUsd": round(sum(r["costUsd"] for r in rs) / n, 5),
                      "avgLatencyMs": int(sum(r["latencyMs"] for r in rs) / n),
                      "score": round(score, 1)})
@@ -233,17 +239,25 @@ def format_leaderboard(rows, title="SpendBench leaderboard"):
     for i, r in enumerate(rows, 1):
         lines.append(f"{i:>2}  {r['model']:<22} {r['displayName'][:28]:<28} {r['tasks']:>5} {pct(r['successRate']):>8} "
                      f"{pct(r['scamRate']):>6} {pct(1 - r['budgetDiscipline']):>7} {pct(r['wrongItemRate']):>6} "
-                     f"{r['guardianCaught']:>8} {r['avgCostUsd']:>8.4f} {r['avgLatencyMs']:>7} {r['score']:>6.1f}")
+                     f"{r['guardrailCaught']:>8} {r['avgCostUsd']:>8.4f} {r['avgLatencyMs']:>7} {r['score']:>6.1f}")
     return "\n".join(lines)
 
 
-def post_results(results, base=None):
-    # Strip bulky extras that the server doesn't need.
-    slim = [{k: v for k, v in r.items() if k not in ("items",)} | {"items": [
-        {"productId": i["productId"], "qty": i["qty"], "trap": i["trap"]} for i in r.get("items", [])]} for r in results]
+def slim_result(r):
+    """Strip bulky extras the server doesn't need."""
+    return {k: v for k, v in r.items() if k != "items"} | {"items": [
+        {"productId": i["productId"], "qty": i["qty"], "unitPrice": i.get("unitPrice"), "trap": i["trap"]}
+        for i in r.get("items", [])]}
+
+
+def post_results(results, base=None, run_id=None):
+    slim = [slim_result(r) for r in results]
     out = None
     for i in range(0, len(slim), 200):
-        out = http.post("/api/bench/results", {"results": slim[i:i + 200]}, base=base, timeout=60)
+        body = {"results": slim[i:i + 200]}
+        if run_id:
+            body["runId"] = run_id
+        out = http.post("/api/bench/results", body, base=base, timeout=60)
     return out
 
 
@@ -270,7 +284,11 @@ def main(argv=None):
     ap.add_argument("--no-generated", action="store_true", help="exclude red-team generated task variants")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--post", action="store_true", help="POST results to /api/bench/results")
+    ap.add_argument("--post", action="store_true", help="POST each result to /api/bench/results as it is graded")
+    ap.add_argument("--run-id", default=None, help="use this run id (default: generated)")
+    ap.add_argument("--guardrail", default="observe", choices=["off", "observe", "enforce"],
+                    help="guardrail mode for every session (default observe: record verdict, never block)")
+    ap.add_argument("--quiet", action="store_true", help="no per-result progress lines")
     ap.add_argument("--json", action="store_true", help="print leaderboard JSON to stdout")
     a = ap.parse_args(argv)
 
@@ -281,26 +299,39 @@ def main(argv=None):
         log("nothing to run")
         return 2
     try:
-        http.get("/api/bench/leaderboard", timeout=10)
+        http.get("/api/leaderboard", timeout=10)
     except Exception as e:
         log(f"[bench] warning: server at {http.ARENA_URL} not reachable ({e})")
     if any(t.get("redteamScamId") for t in tasks):
         ensure_registry_scams()
 
-    run_id = new_run_id()
+    run_id = a.run_id or new_run_id()
     log(f"[bench] run {run_id}: {len(models)} models x {len(tasks)} tasks = {len(models) * len(tasks)} runs "
-        f"({a.workers} workers) against {http.ARENA_URL}")
+        f"({a.workers} workers, guardrail={a.guardrail}) against {http.ARENA_URL}")
     t0 = time.time()
-    results, _ = run_matrix(models, tasks, run_id, workers=a.workers, seed=a.seed)
+    unposted = []
+
+    def stream(res):
+        try:
+            post_results([res], run_id=run_id)
+        except Exception as e:
+            unposted.append(res)
+            log(f"[bench] POST failed for {res['model']} {res['taskId']} (will retry): {e}")
+
+    results, _ = run_matrix(models, tasks, run_id, workers=a.workers, seed=a.seed, quiet=a.quiet,
+                            guardrail=a.guardrail, on_result=stream if a.post else None)
     rows = leaderboard(results)
-    path = write_results(run_id, models, tasks, results, rows)
+    path = write_results(run_id, models, tasks, results, rows, {"guardrail": a.guardrail})
     posted = None
     if a.post:
-        try:
-            posted = post_results(results)
-            log(f"[bench] posted {len(results)} results -> priors {json.dumps(posted.get('priors') if posted else None)}")
-        except Exception as e:
-            log(f"[bench] POST failed: {e}")
+        posted = {"stored": len(results) - len(unposted)}
+        if unposted:
+            try:
+                post_results(unposted, run_id=run_id)
+                posted["stored"] = len(results)
+            except Exception as e:
+                log(f"[bench] retry POST failed for {len(unposted)} results: {e}")
+                return 1
     if a.json:
         print(json.dumps({"runId": run_id, "leaderboard": rows, "resultsFile": path, "posted": posted}))
     else:

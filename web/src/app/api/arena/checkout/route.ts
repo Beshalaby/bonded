@@ -1,4 +1,4 @@
-// OWNER: Team 1. POST {sessionId, reasoning?} -> {transaction, guardian, quote}
+// POST {sessionId, reasoning?} -> {transaction, guardrail}
 import { body, checkout, handle } from "@/lib/arena";
 export const dynamic = "force-dynamic";
 

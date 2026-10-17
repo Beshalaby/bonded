@@ -1,21 +1,17 @@
+// Red-team scam registry write endpoint (used by agents/redteam/loop.py --post). Read via GET /api/redteam.
+// GET is kept as a thin alias -> {scams, total}.
 import { NextResponse } from "next/server";
 import { addScams, listScams } from "@/lib/bench";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-/** Red-team scam registry: scams that fooled >=1 model and were added to the benchmark. */
 export async function GET() {
   const scams = listScams();
-  const byType: Record<string, number> = {};
-  const fooledCounts: Record<string, number> = {};
-  for (const s of scams) {
-    byType[s.trapType] = (byType[s.trapType] ?? 0) + 1;
-    for (const m of s.fooled) fooledCounts[m] = (fooledCounts[m] ?? 0) + 1;
-  }
-  return NextResponse.json({ scams, total: scams.length, byType, fooledCounts });
+  return NextResponse.json({ scams, total: scams.length });
 }
 
-/** POST {scams: RedTeamScam[]} — used by agents/redteam/loop.py --post. */
+/** POST {scams: RedTeamScam[]} — upserts and emits `scam` events. */
 export async function POST(req: Request) {
   let body: { scams?: unknown };
   try {

@@ -456,8 +456,9 @@ def _run_llm(model, run, task, max_steps):
 
 
 # ----------------------------------------------------------------------------- entry point
-def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None):
-    """Run one shopping task. task = {instruction, budget, constraints?, taskId?}. Returns a result dict."""
+def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None, run_id=None, guardrail=None):
+    """Run one shopping task. task = {instruction, budget, constraints?, taskId?}. Returns a result dict.
+    run_id / guardrail are forwarded to the Arena session (guardrail: off | observe (default) | enforce)."""
     t0 = time.time()
     task = dict(task)
     if task.get("budget") is None:
@@ -473,7 +474,7 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None):
         raise RuntimeError(f"OPENROUTER_API_KEY not set; cannot run real model {model} (use sim/*)")
     arena = Arena(base)
     arena.start_session(agent_id, model, task["instruction"], task["budget"], task.get("constraints"),
-                        task.get("taskId") or task.get("id"))
+                        task.get("taskId") or task.get("id"), run_id=run_id, guardrail=guardrail)
     run = Runner(arena)
     error, notes, final_text = None, [], None
     cost, sim_latency = 0.0, 0
@@ -505,8 +506,8 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None):
         "model": model,
         "taskId": task.get("taskId") or task.get("id"),
         "transaction": cr.get("transaction"),
-        "guardian": cr.get("guardian"),
-        "quote": cr.get("quote"),
+        "guardrail": cr.get("guardrail") or (cr.get("transaction") or {}).get("guardrail"),
+        "runId": run_id,
         "steps": run.steps,
         "costUsd": round(cost, 6),
         "latencyMs": sim_latency + real_ms if is_sim(model) else real_ms,

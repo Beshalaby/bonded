@@ -1,4 +1,4 @@
-// OWNER: Team 1. GET ?sessionId= | POST {sessionId, productId, qty} | DELETE {sessionId, productId} -> {cart, total}
+// GET ?sessionId= | POST {sessionId, productId, qty} | DELETE {sessionId, productId} -> {cart, total}
 import { addToCart, body, cartView, handle, removeFromCart, requireSession } from "@/lib/arena";
 export const dynamic = "force-dynamic";
 

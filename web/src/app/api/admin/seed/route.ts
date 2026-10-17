@@ -1,4 +1,4 @@
-// OWNER: Team 1. POST {reset?, wipe?, seed?} — (re)seed the Arena catalog.
+// POST {reset?, wipe?, seed?} — (re)seed the Arena catalog.
 import { body, handle, seedArena } from "@/lib/arena";
 export const dynamic = "force-dynamic";
 

@@ -1,4 +1,4 @@
-// Shared domain types for Bonded. Owned by integration lead — add fields, don't rename.
+// Shared domain types for SpendBench. Owned by integration lead — add fields, don't rename.
 
 export type TrapType =
   | "knockoff"          // counterfeit of a real brand, similar title, wrong brand/specs
@@ -59,6 +59,8 @@ export interface Session {
   status: "active" | "checked_out" | "blocked" | "held" | "abandoned";
   createdAt: string;
   transactionId?: string;
+  runId?: string;               // eval run this session belongs to
+  guardrail?: GuardrailMode;    // default "observe"
 }
 
 export interface CartItem { productId: string; qty: number; unitPrice: number }
@@ -68,8 +70,8 @@ export interface LogEntry {
   seq: number;                  // global, monotonically increasing
   sessionId: string;
   ts: string;
-  actor: "agent" | "system" | "user" | "guardian" | "risk" | "adjuster";
-  action: string;               // search | view | add_to_cart | remove_from_cart | checkout | guardian_verdict | ...
+  actor: "agent" | "system" | "user" | "guardrail";
+  action: string;               // session_start | search | view | add_to_cart | remove_from_cart | checkout_requested | guardrail_verdict | checkout_result
   payload: unknown;
   prevHash: string;             // hash of previous entry in the SAME session ("GENESIS" for first)
   hash: string;                 // sha256(prevHash + canonical(entry without hash))
@@ -88,64 +90,31 @@ export interface GuardianVerdict {
   judge?: { used: "llm" | "heuristic"; model?: string; summary: string };
 }
 
-export interface RiskProfile {
-  agentId: string;
-  model: string;
-  alpha: number;                // Beta posterior successes (+prior)
-  beta: number;                 // Beta posterior failures (+prior)
-  trustScore: number;           // posterior mean of P(good transaction), 0-1
-  lower: number;                // 90% credible interval
-  upper: number;
-  spendLimit: number;           // USD per transaction
-  premiumRate: number;          // fraction of amount
-  txCount: number;
-  failCount: number;
-  history: { ts: string; trustScore: number; lower: number; upper: number; event: string }[];
-}
-
-export interface RiskQuote {
-  agentId: string;
-  amount: number;
-  premium: number;              // USD
-  premiumRate: number;
-  spendLimit: number;
-  withinLimit: boolean;
-  trustScore: number;
-  lower: number;
-  upper: number;
-}
+export type GuardrailMode = "off" | "observe" | "enforce"; // observe = record verdict, never block (default for evals)
 
 export interface Transaction {
   id: string;
   sessionId: string;
   agentId: string;
   model: string;
+  runId?: string;
   amount: number;
   items: CartItem[];
-  guardian: GuardianVerdict;
-  quote: RiskQuote;
-  status: "approved" | "blocked" | "held";  // held = waiting on user (guardian "ask" or over limit)
+  guardrail: GuardianVerdict & { mode: GuardrailMode };
+  status: "completed" | "blocked";          // blocked only possible in enforce mode
   createdAt: string;
 }
 
-export type Fault = "agent" | "user" | "merchant";
-export interface Claim {
-  id: string;
-  transactionId: string;
-  sessionId: string;
-  agentId: string;
-  complaint: string;
-  status: "open" | "paid" | "denied" | "routed_to_merchant";
-  verdict?: {
-    fault: Fault;
-    payout: number;
-    explanation: string;
-    evidenceSeqs: number[];     // flight recorder entries cited
-    chainValid: boolean;
-    judge: "llm" | "heuristic";
-  };
-  createdAt: string;
-  decidedAt?: string;
+/** Why a graded result failed — produced by the failure-attribution judge from the trace. */
+export type FailureMode =
+  | "obeyed_injection" | "bought_knockoff" | "fake_discount" | "untrusted_merchant" | "overpaid"
+  | "over_budget" | "wrong_variant" | "wrong_quantity" | "wrong_product" | "no_purchase" | "error";
+export interface Attribution {
+  fault: "agent" | "task_ambiguous" | "environment";
+  mode: FailureMode;
+  explanation: string;
+  evidenceSeqs: number[];       // trace entries cited
+  judge: "llm" | "heuristic";
 }
 
 export interface BenchResult {
@@ -162,6 +131,46 @@ export interface BenchResult {
   steps: number;
   sessionId?: string;
   createdAt: string;
+  // extras from the grader (optional)
+  amount?: number;
+  bought?: boolean;
+  guardrailDecision?: GuardianDecision;
+  guardrailCaught?: boolean;    // guardrail flagged (ask/block) a run the agent got wrong
+  tags?: string[];
+  attribution?: Attribution;    // set on ingestion for failed results
+  error?: string;
+}
+
+export interface EvalRun {
+  id: string;
+  name: string;                 // e.g. "5 models × 20 tasks"
+  models: string[];
+  taskIds: string[];
+  guardrail: GuardrailMode;
+  status: "queued" | "running" | "completed" | "failed";
+  progress: { done: number; total: number };
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+  error?: string;
+}
+
+export interface Interval { mean: number; lower: number; upper: number } // 90% Beta credible interval
+
+export interface ModelStats {
+  model: string;
+  displayName: string;
+  provider: string;             // "Simulated" | "OpenAI" | ...
+  simulated: boolean;
+  n: number;                    // graded results
+  score: number;                // 0-100 composite
+  reliability: Interval;        // P(success), Beta(1+s, 1+f) posterior
+  metrics: {
+    successRate: number; scamRate: number; budgetViolationRate: number; wrongItemRate: number;
+    noPurchaseRate: number; guardrailCatchRate: number; avgCostUsd: number; avgLatencyMs: number; avgSteps: number;
+  };
+  byTrap: Partial<Record<TrapType, { exposed: number; fooled: number; rate: Interval }>>; // exposure = task has that trap tag
+  failureModes: Partial<Record<FailureMode, number>>;
 }
 
 /** Red-team scam that fooled >=1 model in SpendBench (Team 2). Kept so the benchmark gets harder. */
@@ -180,7 +189,7 @@ export interface RedTeamScam {
 }
 
 export interface FeedEvent {
-  type: "log" | "transaction" | "claim" | "risk" | "bench" | "product";
+  type: "log" | "transaction" | "result" | "run" | "scam" | "product";
   ts: string;
   data: unknown;
 }
@@ -193,10 +202,8 @@ export interface DB {
   carts: Cart[];
   log: LogEntry[];
   transactions: Transaction[];
-  claims: Claim[];
-  risk: RiskProfile[];
   benchResults: BenchResult[];
-  modelPriors: Record<string, { alpha: number; beta: number; source: string }>; // from SpendBench
+  runs: EvalRun[];
   meta: { seq: number; seededAt?: string };
   scams?: RedTeamScam[];        // red-team registry (Team 2, optional/additive)
 }

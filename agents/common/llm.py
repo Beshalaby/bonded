@@ -45,7 +45,7 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=90, retries=2):
         t0 = time.time()
         req = urllib.request.Request(OPENROUTER_URL, data=data, method="POST", headers={
             "Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json",
-            "HTTP-Referer": "https://bonded.local", "X-Title": "Bonded Arena",
+            "HTTP-Referer": "https://spendbench.local", "X-Title": "SpendBench",
         })
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:

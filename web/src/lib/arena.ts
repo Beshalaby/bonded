@@ -1,12 +1,11 @@
-// OWNER: Team 1 (Arena). Sandbox store: seeding, search, carts, checkout orchestration.
+// Arena: the sandbox store agents shop in. Seeding, search, carts, checkout (+ guardrail in the session's mode).
 import { NextResponse } from "next/server";
 import { emptyDb, mutate, read, replace, uid } from "./db";
 import { publish } from "./events";
 import { append } from "./recorder";
 import * as guardian from "./guardian";
-import * as risk from "./risk";
 import { CATEGORY_SYNONYMS, generateSeed } from "./seed";
-import type { Cart, Merchant, Product, Session, TaskSpec, Transaction } from "./types";
+import type { Cart, GuardianVerdict, GuardrailMode, Merchant, Product, Session, TaskSpec, Transaction } from "./types";
 
 export { CATEGORIES, CATEGORY_LABELS, DEMO_IDS } from "./seed";
 
@@ -137,22 +136,31 @@ export function slugModel(model: string) {
   return model.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-export function createSession(b: { agentId?: string; model?: string; instruction?: string; budget?: number; constraints?: TaskSpec["constraints"]; taskId?: string }) {
+export const GUARDRAIL_MODES: GuardrailMode[] = ["off", "observe", "enforce"];
+export function parseGuardrail(v: unknown, fallback: GuardrailMode = "observe"): GuardrailMode {
+  if (v == null || v === "") return fallback;
+  if (!GUARDRAIL_MODES.includes(v as GuardrailMode)) throw new ArenaError(400, `guardrail must be one of ${GUARDRAIL_MODES.join(", ")}`);
+  return v as GuardrailMode;
+}
+
+export function createSession(b: { agentId?: string; model?: string; instruction?: string; budget?: number; constraints?: TaskSpec["constraints"]; taskId?: string; runId?: string; guardrail?: GuardrailMode }) {
   ensureSeeded();
   const model = b.model || "unknown";
   if (!b.instruction) throw new ArenaError(400, "instruction required");
   const budget = Number(b.budget);
   if (!Number.isFinite(budget) || budget <= 0) throw new ArenaError(400, "budget must be a positive number");
+  const guardrail = parseGuardrail(b.guardrail);
+  const runId = typeof b.runId === "string" && b.runId ? b.runId.slice(0, 120) : undefined;
   const agentId = b.agentId || `agent-${slugModel(model)}`;
   const task: TaskSpec = { instruction: b.instruction, budget, ...(b.constraints ? { constraints: b.constraints } : {}), ...(b.taskId ? { taskId: b.taskId } : {}) };
-  const session: Session = { id: uid("ses"), agentId, model, task, status: "active", createdAt: new Date().toISOString() };
+  const session: Session = { id: uid("ses"), agentId, model, task, status: "active", createdAt: new Date().toISOString(), guardrail, ...(runId ? { runId } : {}) };
   mutate((db) => {
     if (!db.agents.find((a) => a.id === agentId)) db.agents.push({ id: agentId, name: agentId, model, createdAt: session.createdAt });
     db.sessions.push(session);
     db.carts.push({ sessionId: session.id, items: [] });
   });
-  append(session.id, "system", "session_start", { agentId, model, task });
-  return { sessionId: session.id, agentId };
+  append(session.id, "system", "session_start", { agentId, model, task, runId: runId ?? null, guardrail });
+  return { sessionId: session.id, agentId, runId: runId ?? null, guardrail };
 }
 
 // ---------------------------------------------------------------- logging helpers for read calls
@@ -188,7 +196,7 @@ export function cartView(sessionId: string) {
 }
 
 function assertMutable(s: Session) {
-  if (s.status === "checked_out" || s.status === "held")
+  if (s.status === "checked_out")
     throw new ArenaError(409, `session is ${s.status}; cart can no longer be changed`);
 }
 
@@ -226,60 +234,48 @@ export function removeFromCart(sessionId: string, productId: string) {
 }
 
 // ---------------------------------------------------------------- checkout
+/**
+ * Checkout runs the guardrail in the session's mode:
+ *   off      → not run; always completes
+ *   observe  → verdict recorded (trace + transaction), always completes   [default; what evals measure]
+ *   enforce  → a "block" verdict stops the purchase (agent may fix the cart and retry)
+ */
 export async function checkout(sessionId: string, reasoning?: string) {
   const session = requireSession(sessionId);
-  if (session.status === "checked_out" || session.status === "held")
-    throw new ArenaError(409, `session already ${session.status}`);
+  if (session.status === "checked_out") throw new ArenaError(409, "session already checked_out");
+  const mode: GuardrailMode = session.guardrail ?? "observe";
   const db = read();
   const cart: Cart = JSON.parse(JSON.stringify(db.carts.find((c) => c.sessionId === sessionId) || { sessionId, items: [] }));
   if (!cart.items.length) throw new ArenaError(400, "cart is empty");
   const total = Math.round(cart.items.reduce((s, i) => s + i.qty * i.unitPrice, 0) * 100) / 100;
   append(sessionId, "agent", "checkout_requested", { reasoning: reasoning ?? null, items: cart.items, total });
 
-  const products = cart.items.map((i) => db.products.find((p) => p.id === i.productId)).filter(Boolean) as Product[];
-  const verdict = await guardian.checkCart(session, cart, products, db.merchants);
-  append(sessionId, "guardian", "guardian_verdict", verdict);
+  let verdict: GuardianVerdict;
+  if (mode === "off") {
+    verdict = { decision: "approve", reasons: [], judge: { used: "heuristic", summary: "Guardrail off for this session." } };
+  } else {
+    const products = cart.items.map((i) => db.products.find((p) => p.id === i.productId)).filter(Boolean) as Product[];
+    verdict = await guardian.checkCart(session, cart, products, db.merchants);
+    append(sessionId, "guardrail", "guardrail_verdict", { mode, ...verdict });
+  }
 
-  const quote = await risk.quote(session.agentId, session.model, total);
-  append(sessionId, "risk", "risk_quote", quote);
-
-  const status: Transaction["status"] =
-    verdict.decision === "block" ? "blocked" : verdict.decision === "ask" || !quote.withinLimit ? "held" : "approved";
+  const status: Transaction["status"] = mode === "enforce" && verdict.decision === "block" ? "blocked" : "completed";
   const tx: Transaction = {
-    id: uid("tx"), sessionId, agentId: session.agentId, model: session.model, amount: total,
-    items: cart.items, guardian: verdict, quote, status, createdAt: new Date().toISOString(),
+    id: uid("tx"), sessionId, agentId: session.agentId, model: session.model, ...(session.runId ? { runId: session.runId } : {}),
+    amount: total, items: cart.items, guardrail: { ...verdict, mode }, status, createdAt: new Date().toISOString(),
   };
   mutate((d) => {
     d.transactions.push(tx);
     const s = d.sessions.find((x) => x.id === sessionId);
-    if (s) { s.transactionId = tx.id; s.status = status === "approved" ? "checked_out" : status === "held" ? "held" : "blocked"; }
+    if (s) { s.transactionId = tx.id; s.status = status === "completed" ? "checked_out" : "blocked"; }
   });
-  if (status === "approved") await risk.recordOutcome(session.agentId, session.model, true, `tx ${tx.id} approved`);
   append(sessionId, "system", "checkout_result", {
-    transactionId: tx.id, status, amount: total,
-    reason: status === "blocked" ? "guardian blocked" : status === "held" ? (verdict.decision === "ask" ? "guardian asked user" : "over spend limit") : "approved",
+    transactionId: tx.id, status, amount: total, guardrailMode: mode, guardrailDecision: verdict.decision,
+    reason: status === "blocked" ? `guardrail blocked (${verdict.reasons.filter((r) => r.severity === "critical").map((r) => r.code).join(", ")})`
+      : mode === "observe" && verdict.decision !== "approve" ? `completed; guardrail would have ${verdict.decision === "block" ? "blocked" : "asked"} (observe mode)` : "completed",
   });
   publish("transaction", tx);
-  return { transaction: tx, guardian: verdict, quote };
-}
-
-export async function confirmTransaction(id: string, approve: boolean) {
-  const tx = read().transactions.find((t) => t.id === id);
-  if (!tx) throw new ArenaError(404, `transaction ${id} not found`);
-  if (tx.status !== "held") throw new ArenaError(409, `transaction is ${tx.status}, not held`);
-  const status: Transaction["status"] = approve ? "approved" : "blocked";
-  const updated = mutate((d) => {
-    const t = d.transactions.find((x) => x.id === id)!;
-    t.status = status;
-    const s = d.sessions.find((x) => x.id === t.sessionId);
-    if (s) s.status = approve ? "checked_out" : "abandoned";
-    return JSON.parse(JSON.stringify(t)) as Transaction;
-  });
-  append(tx.sessionId, "user", "user_confirmation", { transactionId: id, approve });
-  if (approve) await risk.recordOutcome(tx.agentId, tx.model, true, `tx ${id} approved by user`);
-  append(tx.sessionId, "system", "checkout_result", { transactionId: id, status, amount: tx.amount, reason: approve ? "user approved" : "user declined" });
-  publish("transaction", updated);
-  return { transaction: updated };
+  return { transaction: tx, guardrail: tx.guardrail };
 }
 
 // ---------------------------------------------------------------- admin

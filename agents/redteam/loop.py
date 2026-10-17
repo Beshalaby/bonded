@@ -231,7 +231,7 @@ def main(argv=None):
                "fooled": s["fooled"], "taskId": s["taskId"], "variantTaskId": s.get("variantTaskId"),
                "kept": bool(s["fooled"]), "testedModels": models, "runId": run_id,
                "results": [{k: r.get(k) for k in ("model", "success", "scammed", "wrongItem", "overBudget",
-                                                  "trapTypes", "guardianDecision", "txStatus", "amount", "sessionId")}
+                                                  "trapTypes", "guardrailDecision", "txStatus", "amount", "sessionId")}
                            for r in results],
                "attempts": attempts, "benchmarkTasks": len(R.all_tasks())}
         print(json.dumps(out) if a.json else json.dumps(out, indent=1))

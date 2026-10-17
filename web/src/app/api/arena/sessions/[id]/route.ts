@@ -1,4 +1,4 @@
-// OWNER: Team 1. GET -> {session, cart, total, transaction}
+// GET -> {session, cart, total, transaction}
 import { cartView, handle, requireSession } from "@/lib/arena";
 import { read } from "@/lib/db";
 export const dynamic = "force-dynamic";

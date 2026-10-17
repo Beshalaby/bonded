@@ -1,96 +1,103 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { useFeed } from "./useFeed";
-import { Empty, pct } from "./ui";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import type { ModelStats } from "@/lib/types";
+import { cost, modelHref, num, pct } from "@/lib/ui/format";
+import { CIAxis, CIBar } from "./charts";
+import { ProviderBadge, Table, Td, Th, Tr, cx } from "./ui";
 
-export interface LbRow {
-  model: string; displayName: string; simulated?: boolean; tasks: number; successRate: number; budgetDiscipline: number;
-  wrongItemRate: number; scamRate: number; avgCostUsd: number; avgLatencyMs: number; score: number;
-  prior?: { alpha: number; beta: number; mean: number };
+type Key = "rank" | "model" | "score" | "reliability" | "success" | "scam" | "budget" | "wrong" | "cost" | "steps";
+
+const GET: Record<Key, (r: ModelStats) => number | string> = {
+  rank: (r) => -r.score,
+  model: (r) => r.displayName.toLowerCase(),
+  score: (r) => r.score,
+  reliability: (r) => r.reliability.mean,
+  success: (r) => r.metrics.successRate,
+  scam: (r) => r.metrics.scamRate,
+  budget: (r) => r.metrics.budgetViolationRate,
+  wrong: (r) => r.metrics.wrongItemRate,
+  cost: (r) => r.metrics.avgCostUsd,
+  steps: (r) => r.metrics.avgSteps,
+};
+// Natural "best first" direction for each column
+const DEFAULT_DIR: Record<Key, "asc" | "desc"> = {
+  rank: "asc", model: "asc", score: "desc", reliability: "desc", success: "desc", scam: "asc", budget: "asc", wrong: "asc", cost: "asc", steps: "asc",
+};
+
+function Rate({ v, bad }: { v: number; bad?: boolean }) {
+  return <span className={cx(v === 0 ? "text-zinc-400" : bad && v >= 0.2 ? "text-rose-700" : "text-zinc-800")}>{pct(v)}</span>;
 }
-export interface Lb { rows: LbRow[]; scams?: { total: number; redteam: number }; totalResults?: number; lastRunAt?: string | null }
 
-export function useLeaderboard() {
-  const [data, setData] = useState<Lb | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/bench/leaderboard", { cache: "no-store" });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setData(await r.json());
-      setErr(null);
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  useFeed(() => load(), ["bench"]);
-  return { data, err, reload: load };
-}
+export default function LeaderboardTable({ rows, compact = false }: { rows: ModelStats[]; compact?: boolean }) {
+  const router = useRouter();
+  const [sort, setSort] = useState<{ key: Key; dir: "asc" | "desc" }>({ key: "rank", dir: "asc" });
+  const ranked = useMemo(() => [...rows].sort((a, b) => b.score - a.score).map((r, i) => ({ r, rank: i + 1 })), [rows]);
+  const sorted = useMemo(() => {
+    const g = GET[sort.key];
+    const out = [...ranked].sort((a, b) => {
+      const x = g(a.r), y = g(b.r);
+      const c = typeof x === "string" ? x.localeCompare(y as string) : (x as number) - (y as number);
+      return sort.dir === "asc" ? c : -c;
+    });
+    return out;
+  }, [ranked, sort]);
 
-function ScoreBar({ score }: { score: number }) {
-  const c = score >= 80 ? "from-emerald-400 to-emerald-300" : score >= 60 ? "from-amber-400 to-amber-300" : "from-rose-500 to-rose-400";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-white/[0.06]">
-        <div className={`h-full rounded-full bg-gradient-to-r ${c}`} style={{ width: `${Math.max(2, Math.min(100, score))}%` }} />
-      </div>
-      <span className="w-9 text-right font-semibold tabular text-white">{score.toFixed(0)}</span>
-    </div>
+  const th = (key: Key, label: string, align: "left" | "right" = "right", title?: string) => (
+    <Th align={align} title={title} sorted={sort.key === key && sort.key !== "rank" ? sort.dir : false}
+      onClick={() => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: DEFAULT_DIR[key] }))}>
+      {label}
+    </Th>
   );
-}
 
-const rateCls = (v: number, bad = true) => (bad ? (v > 0.2 ? "text-rose-300" : v > 0.05 ? "text-amber-300" : "text-zinc-300") : v >= 0.9 ? "text-emerald-300" : v >= 0.7 ? "text-zinc-200" : "text-amber-300");
-
-export default function LeaderboardTable({ limit, full = false }: { limit?: number; full?: boolean }) {
-  const { data, err } = useLeaderboard();
-  if (err && !data) return <div className="p-5"><Empty>Leaderboard unavailable ({err}). SpendBench hasn’t reported yet.</Empty></div>;
-  if (!data) return <div className="space-y-2 p-5">{[0, 1, 2].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-white/[0.04]" />)}</div>;
-  const rows = limit ? data.rows.slice(0, limit) : data.rows;
-  if (!rows.length) return <div className="p-5"><Empty cta={{ href: "/demo", label: "Run baseline benchmark" }}>No benchmark runs yet.</Empty></div>;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-white/[0.05] text-left text-[11px] uppercase tracking-wider text-zinc-500">
-            <th className="py-2.5 pl-5 pr-2 font-medium">#</th>
-            <th className="px-2 font-medium">Model</th>
-            <th className="px-2 text-right font-medium">Success</th>
-            {full && <th className="px-2 text-right font-medium">Budget discipline</th>}
-            <th className="px-2 text-right font-medium">Wrong item</th>
-            <th className="px-2 text-right font-medium">Scammed</th>
-            {full && <th className="px-2 text-right font-medium">Cost / task</th>}
-            {full && <th className="px-2 text-right font-medium">Latency</th>}
-            {full && <th className="px-2 text-right font-medium">Tasks</th>}
-            <th className="px-2 pr-5 font-medium">Safety score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.model} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02]">
-              <td className="py-2.5 pl-5 pr-2 tabular text-zinc-500">{i + 1}</td>
-              <td className="px-2">
-                <div className="font-medium text-zinc-100">{r.displayName}</div>
-                <div className="font-mono text-[11px] text-zinc-500">{r.model}</div>
-              </td>
-              <td className={`px-2 text-right tabular ${rateCls(r.successRate, false)}`}>{pct(r.successRate)}</td>
-              {full && <td className={`px-2 text-right tabular ${rateCls(r.budgetDiscipline, false)}`}>{pct(r.budgetDiscipline)}</td>}
-              <td className={`px-2 text-right tabular ${rateCls(r.wrongItemRate)}`}>{pct(r.wrongItemRate)}</td>
-              <td className={`px-2 text-right tabular ${rateCls(r.scamRate)}`}>{pct(r.scamRate)}</td>
-              {full && <td className="px-2 text-right tabular text-zinc-400">${r.avgCostUsd.toFixed(r.avgCostUsd < 0.01 ? 4 : 3)}</td>}
-              {full && <td className="px-2 text-right tabular text-zinc-400">{r.avgLatencyMs >= 1000 ? `${(r.avgLatencyMs / 1000).toFixed(1)}s` : `${r.avgLatencyMs}ms`}</td>}
-              {full && <td className="px-2 text-right tabular text-zinc-400">{r.tasks}</td>}
-              <td className="px-2 pr-5"><ScoreBar score={r.score} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {!full && (
-        <div className="border-t border-white/[0.05] px-5 py-2.5 text-right text-xs">
-          <Link href="/leaderboard" className="text-zinc-400 hover:text-white">Full SpendBench results →</Link>
-        </div>
-      )}
-    </div>
+    <Table>
+      <thead>
+        <tr>
+          {th("rank", "#", "right")}
+          {th("model", "Model", "left")}
+          {th("score", "Score", "right", "Composite 0–100: success, minus penalties for scams, budget violations and wrong items")}
+          {th("reliability", "Reliability · 90% CI", "left", "Posterior P(success), Beta(1+s, 1+f); whisker = 90% credible interval")}
+          {th("success", "Success")}
+          {th("scam", "Scammed")}
+          {th("budget", "Over budget", "right", "Share of tasks where the agent spent more than the budget")}
+          {th("wrong", "Wrong item")}
+          {!compact && th("cost", "Avg cost", "right", "Average LLM cost per task")}
+          {!compact && th("steps", "Avg steps")}
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map(({ r, rank }) => (
+          <Tr key={r.model} onClick={() => router.push(modelHref(r.model))}>
+            <Td align="right" className="w-10 text-zinc-400">{rank}</Td>
+            <Td className="min-w-[210px]">
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <Link href={modelHref(r.model)} onClick={(e) => e.stopPropagation()} className="font-medium text-zinc-900 hover:text-accent">
+                  {r.displayName.replace(/\s*\(sim\)\s*$/i, "")}
+                </Link>
+                <ProviderBadge provider={r.provider} simulated={r.simulated} />
+              </div>
+              <div className="mt-0.5 font-mono text-[11.5px] text-zinc-400">{r.model} · n={r.n}</div>
+            </Td>
+            <Td align="right" className="text-[15px] font-semibold text-zinc-900">{num(r.score, 1)}</Td>
+            <Td className="w-[200px]"><CIBar interval={r.reliability} n={r.n} /></Td>
+            <Td align="right"><Rate v={r.metrics.successRate} /></Td>
+            <Td align="right"><Rate v={r.metrics.scamRate} bad /></Td>
+            <Td align="right"><Rate v={r.metrics.budgetViolationRate} bad /></Td>
+            <Td align="right"><Rate v={r.metrics.wrongItemRate} bad /></Td>
+            {!compact && <Td align="right" mono className="text-zinc-700">{cost(r.metrics.avgCostUsd)}</Td>}
+            {!compact && <Td align="right" className="text-zinc-700">{num(r.metrics.avgSteps, 1)}</Td>}
+          </Tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colSpan={3} />
+          <td className="px-3 pb-2 pt-1"><CIAxis /></td>
+          <td colSpan={compact ? 4 : 6} />
+        </tr>
+      </tfoot>
+    </Table>
   );
 }
