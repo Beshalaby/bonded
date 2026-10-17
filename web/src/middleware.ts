@@ -9,7 +9,7 @@ import { AUTH_REQUIRED, INTERNAL_HEADER, SESSION_COOKIE, WRITES_DISABLED, authMo
 //   admin (+svc)    /api/admin/* (any method; the Python runner reads trap ground truth and injects listings here)
 //   admin           every other write: POST /api/runs, /api/redteam, /api/live, /api/auth/agent-keys, ...
 //
-// Rate limits (per client IP, in-memory token buckets): /api/mcp 60/min, POST /api/arena/sessions 20/min,
+// Rate limits (token/closed mode only; per client IP, in-memory token buckets): /api/mcp 60/min, POST /api/arena/sessions 20/min,
 // POST /api/auth/login 10/min. Requests carrying a valid service token are exempt.
 
 // ---------------------------------------------------------------- rate limiting
@@ -67,13 +67,15 @@ export async function middleware(req: NextRequest) {
   const internalHeader = req.headers.get(INTERNAL_HEADER);
   const internal = () => verifyInternal(internalHeader);
 
-  // Rate-limited public agent surfaces.
+  // Rate-limited public agent surfaces. Only when the server is exposed (token/closed mode): in open local demo
+  // mode there is no internal token the middleware can verify, so limiting would throttle our own runner.
+  const limiting = authMode() !== "open";
   if (p === "/api/mcp" && m !== "OPTIONS") {
-    const r = take("mcp", clientIp(req));
+    const r = limiting ? take("mcp", clientIp(req)) : 0;
     return r ? limited(r) : NextResponse.next();
   }
   if (p === "/api/arena/sessions" && m === "POST") {
-    if (!(internalHeader && await internal())) { const r = take("sessions", clientIp(req)); if (r) return limited(r); }
+    if (limiting && !(internalHeader && await internal())) { const r = take("sessions", clientIp(req)); if (r) return limited(r); }
     return NextResponse.next();
   }
   if (p === "/api/auth/login" && m === "POST") {

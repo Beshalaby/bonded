@@ -3,6 +3,7 @@
 // Heuristic always runs (fast, deterministic). With OPENROUTER_API_KEY an LLM judge refines it; the trace and
 // listings are untrusted DATA passed inside delimiters, and the judge's output is validated against fixed enums
 // and the real set of trace seqs.
+import { isInfraError } from "./infra";
 import { read } from "./db";
 import { getChain, verify } from "./recorder";
 import { chatJSON, HAS_LLM } from "./llm";
@@ -99,7 +100,7 @@ export function heuristicAttribution(r: BenchResult, ctx: Ctx = buildCtx(r)): At
 
   // Harness / infrastructure error before any purchase
   if (r.error && !r.bought) {
-    const env = /HTTP 5\d\d|timeout|timed out|connection|URLError|RemoteDisconnected|OPENROUTER|rate limit|429|50[0-9]/i.test(r.error);
+    const env = isInfraError(r);
     const last = c.chain[c.chain.length - 1]?.seq;
     return mk(env ? "environment" : "agent", "error",
       `The run ended with an error before checkout: ${clip(r.error, 140)}${ref(last)}.${env ? " This is an infrastructure failure, not an agent decision." : ""}`, [last]);

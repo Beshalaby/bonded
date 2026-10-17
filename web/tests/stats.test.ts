@@ -138,3 +138,16 @@ describe("modelStats / latestResults", () => {
     expect(s.simulated).toBe(true);
   });
 });
+
+describe("infrastructure errors are ungraded", () => {
+  it("latestResults skips infra errors and keeps the earlier valid result", async () => {
+    const { latestResults } = await import("@/lib/stats");
+    const base = { model: "m/x", taskId: "t1", success: true, overBudget: false, wrongItem: false, scammed: false, costUsd: 0, latencyMs: 0, steps: 3, bought: true };
+    const ok = { ...base, runId: "r1", createdAt: "2026-01-01T00:00:00Z" };
+    const crashed = { ...base, runId: "r2", success: false, bought: false, steps: 0, error: "ArenaError: HTTP 429: rate limit exceeded", createdAt: "2026-01-02T00:00:00Z" };
+    const agentErr = { ...base, taskId: "t2", runId: "r2", success: false, bought: false, error: "ValueError: bad tool args", createdAt: "2026-01-02T00:00:00Z" };
+    const out = latestResults([ok, crashed, agentErr] as never);
+    expect(out.find((r) => r.taskId === "t1")?.runId).toBe("r1");
+    expect(out.find((r) => r.taskId === "t2")).toBeTruthy(); // agent-side errors still count against the agent
+  });
+});

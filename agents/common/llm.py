@@ -133,13 +133,62 @@ def _norm_tool_calls(raw, turn_id):
     return out
 
 
+_PY_CALLS = re.compile(r"\[\s*[A-Za-z_]\w*\s*\(.*?\)\s*(?:,\s*[A-Za-z_]\w*\s*\(.*?\)\s*)*\]", re.S)
+_FN_TAG = re.compile(r"<function=([A-Za-z_]\w*)>\s*(\{.*?\})\s*</function>", re.S)
+_JSON_CALL = re.compile(r"\{\s*\"(?:name|function)\"\s*:\s*\"([A-Za-z_]\w*)\"\s*,\s*\"(?:parameters|arguments)\"\s*:\s*(\{.*?\})\s*\}", re.S)
+
+
+def _text_tool_calls(content):
+    """Some providers (e.g. Llama served without native tool support) write tool calls as text instead of
+    `tool_calls`: Llama's pythonic `[search(query="x", max_price=260)]`, `<function=name>{...}</function>`, or a bare
+    `{"name": ..., "parameters": {...}}`. Recover them so the episode isn't scored as a model that gave up.
+    Returns (calls as [(name, args_dict)], content_without_the_calls)."""
+    import ast
+    for m in _PY_CALLS.finditer(content or ""):
+        try:
+            node = ast.parse(m.group(0), mode="eval").body
+        except SyntaxError:
+            continue
+        calls = []
+        for c in getattr(node, "elts", []):
+            if not (isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and not c.args):
+                calls = []
+                break
+            try:
+                calls.append((c.func.id, {k.arg: ast.literal_eval(k.value) for k in c.keywords}))
+            except ValueError:
+                calls = []
+                break
+        if calls:
+            return calls, (content[:m.start()] + content[m.end():]).strip()
+    for rx in (_FN_TAG, _JSON_CALL):
+        found = []
+        for m in rx.finditer(content or ""):
+            try:
+                found.append((m.group(1), json.loads(m.group(2)), m.span()))
+            except ValueError:
+                pass
+        if found:
+            rest = content
+            for _, _, (a, b) in reversed(found):
+                rest = rest[:a] + rest[b:]
+            return [(n, a) for n, a, _ in found], rest.strip()
+    return [], content
+
+
 def normalize_message(msg, turn_id="0"):
     msg = msg if isinstance(msg, dict) else {}
     reasoning = msg.get("reasoning")
     if not isinstance(reasoning, str):
         reasoning = None
-    return {"role": "assistant", "content": _text(msg.get("content")),
-            "tool_calls": _norm_tool_calls(msg.get("tool_calls"), turn_id), "reasoning": reasoning}
+    content = _text(msg.get("content"))
+    tool_calls = _norm_tool_calls(msg.get("tool_calls"), turn_id)
+    if not tool_calls and content:
+        calls, rest = _text_tool_calls(content)
+        if calls:
+            tool_calls = _norm_tool_calls([{"name": n, "arguments": a} for n, a in calls], turn_id)
+            content = rest
+    return {"role": "assistant", "content": content, "tool_calls": tool_calls, "reasoning": reasoning}
 
 
 def assistant_history_entry(msg):
@@ -265,6 +314,9 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=Non
     if tools:
         body["tools"] = tools
         body["tool_choice"] = "auto"
+        # Only route to providers that actually support `tools` (otherwise some serve the model without native
+        # tool calling and it writes calls as text).
+        body["provider"] = {"require_parameters": True}
     if response_format:
         body["response_format"] = response_format
     if max_tokens:
