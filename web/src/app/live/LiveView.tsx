@@ -1,18 +1,29 @@
 "use client";
+// Watch: one question, one black Run button. Model / task / guardrail live in a quiet "Options" popover.
+// Running: the store mirror + the agent's thoughts. Ending: a full-screen verdict (see components/live/Reveal).
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { Check, Pause, Play, RotateCcw, SlidersHorizontal } from "lucide-react";
 import type { BenchResult, EvalRun, FeedEvent, GuardrailMode, LogEntry } from "@/lib/types";
 import { useEvents } from "@/components/useEvents";
-import { Badge, ProviderBadge, Select, buttonClass, cx } from "@/components/ui";
+import { Select, cx } from "@/components/ui";
 import { getJSON, useApi, type Task, type TasksResponse } from "@/lib/ui/api";
-import { isAuthError, postJSON } from "@/lib/auth-client";
+import { postJSON } from "@/lib/auth-client";
 import AuthError from "@/components/auth/AuthError";
 import { traceHref, usd } from "@/lib/ui/format";
 import Theater, { StatusPill } from "@/components/live/Theater";
-import { displayName, obj, str, type LiveConfig, type LiveSessionData } from "@/components/live/model";
+import { displayName, obj, str, type LiveConfig, type LiveModel, type LivePreset, type LiveSessionData } from "@/components/live/model";
 
 type Phase = "idle" | "starting" | "live" | "error";
+
+const DEFAULT_TASK = "airpods-pro-2";
+/** Real models to open with (fast, articulate), in order. Falls back to any available real model, then the sim. */
+const PREFERRED_REAL = ["anthropic/claude-haiku-4.5", "google/gemini-2.5-flash", "openai/gpt-5-mini"];
+
+function defaultModel(models: LiveModel[]): string {
+  const real = models.filter((m) => !m.simulated && m.available);
+  return PREFERRED_REAL.find((id) => real.some((m) => m.id === id)) ?? real[0]?.id ?? "sim/gullible";
+}
 
 export default function LiveView({ replayId, initialModel, initialTask }: { replayId?: string; initialModel?: string; initialTask?: string }) {
   const { data: cfg } = useApi<LiveConfig>("/api/live");
@@ -20,8 +31,10 @@ export default function LiveView({ replayId, initialModel, initialTask }: { repl
   const tasks = useMemo(() => tasksRes?.tasks ?? [], [tasksRes]);
   const models = useMemo(() => cfg?.models ?? [], [cfg]);
 
-  const [model, setModel] = useState(initialModel || "sim/gullible");
-  const [taskId, setTaskId] = useState(initialTask || "airpods-pro-2");
+  // `undefined` until the user picks: then the default follows GET /api/live (a real model when a key is configured)
+  const [picked, setModel] = useState<string | undefined>(initialModel);
+  const model = picked ?? (cfg ? defaultModel(models) : "sim/gullible");
+  const [taskId, setTaskId] = useState(initialTask || DEFAULT_TASK);
   const [guardrail, setGuardrail] = useState<GuardrailMode>("observe");
   const [phase, setPhase] = useState<Phase>("idle");
   const [err, setErr] = useState<string>();
@@ -162,6 +175,17 @@ export default function LiveView({ replayId, initialModel, initialTask }: { repl
   const modelMeta = models.find((m) => m.id === model);
   const finished = !!data?.result && pos[0] >= pos[1] && pos[1] > 0;
   const busy = phase === "starting" || (phase === "live" && !data?.result);
+  const disabledReason = cfg && !cfg.demoEnabled ? "Live runs are turned off on this server." : undefined;
+
+  // ---------------------------------------------------------------- opening state: one question, one button
+  if (!replayId && (phase === "idle" || (phase === "error" && !entries.length))) {
+    return (
+      <Opening task={task} model={model} modelMeta={modelMeta} models={models} tasks={tasks} presets={cfg?.presets ?? []}
+        taskId={taskId} guardrail={guardrail} err={err} disabledReason={disabledReason} ready={!!cfg && !!task}
+        onRun={run} onPreset={(p) => { setTaskId(p.taskId); setModel(p.model); }}
+        onModel={setModel} onTask={setTaskId} onGuardrail={setGuardrail} />
+    );
+  }
 
   const status = replayId
     ? <StatusPill kind={finished ? "done" : "replay"} label={finished ? "Graded" : `Replay ${speed}×`} />
@@ -170,71 +194,181 @@ export default function LiveView({ replayId, initialModel, initialTask }: { repl
     : phase === "live" ? (finished ? <StatusPill kind="done" /> : <StatusPill kind="live" label={connected ? "Live" : "Reconnecting"} />)
     : <StatusPill kind="idle" />;
 
-  const intro = replayId ? (
-    <div className="flex h-full items-center justify-center text-[13px] text-zinc-500">{err ? <span className="text-rose-700">Couldn’t load trace: {err}</span> : "Loading trace…"}</div>
-  ) : (
-    <Intro task={task} modelName={displayName(model, models)} modelProfile={modelMeta?.profile} simulated={modelMeta?.simulated}
-      phase={phase} err={err} onRun={run} disabled={!cfg?.demoEnabled || !task} disabledReason={cfg && !cfg.demoEnabled ? "Live runs are disabled on this server (SPENDBENCH_DEMO=0)." : undefined} />
+  const intro = (
+    <div className="flex h-full min-h-[280px] items-center justify-center p-8 text-center">
+      {replayId ? (
+        err ? <p className="text-[15px] text-coral-ink">Couldn’t load this trace. {err}</p> : <p className="text-[15px] text-ink-3">Loading the trace…</p>
+      ) : (
+        <div className="lv-fade-up">
+          <span aria-hidden className="pulse-dot mx-auto mb-4 block size-2 rounded-full bg-gold" />
+          <p className="text-[19px] font-medium tracking-[-0.02em] text-ink">Opening the store…</p>
+          {task && <p className="mx-auto mt-2 max-w-[36ch] text-[14px] text-ink-3">“{task.instruction}”</p>}
+        </div>
+      )}
+    </div>
   );
 
   return (
-    <div className="relative left-1/2 -mb-24 flex h-[calc(100dvh-104px)] min-h-[620px] w-[min(1440px,calc(100vw-40px))] -translate-x-1/2 flex-col max-lg:static max-lg:mb-0 max-lg:h-auto max-lg:min-h-0 max-lg:w-full max-lg:translate-x-0">
-      {/* header + controls */}
-      <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <div className="min-w-0">
-          <h1 className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[20px] font-semibold leading-tight tracking-[-0.02em] text-zinc-900 min-[900px]:flex-nowrap min-[900px]:items-center">
-            {replayId ? "Replay" : "Live"}
-            <span className="text-[13px] font-normal tracking-normal text-zinc-500">
-              {replayId ? <>trace <Link href={traceHref(replayId)} className="break-anywhere font-mono text-[12px] text-zinc-700 hover:text-accent">{replayId}</Link></> : "Watch an agent shop. Every step is traced, hash-chained and graded."}
-            </span>
-          </h1>
+    <div className="relative left-1/2 -mb-24 flex h-[calc(100dvh-140px)] min-h-[620px] w-[min(1440px,calc(100vw-40px))] -translate-x-1/2 flex-col max-lg:static max-lg:mb-0 max-lg:h-auto max-lg:min-h-0 max-lg:w-full max-lg:translate-x-0">
+      {/* one quiet line: what's playing, and (replay) the transport */}
+      <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex min-w-0 items-baseline gap-x-3 gap-y-1 max-sm:flex-wrap">
+          <h1 className="text-[22px] font-[600] leading-tight tracking-[-0.035em] text-ink sm:text-[26px]">{replayId ? "Replay." : "Watch."}</h1>
+          <span className="min-w-0 truncate text-[14px] text-ink-3">
+            {replayId
+              ? <Link href={traceHref(replayId)} className="break-anywhere font-mono text-[12.5px] text-ink-3 hover:text-accent">{replayId}</Link>
+              : <>{displayName(model, models)} <span className="text-ink-5">·</span> {task?.id ?? taskId}</>}
+          </span>
         </div>
         {replayId ? (
           <ReplayControls pos={pos} speed={speed} setSpeed={setSpeed} paused={paused} setPaused={setPaused}
             onSeek={(n) => setSeekTo({ n, nonce: Date.now() })} onRestart={() => { setPaused(false); setSeekTo({ n: 0, nonce: Date.now() }); }} />
-        ) : (
-          <div className="flex flex-wrap items-center gap-2 max-sm:w-full">
-            {(cfg?.presets ?? []).map((p) => (
-              <button key={p.key} type="button" disabled={busy} title={p.hint}
-                onClick={() => { setTaskId(p.taskId); setModel(p.model); if (phase !== "idle") reset(); }}
-                className={cx("inline-flex h-8 max-lg:h-10 items-center rounded-md border px-2.5 text-[12.5px] transition-colors disabled:opacity-50",
-                  taskId === p.taskId ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50")}>
-                {p.label}
-              </button>
-            ))}
-            <span className="mx-1 h-5 w-px bg-zinc-200 max-sm:m-0 max-sm:h-0 max-sm:w-auto max-sm:basis-full" />
-            <Select label="Model" value={model} onChange={(v) => { setModel(v); if (phase !== "idle" && !busy) reset(); }} className="w-[168px] max-sm:w-[calc(50%-4px)]">
-              {models.map((m) => <option key={m.id} value={m.id} disabled={!m.available}>{m.displayName}{m.available ? "" : " (needs key)"}</option>)}
-            </Select>
-            <Select label="Task" value={taskId} onChange={(v) => { setTaskId(v); if (phase !== "idle" && !busy) reset(); }} className="w-[190px] max-sm:w-[calc(50%-4px)]">
-              <TaskOptions tasks={tasks} />
-            </Select>
-            <Select label="Guardrail" value={guardrail} onChange={(v) => setGuardrail(v as GuardrailMode)} className="w-[176px] max-sm:min-w-0 max-sm:flex-1">
-              <option value="observe">Guardrail: observe</option>
-              <option value="enforce">Guardrail: enforce</option>
-              <option value="off">Guardrail: off</option>
-            </Select>
-            <button onClick={run} disabled={busy || !cfg?.demoEnabled || !task} className={cx(buttonClass("primary"), "min-w-[76px]")}>
-              {busy ? <span className="pulse-dot inline-block size-1.5 rounded-full bg-white" /> : <Play size={13} fill="currentColor" />}
-              {busy ? "Running" : phase === "idle" ? "Run" : "Run again"}
-            </button>
-          </div>
-        )}
+        ) : !busy ? (
+          <button type="button" onClick={reset} className="group inline-flex items-center gap-1.5 text-[14px] font-medium text-ink-2 transition-colors hover:text-ink">
+            <RotateCcw size={14} aria-hidden className="transition-transform duration-300 group-hover:-rotate-45" /> Watch another
+          </button>
+        ) : null}
       </div>
 
       {err && phase === "error" && !replayId && (
-        <div className="mb-3 shrink-0 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-700">{isAuthError(err) ? <AuthError message={err} /> : err}</div>
+        <div className="mb-3 shrink-0 text-[14px] text-coral-ink"><AuthError message={err} className="text-[14px]" /></div>
       )}
 
       <Theater key={`${replayId ?? "live"}-${nonce}`} mode={replayId ? "replay" : "live"} data={data} entries={entries} speed={speed} paused={paused}
         models={models} intro={intro} status={status} idleModel={replayId ? undefined : model} seekTo={seekTo} onPosition={onPosition}
         onAgain={replayId ? () => { setPaused(false); setSeekTo({ n: 0, nonce: Date.now() }); } : reset}
-        againLabel={replayId ? "Replay again" : "Run another"} />
+        againLabel={replayId ? "Replay again" : "Watch another"} />
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ pieces */
+/* ------------------------------------------------------------------ opening */
+
+const TAG_SENTENCE: Record<string, string> = {
+  "injection-exposure": "One listing hides an instruction meant for it.",
+  "knockoff-exposure": "Some listings are knockoffs.",
+  "discount-bait": "Some discounts are fake.",
+  "new-merchant-exposure": "Some sellers opened last week.",
+  "price-gouge-exposure": "Some prices are gouged.",
+};
+
+function Opening({ task, model, modelMeta, models, tasks, presets, taskId, guardrail, err, disabledReason, ready, onRun, onPreset, onModel, onTask, onGuardrail }: {
+  task?: Task; model: string; modelMeta?: LiveModel; models: LiveModel[]; tasks: Task[]; presets: LivePreset[];
+  taskId: string; guardrail: GuardrailMode; err?: string; disabledReason?: string; ready: boolean;
+  onRun: () => void; onPreset: (p: LivePreset) => void; onModel: (m: string) => void; onTask: (t: string) => void; onGuardrail: (g: GuardrailMode) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const who = modelMeta ? (modelMeta.simulated ? "A simulated agent" : `${modelMeta.displayName}, a real AI,`) : "An agent";
+  const trap = task?.tags.map((t) => TAG_SENTENCE[t]).find(Boolean) ?? (task?.adversarial ? "One listing is a scam our red team built." : "Some listings are traps.");
+  return (
+    <section aria-labelledby="watch-title" className="relative isolate -mx-4 flex min-h-[calc(100svh-96px)] flex-col items-center justify-center px-5 pb-16 text-center sm:-mx-8 sm:min-h-[calc(100svh-112px)]">
+      <div aria-hidden className="burst burst-gold" style={{ ["--bx" as string]: "50%", ["--by" as string]: "40%", ["--bs" as string]: "min(1100px, 140vw)", ["--bo" as string]: 0.75 }} />
+      <div aria-hidden className="burst burst-sage" style={{ ["--bx" as string]: "74%", ["--by" as string]: "72%", ["--bs" as string]: "min(560px, 90vw)", ["--bo" as string]: 0.5 }} />
+
+      <h1 id="watch-title" className="lv-fade-up font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(46px,7.4vw,112px)]">
+        Watch an agent <span className="text-gold-sweep">shop.</span>
+      </h1>
+      <p className="lv-fade-up mx-auto mt-6 max-w-[44ch] text-[17px] leading-[1.45] text-ink-3 sm:text-[19px]" style={{ animationDelay: "80ms" }}>
+        {task ? <>{who} gets {usd(task.budget, 0)} and a store full of traps. {trap}</> : "It gets a budget and a store full of traps."}
+      </p>
+
+      <div className="lv-fade-up mt-10 flex flex-col items-center" style={{ animationDelay: "160ms" }}>
+        <button type="button" onClick={onRun} disabled={!ready || !!disabledReason}
+          className="inline-flex h-14 items-center gap-2.5 rounded-full bg-ink px-9 text-[17px] font-medium text-white shadow-ink transition-[background-color,transform] duration-200 hover:bg-[oklch(28%_0.012_70)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40">
+          <Play size={16} fill="currentColor" aria-hidden /> Run
+        </button>
+
+        <div className="relative mt-6">
+          <button type="button" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[14px] text-ink-3 transition-colors hover:text-ink">
+            <SlidersHorizontal size={14} aria-hidden />
+            <span>{displayName(model, models)} <span className="text-ink-5">·</span> {taskId}</span>
+            <span className="font-medium text-ink-2">Options</span>
+          </button>
+          {open && (
+            <Options onClose={() => setOpen(false)} models={models} tasks={tasks} presets={presets} model={model} taskId={taskId} guardrail={guardrail}
+              onPreset={onPreset} onModel={onModel} onTask={onTask} onGuardrail={onGuardrail} />
+          )}
+        </div>
+
+        <div className="mt-3 min-h-5 text-[13.5px]">
+          {disabledReason ? <p className="text-ink-3">{disabledReason}</p>
+            : err ? <AuthError message={err} className="text-[13.5px]" />
+            : <p className="text-ink-4">About 20 seconds. Graded like any eval.</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Options({ onClose, models, tasks, presets, model, taskId, guardrail, onPreset, onModel, onTask, onGuardrail }: {
+  onClose: () => void; models: LiveModel[]; tasks: Task[]; presets: LivePreset[]; model: string; taskId: string; guardrail: GuardrailMode;
+  onPreset: (p: LivePreset) => void; onModel: (m: string) => void; onTask: (t: string) => void; onGuardrail: (g: GuardrailMode) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const down = (e: PointerEvent) => { if (ref.current && !ref.current.parentElement?.contains(e.target as Node)) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("pointerdown", down);
+    document.addEventListener("keydown", key);
+    ref.current?.querySelector<HTMLElement>("button, select")?.focus();
+    return () => { document.removeEventListener("pointerdown", down); document.removeEventListener("keydown", key); };
+  }, [onClose]);
+
+  return (
+    <div ref={ref} role="dialog" aria-label="Run options"
+      className="lv-pop absolute left-1/2 top-full z-30 mt-2 w-[min(380px,calc(100vw-32px))] -translate-x-1/2 rounded-[22px] bg-surface p-2 text-left shadow-float">
+      {presets.length > 0 && (
+        <ul className="grid">
+          {presets.map((p) => {
+            const on = p.taskId === taskId;
+            return (
+              <li key={p.key}>
+                <button type="button" onClick={() => onPreset(p)}
+                  className={cx("flex w-full items-start gap-3 rounded-[16px] px-3 py-2.5 text-left transition-colors", on ? "bg-gold-soft" : "hover:bg-ivory")}>
+                  <span className={cx("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full", on ? "bg-accent text-white" : "shadow-[inset_0_0_0_1px_var(--color-ink-5)]")}>
+                    {on && <Check size={10} strokeWidth={3} aria-hidden />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-medium tracking-[-0.01em] text-ink">{p.label}</span>
+                    <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-3">{p.hint}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="mt-1 grid gap-2 border-t border-divider p-2 pt-3">
+        <Field label="Agent">
+          <Select label="Agent" value={model} onChange={onModel} className="w-full">
+            <optgroup label="Real models">{models.filter((m) => !m.simulated).map((m) => <option key={m.id} value={m.id} disabled={!m.available}>{m.displayName}{m.available ? "" : " (needs key)"}</option>)}</optgroup>
+            <optgroup label="Simulated">{models.filter((m) => m.simulated).map((m) => <option key={m.id} value={m.id}>{m.displayName}</option>)}</optgroup>
+          </Select>
+        </Field>
+        <Field label="Task">
+          <Select label="Task" value={taskId} onChange={onTask} className="w-full"><TaskOptions tasks={tasks} /></Select>
+        </Field>
+        <Field label="Guardrail">
+          <Select label="Guardrail" value={guardrail} onChange={(v) => onGuardrail(v as GuardrailMode)} className="w-full">
+            <option value="observe">Observe</option>
+            <option value="enforce">Enforce</option>
+            <option value="off">Off</option>
+          </Select>
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid grid-cols-[76px_minmax(0,1fr)] items-center gap-3">
+      <span className="text-[13px] text-ink-3">{label}</span>
+      {children}
+    </label>
+  );
+}
 
 function TaskOptions({ tasks }: { tasks: Task[] }) {
   const base = tasks.filter((t) => !t.adversarial);
@@ -247,91 +381,35 @@ function TaskOptions({ tasks }: { tasks: Task[] }) {
   );
 }
 
-const TAG_LABEL: Record<string, [string, "bad" | "warn" | "outline"]> = {
-  "injection-exposure": ["Hidden prompt injection", "bad"],
-  "knockoff-exposure": ["Knockoffs", "bad"],
-  "discount-bait": ["Fake discounts", "bad"],
-  "new-merchant-exposure": ["Brand-new sellers", "bad"],
-  "price-gouge-exposure": ["Price gouging", "bad"],
-  sizing: ["Size must match", "warn"],
-  quantity: ["Exact quantity", "warn"],
-  "tight-budget": ["Tight budget", "warn"],
-  ambiguous: ["Ambiguous request", "outline"],
-};
-
-function Intro({ task, modelName, modelProfile, simulated, phase, err, onRun, disabled, disabledReason }: {
-  task?: Task; modelName: string; modelProfile?: string; simulated?: boolean; phase: Phase; err?: string;
-  onRun: () => void; disabled: boolean; disabledReason?: string;
-}) {
-  if (!task) return <div className="flex h-full items-center justify-center text-[13px] text-zinc-500">Loading tasks…</div>;
-  const constraints = Object.entries(task.constraints ?? {});
-  const tags = task.tags.map((t) => t.startsWith("redteam:") ? [`Red team: ${t.slice(8).replace(/_/g, " ")}`, "bad"] as [string, "bad"] : TAG_LABEL[t]).filter(Boolean);
-  return (
-    <div className="flex h-full items-center justify-center p-8 max-sm:p-4">
-      <div key={task.id + modelName} className="lv-fade-up w-full max-w-[580px]">
-        <div className="flex items-center gap-2 text-[12px] text-zinc-500">
-          {task.adversarial ? <Badge tone="bad">Red-team task</Badge> : <span>Task</span>}
-          <span className="font-mono text-[11.5px] text-zinc-700">{task.id}</span>
-        </div>
-        <h2 className="mt-2.5 text-[24px] max-sm:text-[19px] font-semibold leading-snug tracking-[-0.02em] text-zinc-900">“{task.instruction}”</h2>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px]">
-          <span className="rounded-md border border-zinc-200 px-2 py-0.5 text-zinc-700">Budget <span className="font-mono font-medium text-zinc-900">{usd(task.budget)}</span></span>
-          {constraints.map(([k, v]) => (
-            <span key={k} className="rounded-md border border-zinc-200 px-2 py-0.5 text-zinc-700"><span className="capitalize">{k}</span> <span className="font-mono font-medium text-zinc-900">{String(v)}</span></span>
-          ))}
-        </div>
-        {tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span className="mr-0.5 text-[12px] text-zinc-500">In this store:</span>
-            {tags.map(([l, tone]) => <Badge key={l} tone={tone}>{l}</Badge>)}
-          </div>
-        )}
-
-        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 max-sm:px-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent text-[13px] font-semibold text-white">{modelName.replace(/^Sim-/, "").slice(0, 1)}</span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-[13.5px] font-semibold text-zinc-900">{modelName} {simulated != null && <ProviderBadge simulated={simulated} provider="OpenRouter" />}</div>
-            {modelProfile && <div className="text-[12.5px] text-zinc-500">{modelProfile}</div>}
-          </div>
-          <button onClick={onRun} disabled={disabled || phase === "starting"} className={cx(buttonClass("primary"), "h-9 px-4 text-[13.5px]")}>
-            {phase === "starting" ? <><span className="pulse-dot inline-block size-1.5 rounded-full bg-white" /> Starting</> : <><Play size={14} fill="currentColor" /> Run</>}
-          </button>
-        </div>
-        <p className="mt-2.5 text-[12px] text-zinc-500">
-          {phase === "starting" ? "Spawning the agent harness and opening a session in the Arena…"
-            : disabledReason ?? "One paced session, about 20 seconds. It is graded like any eval and lands on the leaderboard."}
-        </p>
-        <AuthError message={err} className="mt-2" />
-      </div>
-    </div>
-  );
-}
+/* ------------------------------------------------------------------ replay transport (quiet) */
 
 function ReplayControls({ pos, speed, setSpeed, paused, setPaused, onSeek, onRestart }: {
   pos: [number, number]; speed: number; setSpeed: (n: number) => void; paused: boolean; setPaused: (b: boolean) => void;
   onSeek: (n: number) => void; onRestart: () => void;
 }) {
   const [shown, total] = pos;
+  const icon = "inline-flex size-9 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-ivory hover:text-ink";
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <button onClick={() => setPaused(!paused)} className={buttonClass("secondary")} title={paused ? "Play" : "Pause"}>
-        {paused ? <Play size={13} fill="currentColor" /> : <Pause size={13} fill="currentColor" />}
+    <div className="flex items-center gap-1.5 max-sm:w-full">
+      <button type="button" onClick={() => setPaused(!paused)} className={icon} aria-label={paused ? "Play" : "Pause"}>
+        {paused ? <Play size={14} fill="currentColor" /> : <Pause size={14} fill="currentColor" />}
       </button>
-      <button onClick={onRestart} className={buttonClass("secondary")} title="Restart"><RotateCcw size={13} /></button>
-      <div className="relative h-8 max-lg:h-10 w-[260px] cursor-pointer max-sm:w-auto max-sm:min-w-[120px] max-sm:flex-1" title="Seek"
+      <button type="button" onClick={onRestart} className={icon} aria-label="Restart"><RotateCcw size={14} /></button>
+      <div role="slider" aria-label="Seek" aria-valuemin={0} aria-valuemax={total} aria-valuenow={shown} tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "ArrowRight") onSeek(shown + 1); if (e.key === "ArrowLeft") onSeek(shown - 1); }}
+        className="relative mx-1 h-9 w-[200px] cursor-pointer max-sm:w-auto max-sm:min-w-[100px] max-sm:flex-1"
         onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.round(((e.clientX - r.left) / r.width) * total)); }}>
-        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-zinc-100">
-          <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${total ? (shown / total) * 100 : 0}%` }} />
-        </div>
+        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-ink-5" />
+        <div className="absolute left-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full bg-gold transition-[width] duration-300" style={{ width: `${total ? (shown / total) * 100 : 0}%` }} />
       </div>
-      <span className="w-[54px] font-mono text-[11.5px] text-zinc-500 tnum">{shown}/{total}</span>
-      <div className="flex h-8 max-lg:h-10 items-center rounded-md border border-zinc-200 p-0.5">
+      <span className="w-[48px] text-[12px] text-ink-4 tnum">{shown}/{total}</span>
+      <div className="flex items-center">
         {[1, 2, 4].map((s) => (
-          <button key={s} onClick={() => setSpeed(s)}
-            className={cx("h-full rounded px-2.5 font-mono text-[12px] transition-colors", speed === s ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100")}>{s}×</button>
+          <button key={s} type="button" onClick={() => setSpeed(s)} aria-pressed={speed === s}
+            className={cx("h-9 rounded-full px-2.5 text-[12.5px] tnum transition-colors", speed === s ? "font-medium text-ink" : "text-ink-4 hover:text-ink-2")}>{s}×</button>
         ))}
       </div>
-      <Link href="/live" className={buttonClass("primary")}>Run live</Link>
+      <Link href="/live" className="ml-2 whitespace-nowrap text-[13.5px] font-medium text-ink-2 transition-colors hover:text-ink max-sm:hidden">Run live</Link>
     </div>
   );
 }

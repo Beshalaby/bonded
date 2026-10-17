@@ -7,23 +7,23 @@ import { Badge, OutcomeBadge, TrapBadge, outcomeOf } from "./ui";
 
 export default function FailureList({ results, showModel = false }: { results: BenchResult[]; showModel?: boolean }) {
   return (
-    <div className="divide-y divide-zinc-100 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+    <div className="divide-y divide-divider overflow-hidden rounded-lg border border-divider bg-white">
       {results.map((r, i) => {
         const a = r.attribution;
         return (
-          <div key={`${r.runId}-${r.taskId}-${r.model}-${i}`} className="grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3.5 transition-colors hover:bg-zinc-50/70 md:grid-cols-[1fr_auto]">
+          <div key={`${r.runId}-${r.taskId}-${r.model}-${i}`} className="grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3.5 transition-colors hover:bg-ivory/70 md:grid-cols-[1fr_auto]">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <OutcomeBadge outcome={outcomeOf(r)} />
-                {a && <span className="text-[13.5px] font-medium text-zinc-900">{failureLabel(a.mode)}</span>}
-                {a && <span className="text-[12px] text-zinc-500">· {FAULT_LABEL[a.fault] ?? a.fault}</span>}
+                {a && <span className="text-[13.5px] font-medium text-ink">{failureLabel(a.mode)}</span>}
+                {a && <span className="text-[12px] text-ink-3">· {FAULT_LABEL[a.fault] ?? a.fault}</span>}
                 {(r.trapTypes ?? []).map((t) => <TrapBadge key={t} type={t} />)}
                 {r.guardrailCaught && <Badge tone="warn" title="The guardrail flagged this cart before checkout">Guardrail flagged</Badge>}
               </div>
-              <p className="mt-1.5 break-anywhere text-[13px] leading-relaxed text-zinc-600">
+              <p className="mt-1.5 break-anywhere text-[13px] leading-relaxed text-ink-2">
                 {a?.explanation ?? r.error ?? "No attribution recorded."}
               </p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-zinc-500">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-3">
                 {showModel && <Link href={modelHref(r.model)} className="tap font-mono hover:text-accent">{r.model}</Link>}
                 <Link href={taskHref(r.taskId)} className="tap font-mono hover:text-accent">{r.taskId}</Link>
                 {r.amount != null && r.bought !== false && <span className="tnum">spent {usd(r.amount)}</span>}

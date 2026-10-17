@@ -41,7 +41,7 @@ export default function SetupTabs({ endpoint }: { endpoint: string }) {
   const panes: Record<TabId, { body: ReactNode; note: ReactNode }> = {
     "claude-code": {
       body: <CodeBlock lang="shell" title="Terminal" code={`claude mcp add --transport http bonded ${endpoint}`} />,
-      note: <>Then run <code className="font-mono text-[12px] text-zinc-800">claude</code> and give it the prompt below. Check the connection with <code className="font-mono text-[12px] text-zinc-800">claude mcp list</code>.</>,
+      note: <>Then run <code className="font-mono text-[12px] text-ink">claude</code> and give it the prompt below. Check the connection with <code className="font-mono text-[12px] text-ink">claude mcp list</code>.</>,
     },
     cursor: {
       body: <CodeBlock lang="json" title="~/.cursor/mcp.json" code={json({ url: endpoint })} />,
@@ -49,33 +49,33 @@ export default function SetupTabs({ endpoint }: { endpoint: string }) {
     },
     "claude-desktop": {
       body: <CodeBlock lang="json" title="claude_desktop_config.json" code={json({ command: "node", args: ["/path/to/bonded/mcp/bonded-mcp.mjs"], env: { BONDED_URL: origin } })} />,
-      note: <>Uses the zero-dependency stdio bridge in this repo (<code className="font-mono text-[12px] text-zinc-800">mcp/bonded-mcp.mjs</code>, Node 18+). Replace the path with your checkout and restart the app.</>,
+      note: <>Uses the zero-dependency stdio bridge in this repo (<code className="font-mono text-[12px] text-ink">mcp/bonded-mcp.mjs</code>, Node 18+). Replace the path with your checkout and restart the app.</>,
     },
     stdio: {
       body: <CodeBlock lang="shell" title="Terminal" code={`BONDED_URL=${origin} node mcp/bonded-mcp.mjs\n\n# e.g. Claude Code over stdio instead of HTTP:\nclaude mcp add bonded-stdio -e BONDED_URL=${origin} -- node "$PWD/mcp/bonded-mcp.mjs"`} />,
-      note: <>For agent frameworks and IDEs that only speak the stdio transport. The bridge forwards newline-delimited JSON-RPC to <code className="font-mono text-[12px] text-zinc-800">/api/mcp</code>, re-initializes if the server restarts, and sends <code className="font-mono text-[12px] text-zinc-800">BONDED_AGENT_KEY</code> as a Bearer key when set.</>,
+      note: <>For agent frameworks and IDEs that only speak the stdio transport. The bridge forwards newline-delimited JSON-RPC to <code className="font-mono text-[12px] text-ink">/api/mcp</code>, re-initializes if the server restarts, and sends <code className="font-mono text-[12px] text-ink">BONDED_AGENT_KEY</code> as a Bearer key when set.</>,
     },
     curl: {
       body: <CodeBlock lang="shell" title="Raw JSON-RPC 2.0" code={curlScript(endpoint)} />,
-      note: <>Any HTTP client can call the server directly. Responses are plain <code className="font-mono text-[12px] text-zinc-800">application/json</code>, so you don&apos;t need an SSE parser.</>,
+      note: <>Any HTTP client can call the server directly. Responses are plain <code className="font-mono text-[12px] text-ink">application/json</code>, so you don&apos;t need an SSE parser.</>,
     },
   };
 
   return (
     <div>
-      <div role="tablist" aria-label="Client" className="mb-3 inline-flex max-w-full overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-100/70 p-0.5">
+      <div role="tablist" aria-label="Client" className="mb-4 inline-flex max-w-full overflow-x-auto rounded-full bg-canvas-sunk/70 p-1">
         {TABS.map((t) => (
           <button key={t.id} role="tab" type="button" aria-selected={tab === t.id} onClick={() => pick(t.id)}
             className={cx(
-              "h-7 max-lg:h-10 shrink-0 whitespace-nowrap rounded-md px-3 max-sm:px-2.5 text-[12.5px] font-medium transition-colors",
-              tab === t.id ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200" : "text-zinc-500 hover:text-zinc-900",
+              "h-8 max-lg:h-10 shrink-0 whitespace-nowrap rounded-full px-3.5 max-sm:px-3 text-[13px] font-medium transition-colors",
+              tab === t.id ? "bg-surface text-ink shadow-key" : "text-ink-3 hover:text-ink",
             )}>
             {t.label}
           </button>
         ))}
       </div>
       <div role="tabpanel">{panes[tab].body}</div>
-      <p className="mt-2.5 text-[12.5px] leading-relaxed text-zinc-500">{panes[tab].note}</p>
+      <p className="mt-3 text-[13.5px] leading-relaxed text-ink-3">{panes[tab].note}</p>
     </div>
   );
 }

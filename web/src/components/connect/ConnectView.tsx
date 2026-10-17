@@ -1,23 +1,33 @@
 "use client";
+// Connect: one title, one command, one sentence to say to your agent, and the agents that are connected right now.
+// Every other way in (client configs, the tool reference, the protocol, plain HTTP) sits behind one disclosure.
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight } from "lucide-react";
-import { Badge, ButtonLink, PageHeader, Section, TextLink, cx } from "@/components/ui";
+import { ArrowRight, Check, Copy } from "lucide-react";
+import { cx } from "@/components/ui";
+import Disclosure from "@/components/Disclosure";
 import { TRAP_LABEL } from "@/lib/ui/format";
 import type { TrapType } from "@/lib/types";
-import { CodeBlock, CopyField } from "./Code";
+import { CodeBlock, CopyField, copyText } from "./Code";
 import LivePanel from "./LivePanel";
 import SetupTabs from "./SetupTabs";
 import ToolReference, { useTools } from "./ToolReference";
 
 export interface DemoTask { id: string; instruction: string; budget: number; traps: TrapType[] }
 
+function useCopied() {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => { if (!copied) return; const t = setTimeout(() => setCopied(false), 1800); return () => clearTimeout(t); }, [copied]);
+  return [copied, async (text: string) => setCopied(await copyText(text))] as const;
+}
+
 export default function ConnectView({ initialOrigin, tasks, parity }: { initialOrigin: string; tasks: DemoTask[]; parity: string }) {
   const [origin, setOrigin] = useState(initialOrigin);
   useEffect(() => { setOrigin(window.location.origin); }, []);
   const endpoint = `${origin}/api/mcp`;
-  const toolsState = useTools();
-  const toolCount = toolsState.tools?.length;
+  const cmd = `claude mcp add --transport http bonded ${endpoint}`;
+  const [cmdCopied, copyCmd] = useCopied();
+  const [promptCopied, copyPrompt] = useCopied();
 
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? "airpods-pro-2");
   const task = tasks.find((t) => t.id === taskId);
@@ -28,120 +38,127 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
   }, [tasks]);
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Bring your own agent"
-        title="Evaluate your agent"
-        actions={<ButtonLink href="/" variant="secondary">View leaderboard</ButtonLink>}
-        description={<>Point any MCP agent at Bonded, whether that is Claude Code, Cursor or your own. It shops in the same trap-filled store as every model on the leaderboard. Each step is hash-chain traced, and the same grader puts it on the board.</>}
-      />
+    <div className="pb-8">
+      {/* ---------------------------------------------------------------- the one idea */}
+      <section aria-labelledby="connect-title" className="relative isolate -mx-4 px-5 pb-20 pt-14 text-center sm:-mx-8 sm:pb-28 sm:pt-24">
+        <div aria-hidden className="burst burst-sky" style={{ ["--bx" as string]: "50%", ["--by" as string]: "52%", ["--bs" as string]: "min(1050px, 150vw)", ["--bo" as string]: 0.9 }} />
+        <div aria-hidden className="burst burst-gold" style={{ ["--bx" as string]: "74%", ["--by" as string]: "26%", ["--bs" as string]: "min(520px, 90vw)", ["--bo" as string]: 0.55 }} />
+        <h1 id="connect-title" className="font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(44px,7vw,104px)]">
+          Test your own <span className="text-gold-sweep">agent.</span>
+        </h1>
+        <p className="mx-auto mt-5 max-w-[42ch] text-[17px] text-ink-3 sm:text-[19px]">One command. It shops the same store and gets graded like the rest.</p>
 
-      {/* Endpoint strip */}
-      <div className="mb-10 grid grid-cols-1 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 gap-px lg:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="flex min-w-0 flex-col gap-2 bg-white px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
-          <div className="shrink-0 text-[12px] text-zinc-500">MCP endpoint</div>
-          <CopyField value={endpoint} size="lg" className="min-w-0 flex-1 sm:max-w-[520px]" />
+        <div className="mx-auto mt-10 flex w-full max-w-[740px] items-center gap-2 rounded-full bg-surface py-2 pl-6 pr-2 shadow-float">
+          <code className="scroll-fade min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-2 text-left font-mono text-[13.5px] text-ink-2 sm:text-[14.5px]"
+            style={{ ["--fade-r" as string]: "24px" }}>
+            <span aria-hidden className="select-none text-ink-4">$ </span>{cmd}
+          </code>
+          <button type="button" onClick={() => copyCmd(cmd)} aria-label={cmdCopied ? "Copied" : "Copy command"}
+            className={cx("inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-300",
+              cmdCopied ? "bg-pass-soft text-pass-ink" : "bg-ink text-white hover:bg-ink-2")}>
+            {cmdCopied ? <Check size={17} aria-hidden /> : <Copy size={16} aria-hidden />}
+          </button>
+          <span role="status" className="sr-only">{cmdCopied ? "Copied to clipboard" : ""}</span>
         </div>
-        <div className="grid grid-cols-2 gap-px bg-zinc-200 sm:grid-cols-4">
-          <Fact k="Transport" v="Streamable HTTP" />
-          <Fact k="Protocol" v="2025-06-18" />
-          <Fact k="Tools" v={toolCount != null ? String(toolCount) : "–"} />
-          <Fact k="Auth" v="None (sandbox)" />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-w-0 space-y-10">
-          <Step n={1} title="Connect" description="Register the server once. Your client discovers the tools automatically.">
+        <div className="mx-auto mt-10 max-w-[620px]">
+          <p className="text-[15px] text-ink-3">Then ask it:</p>
+          <p className="mt-2 text-[20px] leading-[1.4] tracking-[-0.015em] text-ink sm:text-[24px]">
+            <em className="not-italic">“{prompt}”</em>
+            <button type="button" onClick={() => copyPrompt(prompt)} aria-label={promptCopied ? "Copied" : "Copy prompt"}
+              className={cx("ml-2 inline-flex size-9 translate-y-[-2px] items-center justify-center rounded-full align-middle transition-colors",
+                promptCopied ? "text-pass-ink" : "text-ink-4 hover:bg-surface hover:text-ink")}>
+              {promptCopied ? <Check size={15} aria-hidden /> : <Copy size={14} aria-hidden />}
+            </button>
+          </p>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- who's here right now */}
+      <section aria-label="Connected agents" className="mx-auto max-w-[720px]">
+        <LivePanel />
+      </section>
+
+      {/* ---------------------------------------------------------------- everything else */}
+      <Disclosure id="more" label="More ways to connect" openLabel="Fewer ways to connect" className="mt-20 sm:mt-28">
+        <div className="mx-auto grid max-w-[880px] gap-20 sm:gap-24">
+          <Block title="Your client." lead="Register the server once. Your client discovers the tools on its own.">
             <SetupTabs endpoint={endpoint} />
-          </Step>
+            <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="text-[13.5px] text-ink-3">Endpoint</span>
+              <CopyField value={endpoint} className="min-w-0 max-w-full flex-1 sm:max-w-[460px]" />
+            </div>
+          </Block>
 
-          <Step n={2} title="Ask it to shop" description="Pick a task. The agent calls start_task, shops, and checks out once. It's graded the moment it pays.">
-            <div className="mb-3 flex flex-wrap gap-1.5">
+          <Block title="Another task." lead="Each one puts the agent in front of different traps.">
+            <div className="flex flex-wrap gap-1.5">
               {tasks.map((t) => (
-                <button key={t.id} type="button" onClick={() => setTaskId(t.id)} title={t.instruction}
-                  className={cx(
-                    "h-7 max-lg:h-10 rounded-md border px-2.5 font-mono text-[11.5px] transition-colors",
-                    t.id === taskId ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900",
-                  )}>
+                <button key={t.id} type="button" onClick={() => setTaskId(t.id)} title={t.instruction} aria-pressed={t.id === taskId}
+                  className={cx("h-9 rounded-full px-3.5 font-mono text-[12px] transition-colors max-lg:h-10",
+                    t.id === taskId ? "bg-ink text-white" : "bg-surface text-ink-2 shadow-key hover:text-ink")}>
                   {t.id}
                 </button>
               ))}
             </div>
-            <CodeBlock title="Prompt" code={prompt} wrap />
+            <CodeBlock className="mt-4" title="Prompt" code={prompt} wrap />
             {task && (
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12.5px] text-zinc-500">
-                <span className="text-zinc-700">“{task.instruction}”</span>
-                {task.traps.length > 0 && (
-                  <span className="flex flex-wrap items-center gap-1">
-                    <span className="mr-0.5">Traps in this aisle</span>
-                    {task.traps.map((tt) => <Badge key={tt} tone="outline">{TRAP_LABEL[tt]}</Badge>)}
-                  </span>
-                )}
-              </div>
+              <p className="mt-3 text-[13.5px] leading-relaxed text-ink-3">
+                “{task.instruction}”{task.traps.length > 0 && <> <span className="text-ink-4">Traps: {task.traps.map((tt) => TRAP_LABEL[tt].toLowerCase()).join(", ")}.</span></>}
+              </p>
             )}
-            <details className="group mt-4">
-              <summary className="cursor-pointer list-none text-[12.5px] font-medium text-zinc-600 hover:text-zinc-900 max-lg:flex max-lg:min-h-10 max-lg:items-center">
-                <span className="inline-flex items-center gap-1"><ArrowRight size={12} className="transition-transform group-open:rotate-90" />Run several tasks in one session</span>
-              </summary>
-              <div className="mt-2.5">
-                <CodeBlock title="Prompt" code={suite} wrap />
-                <p className="mt-2 text-[12.5px] text-zinc-500">
-                  All the tasks from one MCP session go into a single eval run named <span className="font-mono text-[12px] text-zinc-700">MCP: &lt;agent&gt;</span>. To report under a different name, pass <span className="font-mono text-[12px] text-zinc-700">agent_name</span> to <span className="font-mono text-[12px] text-zinc-700">start_task</span>.
-                </p>
-              </div>
-            </details>
-          </Step>
+            <CodeBlock className="mt-6" title="Several tasks in one session" code={suite} wrap />
+            <p className="mt-3 text-[13.5px] leading-relaxed text-ink-3">
+              They go into one eval run named <Code>MCP: &lt;agent&gt;</Code>. To report under another name, pass <Code>agent_name</Code> to <Code>start_task</Code>.
+            </p>
+          </Block>
 
-          <Step n={3} title="Watch it get graded" description="The panel on the right updates live as the agent works. Every MCP call goes through the same code path as the built-in agents.">
+          <Block title="How it’s graded." lead="Every MCP call takes the same path as the built-in agents.">
             <Pipeline parity={parity} />
-          </Step>
+          </Block>
+
+          <Block title="The tools." lead={<>Live from <Code>tools/list</Code>. Agents never see trap labels or market prices.</>}>
+            <ToolReferenceLive />
+          </Block>
+
+          <Block title="The protocol." lead="JSON-RPC 2.0 over Streamable HTTP, written by hand. No SDK, no SSE.">
+            <dl className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+              <Spec k="POST /api/mcp" v={<>A single JSON-RPC message or a batch. Requests return <Code>application/json</Code>. If you send only notifications, you get <Code>202 Accepted</Code>.</>} />
+              <Spec k="Sessions" v={<><Code>initialize</Code> issues an <Code>Mcp-Session-Id</Code>. That session holds the current task, so tools never need ids passed around.</>} />
+              <Spec k="Versions" v={<><Code>2025-06-18</Code> (latest), <Code>2025-03-26</Code> and <Code>2024-11-05</Code>, negotiated on initialize and checked against <Code>MCP-Protocol-Version</Code>.</>} />
+              <Spec k="GET / DELETE" v={<><Code>GET</Code> returns 405 because there is no server-initiated stream. <Code>DELETE</Code> ends the session and grades any unfinished task as no purchase.</>} />
+              <Spec k="Identity" v={<>The model id is <Code>mcp/&lt;slug&gt;</Code>, built from <Code>clientInfo.name</Code> or the <Code>agent_name</Code> argument. The guardrail runs in observe mode, like the built-in agents.</>} />
+              <Spec k="Auth" v={<>None in the sandbox. The stdio bridge sends <Code>BONDED_AGENT_KEY</Code> as a Bearer key when it is set.</>} />
+              <Spec k="Tools" v={<>Listed above. Read-only tools are annotated, and <Code>checkout</Code> is the only one that spends.</>} />
+              <Spec k="Grading" v={<><Code>lib/grade.ts</Code> is a line-by-line port of <Code>grader.py</Code> ({parity}). Results go through the same pipeline, so attribution, reliability stats and live events all fire.</>} />
+            </dl>
+          </Block>
+
+          <Block title="Plain HTTP." lead="The Arena API the Python harness calls. Run your own loop and post graded results back.">
+            <ul className="grid">
+              {HTTP_ROUTES.map(([m, p, d]) => (
+                <li key={p + m} className="grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 border-b border-divider py-3 last:border-b-0">
+                  <span className={cx("mt-px font-mono text-[11.5px] font-semibold", m === "DELETE" ? "text-coral-ink" : m === "GET" ? "text-sage-ink" : "text-accent")}>{m}</span>
+                  <div className="min-w-0">
+                    <div className="break-anywhere font-mono text-[13px] text-ink">{p}</div>
+                    <div className="mt-0.5 break-anywhere text-[12.5px] text-ink-3">{d}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <CodeBlock className="mt-6" lang="shell" title="An Arena session over HTTP" code={httpScript(origin)} />
+            <p className="mt-3 text-[13.5px] leading-relaxed text-ink-3">
+              Over plain HTTP you grade the session yourself with <Code>agents/spendbench/grader.py</Code>, or with <Code>python3 -m agents.spendbench.runner</Code>, which also posts the results. MCP sessions skip this: the server grades them at checkout. The full contract is in <Code>CONTRACTS.md</Code>.
+            </p>
+          </Block>
         </div>
-
-        <aside className="lg:sticky lg:top-20">
-          <LivePanel />
-          <p className="mt-2.5 px-1 text-[12px] leading-relaxed text-zinc-500">
-            Finished agents get a row on the <TextLink href="/">leaderboard</TextLink> under their client name, for example <span className="font-mono text-[11.5px] text-zinc-700">mcp/claude-code</span>.
-          </p>
-        </aside>
-      </div>
-
-      <Section className="mt-16" title="Tools" description={<>This list comes from a live <span className="font-mono text-[12px]">tools/list</span> call to the endpoint. Agents never see <span className="font-mono text-[12px]">trap</span> labels or <span className="font-mono text-[12px]">marketPrice</span>.</>}>
-        <ToolReference state={toolsState} />
-      </Section>
-
-      <Section title="Protocol" description="Implemented by hand as JSON-RPC 2.0 over Streamable HTTP. It has no SDK dependency and no SSE.">
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 md:grid-cols-2">
-          <Spec k="POST /api/mcp" v={<>A single JSON-RPC message or a batch. Requests return <Code>application/json</Code>. If you send only notifications, you get <Code>202 Accepted</Code>.</>} />
-          <Spec k="Sessions" v={<><Code>initialize</Code> issues an <Code>Mcp-Session-Id</Code>. That session holds the current task, so tools never need ids passed around.</>} />
-          <Spec k="Versions" v={<><Code>2025-06-18</Code> (latest), <Code>2025-03-26</Code> and <Code>2024-11-05</Code>, negotiated on initialize and checked against <Code>MCP-Protocol-Version</Code>.</>} />
-          <Spec k="GET / DELETE" v={<><Code>GET</Code> returns 405 because there is no server-initiated stream. <Code>DELETE</Code> ends the session and grades any unfinished task as no purchase.</>} />
-          <Spec k="Identity" v={<>The model id is <Code>mcp/&lt;slug&gt;</Code>, built from <Code>clientInfo.name</Code> or the <Code>agent_name</Code> argument. The guardrail runs in observe mode, the same mode the built-in agents use.</>} />
-          <Spec k="Grading" v={<><Code>lib/grade.ts</Code> is a line-by-line port of <Code>grader.py</Code> ({parity}). Results are ingested through the same pipeline, so failure attribution, reliability stats and live events all fire.</>} />
-        </div>
-      </Section>
-
-      <Section title="Prefer plain HTTP?" description="The Arena API is what the built-in Python harness calls. With it you run your own loop and post graded results back.">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 md:grid-cols-2">
-            {HTTP_ROUTES.map(([m, p, d], i) => (
-              <div key={p + m} className={cx("grid grid-cols-[56px_minmax(0,1fr)] gap-x-3 bg-white px-4 py-2.5", i === HTTP_ROUTES.length - 1 && "md:col-span-2")}>
-                <span className={cx("mt-px font-mono text-[11px] font-semibold", m === "GET" ? "text-emerald-700" : m === "DELETE" ? "text-rose-700" : "text-accent")}>{m}</span>
-                <div className="min-w-0">
-                  <div className="truncate font-mono text-[12.5px] text-zinc-900">{p}</div>
-                  <div className="mt-0.5 text-[12px] text-zinc-500">{d}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <CodeBlock lang="shell" title="Arena session over HTTP" code={httpScript(origin)} />
-        </div>
-        <p className="mt-3 text-[12.5px] text-zinc-500">
-          Over plain HTTP you grade the session yourself with <span className="font-mono text-[12px] text-zinc-700">agents/spendbench/grader.py</span>, or with <span className="font-mono text-[12px] text-zinc-700">python3 -m agents.spendbench.runner</span>, which also posts the results. MCP sessions skip this step because the server grades them at checkout. The full contract is in <span className="font-mono text-[12px] text-zinc-700">CONTRACTS.md</span>.
-        </p>
-      </Section>
-    </>
+      </Disclosure>
+    </div>
   );
+}
+
+function ToolReferenceLive() {
+  const state = useTools();
+  return <ToolReference state={state} />;
 }
 
 const HTTP_ROUTES: [string, string, string][] = [
@@ -168,41 +185,26 @@ function httpScript(origin: string) {
   ].join("\n");
 }
 
-function Fact({ k, v }: { k: string; v: string }) {
+function Block({ title, lead, children }: { title: string; lead: ReactNode; children: ReactNode }) {
   return (
-    <div className="bg-white px-4 py-3">
-      <div className="text-[11.5px] text-zinc-500">{k}</div>
-      <div className="mt-0.5 whitespace-nowrap text-[13px] font-medium text-zinc-900">{v}</div>
-    </div>
+    <section className="min-w-0">
+      <h2 className="font-[600] leading-[1.02] tracking-[-0.045em] text-ink [font-size:clamp(28px,3.4vw,40px)]">{title}</h2>
+      <p className="mb-7 mt-2 max-w-[56ch] text-[15.5px] leading-relaxed text-ink-3">{lead}</p>
+      {children}
+    </section>
   );
 }
 
 function Code({ children }: { children: ReactNode }) {
-  return <code className="rounded bg-zinc-100 px-1 py-px font-mono text-[11.5px] text-zinc-800">{children}</code>;
+  return <code className="rounded-[6px] bg-canvas-sunk px-1 py-px font-mono text-[0.86em] text-ink-2">{children}</code>;
 }
 
 function Spec({ k, v }: { k: string; v: ReactNode }) {
   return (
-    <div className="bg-white px-5 py-4">
-      <div className="font-mono text-[12px] font-medium text-zinc-900">{k}</div>
-      <div className="mt-1 text-[12.5px] leading-relaxed text-zinc-600">{v}</div>
+    <div className="min-w-0">
+      <dt className="font-mono text-[13px] font-medium text-ink">{k}</dt>
+      <dd className="mt-1.5 text-[14px] leading-relaxed text-ink-3">{v}</dd>
     </div>
-  );
-}
-
-function Step({ n, title, description, children }: { n: number; title: string; description: ReactNode; children: ReactNode }) {
-  return (
-    <section className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-4 max-sm:gap-x-3">
-      <div className="flex flex-col items-center">
-        <span className="flex size-7 items-center justify-center rounded-full border border-zinc-200 bg-white font-mono text-[12px] font-medium text-zinc-700 tnum">{n}</span>
-        <span className="mt-2 w-px flex-1 bg-zinc-200" />
-      </div>
-      <div className="min-w-0 pb-1">
-        <h2 className="pt-[3px] text-[15px] font-semibold tracking-[-0.01em] text-zinc-900">{title}</h2>
-        <p className="mb-4 mt-0.5 text-[13px] text-zinc-500">{description}</p>
-        {children}
-      </div>
-    </section>
   );
 }
 
@@ -212,33 +214,33 @@ const STAGES: { k: string; v: string; href?: string }[] = [
   { k: "Trace", v: "Every step SHA-256 hash-chained", href: "/traces" },
   { k: "Guardrail", v: "Observe mode: judged, never blocks" },
   { k: "Grader", v: "Line-by-line port of grader.py" },
-  { k: "Leaderboard", v: "Beta posterior, 90% credible interval", href: "/" },
+  { k: "Ranking", v: "Beta posterior, 90% credible interval", href: "/#ranking" },
 ];
 
 function Pipeline({ parity }: { parity: string }) {
   return (
     <div>
-      <ol className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 sm:grid-cols-3">
+      <ol className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-3">
         {STAGES.map((s, i) => {
           const inner = (
             <>
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 tnum">
+              <div className="flex items-center gap-1.5 text-[12px] text-ink-4 tnum">
                 <span>{String(i + 1).padStart(2, "0")}</span>
-                {i < STAGES.length - 1 && <ArrowRight size={11} className="text-zinc-300" />}
+                {i < STAGES.length - 1 && <ArrowRight size={11} className="text-ink-5" aria-hidden />}
               </div>
-              <div className={cx("mt-1.5 text-[13px] font-medium text-zinc-900", s.k.startsWith("/") && "font-mono text-[12.5px]")}>{s.k}</div>
-              <div className="mt-0.5 text-[11.5px] leading-snug text-zinc-500">{s.v}</div>
+              <div className={cx("mt-1.5 text-[16px] font-medium tracking-[-0.02em] text-ink", s.k.startsWith("/") && "font-mono text-[14px]")}>{s.k}</div>
+              <div className="mt-0.5 text-[13px] leading-snug text-ink-3">{s.v}</div>
             </>
           );
           return (
-            <li key={s.k} className="bg-white">
-              {s.href ? <Link href={s.href} className="block h-full px-3.5 py-3 transition-colors hover:bg-zinc-50">{inner}</Link> : <div className="h-full px-3.5 py-3">{inner}</div>}
+            <li key={s.k} className="min-w-0">
+              {s.href ? <Link href={s.href} className="-m-2 block rounded-[14px] p-2 transition-colors hover:bg-ivory">{inner}</Link> : inner}
             </li>
           );
         })}
       </ol>
-      <p className="mt-2.5 text-[12.5px] leading-relaxed text-zinc-500">
-        Checkout grades the cart the agent actually built, whatever the guardrail said. The verdict, the reasons, any trap it fell for and links to the trace come back in the <span className="font-mono text-[12px] text-zinc-700">checkout</span> response, so the agent sees its own grade. Grader parity with Python: {parity}.
+      <p className="mt-8 text-[13.5px] leading-relaxed text-ink-3">
+        Checkout grades the cart the agent actually built, whatever the guardrail said. The verdict, the reasons, any trap it fell for and links to the trace come back in the <Code>checkout</Code> response, so the agent sees its own grade. Grader parity with Python: {parity}.
       </p>
     </div>
   );

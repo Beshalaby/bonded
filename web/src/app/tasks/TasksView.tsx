@@ -34,13 +34,13 @@ export default function TasksView() {
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <SearchInput value={q} onChange={setQ} placeholder="Search instructions or ids" className="w-72 max-sm:w-full" />
-        <div className="flex gap-0.5 rounded-md bg-zinc-100 p-0.5 text-[13px]">
+        <div className="flex gap-0.5 rounded-md bg-canvas-sunk p-0.5 text-[13px]">
           {([["all", `All ${all.length}`], ["base", `Base ${all.length - nAdv}`], ["adversarial", `Adversarial ${nAdv}`]] as const).map(([k, l]) => (
             <button key={k} type="button" onClick={() => setKind(k)}
-              className={cx("rounded px-2.5 py-1 tnum max-lg:min-h-10", kind === k ? "bg-white font-medium text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")}>{l}</button>
+              className={cx("rounded px-2.5 py-1 tnum max-lg:min-h-10", kind === k ? "bg-white font-medium text-ink shadow-sm" : "text-ink-2 hover:text-ink")}>{l}</button>
           ))}
         </div>
-        <span className="ml-auto text-[13px] text-zinc-500 tnum">{filtered.length} shown</span>
+        <span className="ml-auto text-[13px] text-ink-3 tnum">{filtered.length} shown</span>
       </div>
       {data?.tags?.length ? (
         <div className="mb-5 flex flex-wrap gap-1.5">
@@ -48,26 +48,26 @@ export default function TasksView() {
             <Chip key={t.tag} active={tags.includes(t.tag)} count={t.count}
               onClick={() => setTags((s) => (s.includes(t.tag) ? s.filter((x) => x !== t.tag) : [...s, t.tag]))}>{t.tag}</Chip>
           ))}
-          {tags.length > 0 && <button onClick={() => setTags([])} className="px-2 text-[12.5px] text-zinc-500 hover:text-zinc-900 max-lg:min-h-10">Clear</button>}
+          {tags.length > 0 && <button onClick={() => setTags([])} className="px-2 text-[12.5px] text-ink-3 hover:text-ink max-lg:min-h-10">Clear</button>}
         </div>
       ) : null}
 
       {loading && !data ? <LoadingBlock rows={10} /> : filtered.length ? (
         <>
           {/* Phones: one card per task */}
-          <ul className="divide-y divide-zinc-100 overflow-hidden rounded-lg border border-zinc-200 bg-white sm:hidden">
+          <ul className="divide-y divide-divider overflow-hidden rounded-lg border border-divider bg-white sm:hidden">
             {filtered.slice(0, limit).map((t) => (
               <li key={t.id}>
-                <Link href={taskHref(t.id)} className="block px-4 py-3 transition-colors active:bg-zinc-50">
+                <Link href={taskHref(t.id)} className="block px-4 py-3 transition-colors active:bg-ivory">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate font-mono text-[12.5px] text-zinc-500">{t.id}</span>
-                    <span className="shrink-0 font-mono text-[12.5px] text-zinc-800 tnum">{usd(t.budget)}</span>
+                    <span className="min-w-0 truncate font-mono text-[12.5px] text-ink-3">{t.id}</span>
+                    <span className="shrink-0 font-mono text-[12.5px] text-ink tnum">{usd(t.budget)}</span>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-[13.5px] leading-snug text-zinc-900">{t.instruction}</p>
+                  <p className="mt-1 line-clamp-2 text-[13.5px] leading-snug text-ink">{t.instruction}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1">
                     {t.adversarial && <Badge tone="warn">Adversarial</Badge>}
-                    {t.tags.slice(0, 3).map((g) => <span key={g} className="whitespace-nowrap rounded bg-zinc-100 px-1.5 py-0.5 text-[11.5px] text-zinc-600">{g}</span>)}
-                    {t.tags.length > 3 && <span className="text-[11.5px] text-zinc-400">+{t.tags.length - 3}</span>}
+                    {t.tags.slice(0, 3).map((g) => <span key={g} className="whitespace-nowrap rounded bg-canvas-sunk px-1.5 py-0.5 text-[11.5px] text-ink-2">{g}</span>)}
+                    {t.tags.length > 3 && <span className="text-[11.5px] text-ink-4">+{t.tags.length - 3}</span>}
                   </div>
                 </Link>
               </li>
@@ -86,19 +86,19 @@ export default function TasksView() {
               {filtered.slice(0, limit).map((t) => (
                 <Tr key={t.id} onClick={() => router.push(taskHref(t.id))}>
                   <Td className="w-[150px] whitespace-nowrap">
-                    <Link href={taskHref(t.id)} onClick={(e) => e.stopPropagation()} className="tap font-mono text-[12.5px] text-zinc-700 hover:text-accent">{t.id}</Link>
+                    <Link href={taskHref(t.id)} onClick={(e) => e.stopPropagation()} className="tap font-mono text-[12.5px] text-ink-2 hover:text-accent">{t.id}</Link>
                   </Td>
                   <Td className="max-w-[520px] max-lg:min-w-[260px] max-lg:max-w-[320px]">
                     <div className="flex items-center gap-2">
                       {t.adversarial && <Badge tone="warn">Adversarial</Badge>}
-                      <span className="truncate text-zinc-900" title={t.instruction}>{t.instruction}</span>
+                      <span className="truncate text-ink" title={t.instruction}>{t.instruction}</span>
                     </div>
                   </Td>
-                  <Td align="right" mono className="text-zinc-800">{usd(t.budget)}</Td>
+                  <Td align="right" mono className="text-ink">{usd(t.budget)}</Td>
                   <Td className="w-[300px]">
                     <div className="flex gap-1 overflow-hidden">
-                      {t.tags.slice(0, 2).map((g) => <span key={g} className="whitespace-nowrap rounded bg-zinc-100 px-1.5 py-0.5 text-[11.5px] text-zinc-600">{g}</span>)}
-                      {t.tags.length > 2 && <span className="self-center text-[11.5px] text-zinc-400" title={t.tags.slice(2).join(", ")}>+{t.tags.length - 2}</span>}
+                      {t.tags.slice(0, 2).map((g) => <span key={g} className="whitespace-nowrap rounded bg-canvas-sunk px-1.5 py-0.5 text-[11.5px] text-ink-2">{g}</span>)}
+                      {t.tags.length > 2 && <span className="self-center text-[11.5px] text-ink-4" title={t.tags.slice(2).join(", ")}>+{t.tags.length - 2}</span>}
                     </div>
                   </Td>
                 </Tr>

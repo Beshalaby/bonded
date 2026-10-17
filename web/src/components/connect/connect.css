@@ -1,0 +1,4 @@
+/* Connected agents: a row that just changed blooms briefly (sage on pass, coral on risk, gold otherwise). */
+@keyframes lp-burst { 0% { opacity: 0; scale: 0.7; } 30% { opacity: 0.9; scale: 1; } 100% { opacity: 0; scale: 1.08; } }
+.lp-burst { animation: lp-burst 2600ms cubic-bezier(.2,.75,.15,1) both; }
+@media (prefers-reduced-motion: reduce) { .lp-burst { animation: none; opacity: 0.5; } }

@@ -9,12 +9,12 @@ import { modelHref } from "@/lib/ui/format";
 import { cx } from "@/components/ui";
 
 // Styling: design-system tokens. Distinguishable = solid accent; leaning = halftone dots whose size grows with P.
-const ACCENT = "oklch(55% 0.215 262)";
+const ACCENT = "var(--color-accent)";
 const leanBg = (strength: number) => {
   const r = (0.7 + strength * 1.5).toFixed(2);
   return {
-    backgroundColor: `oklch(96% ${(0.012 + strength * 0.03).toFixed(3)} 262)`,
-    backgroundImage: `radial-gradient(circle at center, oklch(62% 0.19 258 / ${(0.45 + strength * 0.5).toFixed(2)}) ${r}px, transparent ${(+r + 0.6).toFixed(2)}px)`,
+    backgroundColor: `oklch(96% ${(0.012 + strength * 0.03).toFixed(3)} 85)`,
+    backgroundImage: `radial-gradient(circle at center, oklch(70% 0.13 80 / ${(0.45 + strength * 0.5).toFixed(2)}) ${r}px, transparent ${(+r + 0.6).toFixed(2)}px)`,
     backgroundSize: "6px 6px",
   };
 };
@@ -86,7 +86,7 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
                   const strength = Math.max(0, (c.p - 0.5) / 0.5);
                   const dist = c.p > data.threshold;
                   const isSel = selected && ((selected.a === A.model && selected.b === B.model));
-                  const bg: React.CSSProperties = dist ? { background: ACCENT, boxShadow: "inset 0 1px 0 oklch(100% 0 0 / 0.2), 0 4px 10px -4px oklch(55% 0.215 262 / 0.5)" } : c.p > 0.5 ? leanBg(strength) : { background: "var(--color-canvas)" };
+                  const bg: React.CSSProperties = dist ? { background: ACCENT, boxShadow: "inset 0 1px 0 oklch(100% 0 0 / 0.2), 0 4px 10px -4px oklch(52% 0.105 72 / 0.45)" } : c.p > 0.5 ? leanBg(strength) : { background: "var(--color-canvas)" };
                   const tip = `P(${shortName(A.displayName)} > ${shortName(B.displayName)}) = ${c.p.toFixed(4)} exact · ${c.mc.toFixed(4)} Monte Carlo (${(20000).toLocaleString()} draws)` +
                     (dist ? " · distinguishable at 95%" : c.p < 1 - data.threshold ? " · column is distinguishably better" : " · not distinguishable");
                   const inner = (

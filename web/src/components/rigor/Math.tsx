@@ -7,15 +7,15 @@ const SERIF = "font-['STIX_Two_Math','Cambria_Math','Latin_Modern_Math','Times_N
 export function Eq({ children, n, className }: { children: ReactNode; n?: string | number; className?: string }) {
   return (
     <div className={`my-4 flex items-center gap-4 overflow-x-auto ${className ?? ""}`}>
-      <div className={`flex-1 text-center text-[17px] leading-[1.6] text-zinc-900 ${SERIF}`}>{children}</div>
-      {n != null && <span className="shrink-0 text-[13px] text-zinc-400 tnum">({n})</span>}
+      <div className={`flex-1 text-center text-[17px] leading-[1.6] text-ink ${SERIF}`}>{children}</div>
+      {n != null && <span className="shrink-0 text-[13px] text-ink-4 tnum">({n})</span>}
     </div>
   );
 }
 
 /** Inline math run. */
 export function M({ children }: { children: ReactNode }) {
-  return <span className={`whitespace-nowrap text-[1.08em] text-zinc-900 ${SERIF}`}>{children}</span>;
+  return <span className={`whitespace-nowrap text-[1.08em] text-ink ${SERIF}`}>{children}</span>;
 }
 
 /** Italic variable. */

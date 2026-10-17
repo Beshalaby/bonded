@@ -1,18 +1,39 @@
 "use client";
+// A model: its name, one score, the chance of success with its interval, one sentence, three facts.
+// Everything else (traps, failure modes, history, failures) waits behind "Details".
 import Link from "next/link";
-import { CIBar, CountBars, LineChart, RateBars } from "@/components/charts";
+import type { ReactNode } from "react";
+import { motion } from "motion/react";
+import { CountBars, LineChart, RateBars } from "@/components/charts";
+import Disclosure from "@/components/Disclosure";
 import FailureList from "@/components/FailureList";
-import {
-  Badge, Card, CardTitle, EmptyState, ErrorState, LoadingBlock, PageHeader, ProviderBadge, Section, Stat, StatStrip,
-} from "@/components/ui";
+import { ErrorState, cx } from "@/components/ui";
+import type { ModelStats } from "@/lib/types";
 import { useApi, type ModelResponse } from "@/lib/ui/api";
 import { TRAP_LABEL, TRAP_TYPES, cost, dateTime, failureLabel, ms, num, pct, runHref } from "@/lib/ui/format";
+
+const EASE = [0.2, 0.75, 0.15, 1] as const;
+const clean = (s: string) => s.replace(/\s*\(sim\)\s*$/i, "");
+
+function scamLine(s: ModelStats) {
+  const k = Math.round(s.metrics.scamRate * s.n);
+  return k === 0 ? `Never fell for a scam in ${s.n} task${s.n === 1 ? "" : "s"}.` : `Fell for a scam in ${k} of ${s.n} tasks.`;
+}
 
 export default function ModelView({ model }: { model: string }) {
   const { data, error, loading, reload } = useApi<ModelResponse>(`/api/models/${encodeURIComponent(model)}`);
 
-  if (error) return (<><Crumb /><PageHeader title={model} /><ErrorState error={error} onRetry={reload} /></>);
-  if (loading && !data) return (<><Crumb /><PageHeader title={<span className="font-mono">{model}</span>} /><LoadingBlock rows={8} /></>);
+  if (error) return (<><Crumb /><h1 className="mt-10 break-anywhere text-[40px] font-[600] tracking-[-0.045em] text-ink">{model}</h1><div className="mt-8"><ErrorState error={error} onRetry={reload} /></div></>);
+  if (loading && !data) return (
+    <>
+      <Crumb />
+      <div aria-hidden className="mt-16 grid gap-6">
+        <div className="h-5 w-24 animate-pulse rounded-full bg-canvas-sunk" />
+        <div className="h-24 w-[min(620px,90%)] animate-pulse rounded-[24px] bg-canvas-sunk" />
+        <div className="h-40 w-64 animate-pulse rounded-[24px] bg-canvas-sunk/70" />
+      </div>
+    </>
+  );
   if (!data) return null;
 
   const { stats: s, failures, history } = data;
@@ -27,101 +48,157 @@ export default function ModelView({ model }: { model: string }) {
     .map(([k, v]) => ({ key: k, label: failureLabel(k), value: v ?? 0 }));
   const failedN = modes.reduce((a, b) => a + b.value, 0);
   const hist = [...history].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const scams = Math.round(m.scamRate * s.n);
+  const risky = scams > 0;
 
   return (
-    <>
+    <div>
       <Crumb />
-      <PageHeader
-        title={<span className="flex flex-wrap items-center gap-3">{s.displayName.replace(/\s*\(sim\)\s*$/i, "")} <ProviderBadge provider={s.provider} simulated={s.simulated} /></span>}
-        meta={<><span className="break-anywhere font-mono text-[12.5px]">{s.model}</span><span>{s.n} graded results</span>{s.simulated && <span>Scripted policy, used to calibrate the benchmark</span>}</>}
-      />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,340px)_1fr]">
-        <Card className="flex flex-col justify-between">
+      {/* ---------------------------------------------------------------- the model, the number */}
+      <section aria-labelledby="model-title" className="relative isolate pb-20 pt-10 sm:pb-28 sm:pt-16">
+        <div aria-hidden className="burst burst-gold" style={{ ["--bx" as string]: "10%", ["--by" as string]: "30%", ["--bs" as string]: "min(900px, 130vw)", ["--bo" as string]: 0.7 }} />
+        <div aria-hidden className={cx("burst", risky ? "burst-coral" : "burst-sage")} style={{ ["--bx" as string]: "88%", ["--by" as string]: "72%", ["--bs" as string]: "min(720px, 110vw)", ["--bo" as string]: risky ? 0.4 : 0.6 }} />
+
+        <p className="text-[15px] text-ink-3">
+          {s.provider}{s.simulated && <span className="text-ink-4"> · scripted policy, used to calibrate the benchmark</span>}
+        </p>
+        <h1 id="model-title" className="mt-2 break-anywhere font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(48px,8vw,120px)]">{clean(s.displayName)}</h1>
+        <p className="mt-3 break-anywhere font-mono text-[12.5px] text-ink-4">{s.model}</p>
+
+        <div className="mt-14 grid items-end gap-x-16 gap-y-10 sm:mt-20 lg:grid-cols-[auto_minmax(0,1fr)]">
           <div>
-            <div className="text-[12px] text-zinc-500">Composite score</div>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="text-[44px] font-semibold leading-none tracking-[-0.03em] text-zinc-900 tnum">{num(s.score, 1)}</span>
-              <span className="text-[14px] text-zinc-400">/ 100</span>
-            </div>
+            <div className="text-[13px] font-medium uppercase tracking-[0.14em] text-ink-4">Score</div>
+            <motion.p className="pnum mt-3 font-[600] text-ink numeral [font-size:clamp(96px,15vw,208px)]"
+              initial={{ opacity: 0, filter: "blur(10px)", y: 8 }} animate={{ opacity: 1, filter: "blur(0px)", y: 0 }} transition={{ duration: 1.1, ease: EASE }}>
+              {num(s.score, 1)}<span className="ml-[0.12em] align-baseline text-[0.2em] tracking-[-0.03em] text-ink-4">/100</span>
+            </motion.p>
           </div>
-          <div className="mt-6 border-t border-zinc-100 pt-4">
-            <div className="text-[12px] text-zinc-500">Reliability · P(success), 90% credible interval</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-[20px] font-semibold text-zinc-900 tnum">{pct(s.reliability.mean)}</span>
-              <span className="text-[13px] text-zinc-500 tnum">{pct(s.reliability.lower)} – {pct(s.reliability.upper)}</span>
+          <div className="min-w-0 pb-3 lg:max-w-[560px]">
+            <div className="flex items-baseline justify-between gap-4 text-[14px]">
+              <span className="text-ink-3">Chance of success</span>
+              <span className="tnum"><span className="text-[22px] font-[560] tracking-[-0.03em] text-ink">{pct(s.reliability.mean)}</span>
+                <span className="ml-2 text-ink-4">{pct(s.reliability.lower)}–{pct(s.reliability.upper)}</span></span>
             </div>
-            <div className="mt-2 max-sm:hidden"><CIBar interval={s.reliability} width={280} label={false} n={s.n} /></div>
-            <div className="mt-2 sm:hidden"><CIBar interval={s.reliability} width={240} label={false} n={s.n} /></div>
-            <div className="flex w-[280px] max-sm:w-[240px] justify-between px-[5px] text-[10.5px] text-zinc-400 tnum"><span>0</span><span>50</span><span>100</span></div>
+            <div className="mt-4"><Bar r={s.reliability} /></div>
+            <div className="mt-2 flex justify-between text-[11.5px] text-ink-4 tnum"><span>0</span><span>50</span><span>100</span></div>
           </div>
-        </Card>
+        </div>
 
-        <StatStrip cols={4}>
-          <Stat label="Success" value={pct(m.successRate)} tone={m.successRate >= 0.8 ? "good" : undefined} />
-          <Stat label="Scammed" value={pct(m.scamRate)} tone={m.scamRate >= 0.2 ? "bad" : undefined} />
-          <Stat label="Over budget" value={pct(m.budgetViolationRate)} tone={m.budgetViolationRate >= 0.2 ? "bad" : undefined} />
-          <Stat label="Wrong item" value={pct(m.wrongItemRate)} tone={m.wrongItemRate >= 0.2 ? "warn" : undefined} />
-          <Stat label="No purchase" value={pct(m.noPurchaseRate)} />
-          <Stat label="Guardrail catch rate" value={pct(m.guardrailCatchRate)} sub="failures flagged pre-checkout" />
-          <Stat label="Avg cost / task" value={<span className="font-mono text-[20px]">{cost(m.avgCostUsd)}</span>} />
-          <Stat label="Avg latency · steps" value={<span className="tnum">{ms(m.avgLatencyMs)}</span>} sub={`${num(m.avgSteps, 1)} steps per task`} />
-        </StatStrip>
-      </div>
+        <motion.p className={cx("mt-14 max-w-[26ch] text-[24px] leading-[1.3] tracking-[-0.02em] sm:text-[30px]", risky ? "text-ink" : "text-ink-2")}
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.25, ease: EASE }}>
+          {scamLine(s)}
+        </motion.p>
+      </section>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardTitle aside="fooled / exposed · 90% CI">Trap resistance</CardTitle>
-          <RateBars rows={traps} />
-        </Card>
-        <Card>
-          <CardTitle aside={`${failedN} attributed failure${failedN === 1 ? "" : "s"}`}>Failure modes</CardTitle>
-          {modes.length ? <CountBars rows={modes} /> : <p className="py-8 text-center text-[13px] text-zinc-500">No failures attributed.</p>}
-        </Card>
-      </div>
+      {/* ---------------------------------------------------------------- three facts */}
+      <dl className="grid grid-cols-3 gap-x-4 gap-y-8 border-t border-divider pt-10 sm:gap-x-6">
+        <Fact k="Success" v={pct(m.successRate)} sub={`${Math.round(m.successRate * s.n)} of ${s.n} tasks`} />
+        <Fact k="Scams" v={String(scams)} sub={scams ? `${pct(m.scamRate)} of tasks` : "none taken"} tone={risky ? "bad" : "good"} />
+        <Fact k="Avg cost" v={cost(m.avgCostUsd)} sub="per task" />
+      </dl>
 
-      <Card className="mt-4">
-        <CardTitle aside={hist.length ? `${hist.length} run${hist.length === 1 ? "" : "s"}` : undefined}>Score across runs</CardTitle>
-        {hist.length >= 2 ? (
-          <LineChart
-            data={hist.map((h, i) => ({ x: i, y: h.score, label: `Run ${i + 1}`, href: runHref(h.runId) }))}
-            yMin={0} yMax={100} height={190}
-            yFormat={(v) => v.toFixed(0)}
-            xFormat={(p) => p.label ?? ""}
-            tooltip={(p, i) => (
+      {/* ---------------------------------------------------------------- everything else */}
+      <Disclosure id="details" label="Details" openLabel="Hide details" align="left" className="mt-16 sm:mt-20">
+        <div className="grid gap-20 sm:gap-24">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
+            <Fact small k="Over budget" v={pct(m.budgetViolationRate)} tone={m.budgetViolationRate >= 0.2 ? "bad" : undefined} />
+            <Fact small k="Wrong item" v={pct(m.wrongItemRate)} />
+            <Fact small k="No purchase" v={pct(m.noPurchaseRate)} />
+            <Fact small k="Guardrail catch rate" v={pct(m.guardrailCatchRate)} sub="failures flagged pre-checkout" />
+            <Fact small k="Avg latency" v={ms(m.avgLatencyMs)} sub={`${num(m.avgSteps, 1)} steps per task`} />
+          </dl>
+
+          <div className="grid gap-20 lg:grid-cols-2 lg:gap-12">
+            <Block title="Trap resistance." lead="Fooled out of exposed, with a 90% interval.">
+              <RateBars rows={traps} />
+            </Block>
+            <Block title="Failure modes." lead={`${failedN} attributed failure${failedN === 1 ? "" : "s"}.`}>
+              {modes.length ? <CountBars rows={modes} /> : <p className="text-[15px] text-ink-3">No failures attributed.</p>}
+            </Block>
+          </div>
+
+          <Block title="Score across runs." lead={hist.length ? `${hist.length} run${hist.length === 1 ? "" : "s"}.` : "No run history."}>
+            {hist.length >= 2 ? (
               <>
-                <div className="text-[13px] font-semibold text-zinc-900 tnum">Score {hist[i].score.toFixed(1)}</div>
-                <div className="text-zinc-600 tnum">Success {pct(hist[i].successRate)}</div>
-                <div className="mt-0.5 font-mono text-[11px] text-zinc-400">{hist[i].runId}</div>
-                <div className="text-zinc-400">{p.label} · {dateTime(hist[i].createdAt)}</div>
+                <LineChart
+                  data={hist.map((h, i) => ({ x: i, y: h.score, label: `Run ${i + 1}`, href: runHref(h.runId) }))}
+                  yMin={0} yMax={100} height={190}
+                  yFormat={(v) => v.toFixed(0)}
+                  xFormat={(p) => p.label ?? ""}
+                  tooltip={(p, i) => (
+                    <>
+                      <div className="text-[13px] font-semibold text-ink tnum">Score {hist[i].score.toFixed(1)}</div>
+                      <div className="text-ink-2 tnum">Success {pct(hist[i].successRate)}</div>
+                      <div className="mt-0.5 font-mono text-[11px] text-ink-4">{hist[i].runId}</div>
+                      <div className="text-ink-4">{p.label} · {dateTime(hist[i].createdAt)}</div>
+                    </>
+                  )}
+                />
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-ink-3">
+                  {hist.map((h, i) => (
+                    <Link key={h.runId} href={runHref(h.runId)} className="hover:text-accent max-lg:inline-flex max-lg:min-h-10 max-lg:items-center"><span className="text-ink-4">Run {i + 1}</span> <span className="font-mono">{h.runId}</span></Link>
+                  ))}
+                </div>
               </>
-            )}
-          />
-        ) : hist.length === 1 ? (
-          <p className="py-6 text-[13px] text-zinc-500">One run so far (score {hist[0].score.toFixed(1)}). History appears after the next run.</p>
-        ) : <p className="py-6 text-[13px] text-zinc-500">No run history.</p>}
-        {hist.length >= 2 && (
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-zinc-500">
-            {hist.map((h, i) => (
-              <Link key={h.runId} href={runHref(h.runId)} className="hover:text-accent max-lg:inline-flex max-lg:min-h-10 max-lg:items-center"><span className="text-zinc-400">Run {i + 1}</span> <span className="font-mono">{h.runId}</span></Link>
-            ))}
-          </div>
-        )}
-      </Card>
+            ) : hist.length === 1 ? (
+              <p className="text-[15px] text-ink-3">One run so far (score {hist[0].score.toFixed(1)}). History appears after the next run.</p>
+            ) : null}
+          </Block>
 
-      <Section title="Recent failures" description="Each failed result is read by the attribution judge, which labels the fault and cites the trace steps it relied on."
-        actions={failures.length ? <Badge>{failures.length}</Badge> : undefined}>
-        {failures.length ? <FailureList results={failures} /> :
-          <EmptyState title="No failures" description="Every graded result for this model passed." />}
-      </Section>
-    </>
+          <Block title="Recent failures." lead="Each one is read by the attribution judge, which labels the fault and cites the trace steps it relied on.">
+            {failures.length ? <FailureList results={failures} /> : <p className="text-[15px] text-ink-3">Every graded result for this model passed.</p>}
+          </Block>
+        </div>
+      </Disclosure>
+    </div>
+  );
+}
+
+/** P(success): a hairline track, the 90% interval as a soft gold fade, and the mean as a bead (as on the ranking). */
+function Bar({ r }: { r: ModelStats["reliability"] }) {
+  const { lower, upper, mean } = r;
+  return (
+    <div className="relative h-6" role="img" aria-label={`Chance of success ${Math.round(mean * 100)}%, 90% interval ${Math.round(lower * 100)} to ${Math.round(upper * 100)}%`}>
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-ink-5/70" />
+      <motion.div className="absolute left-0 top-1/2 h-[2px] origin-left -translate-y-1/2 rounded-full bg-gradient-to-r from-transparent to-[oklch(82%_0.1_86/0.8)]"
+        style={{ width: `${mean * 100}%` }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.2, delay: 0.2, ease: EASE }} />
+      <motion.div className="absolute top-1/2 h-[8px] origin-left -translate-y-1/2 rounded-full"
+        style={{ left: `${lower * 100}%`, width: `${Math.max(1, (upper - lower) * 100)}%`,
+          background: "linear-gradient(90deg, oklch(84% 0.1 86 / 0) 0%, oklch(80% 0.125 84 / 0.9) 35%, oklch(80% 0.125 84 / 0.9) 65%, oklch(84% 0.1 86 / 0) 100%)" }}
+        initial={{ scaleX: 0, opacity: 0 }} animate={{ scaleX: 1, opacity: 1 }} transition={{ duration: 1, delay: 0.3, ease: EASE }} />
+      <motion.div className="absolute top-1/2 size-[12px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_2.5px_white]"
+        style={{ left: `${mean * 100}%` }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.7 }} />
+    </div>
+  );
+}
+
+function Fact({ k, v, sub, tone, small }: { k: string; v: ReactNode; sub?: string; tone?: "good" | "bad"; small?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[13.5px] text-ink-3">{k}</dt>
+      <dd className={cx("mt-1.5 font-[560] leading-none tracking-[-0.04em] tnum", small ? "text-[26px]" : "text-[25px] min-[420px]:text-[30px] sm:text-[40px] lg:text-[48px]",
+        tone === "bad" ? "text-coral-ink" : tone === "good" ? "text-sage-ink" : "text-ink")}>{v}</dd>
+      {sub && <dd className="mt-2 text-[13px] text-ink-4">{sub}</dd>}
+    </div>
+  );
+}
+
+function Block({ title, lead, children }: { title: string; lead: ReactNode; children: ReactNode }) {
+  return (
+    <section className="min-w-0">
+      <h2 className="font-[600] leading-[1.02] tracking-[-0.045em] text-ink [font-size:clamp(26px,3vw,36px)]">{title}</h2>
+      <p className="mb-7 mt-2 max-w-[56ch] text-[15px] leading-relaxed text-ink-3">{lead}</p>
+      {children}
+    </section>
   );
 }
 
 function Crumb() {
   return (
-    <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-zinc-500">
-      <Link href="/" className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Leaderboard</Link><span className="text-zinc-300">/</span><span>Model</span>
+    <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[14px] text-ink-3">
+      <Link href="/#ranking" className="transition-colors hover:text-ink max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Ranking</Link>
+      <span className="text-ink-5">/</span><span className="text-ink-4">Model</span>
     </nav>
   );
 }

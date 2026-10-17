@@ -70,10 +70,10 @@ export default function Page() {
 
       <article className="min-w-0 max-w-[780px]">
         <div className="-mt-6 mb-6 sm:-mt-8 lg:hidden"><Toc items={TOC} variant="dropdown" /></div>
-        <header className="mb-2 border-b border-zinc-200 pb-8">
-          <div className="text-[12px] font-medium uppercase tracking-[0.08em] text-zinc-400">Appendix · Methodology</div>
-          <h1 className="mt-2 text-[32px] max-sm:text-[27px] font-semibold leading-tight tracking-[-0.025em] text-zinc-900">How Bonded measures agents that spend money</h1>
-          <p className="mt-3 text-[16px] leading-relaxed text-zinc-600">
+        <header className="mb-2 border-b border-divider pb-8">
+          <div className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-4">Appendix · Methodology</div>
+          <h1 className="mt-2 text-[32px] max-sm:text-[27px] font-semibold leading-tight tracking-[-0.025em] text-ink">How Bonded measures agents that spend money</h1>
+          <p className="mt-3 text-[16px] leading-relaxed text-ink-2">
             This page states exactly what is measured, how each number is computed, and what the measurements cannot tell you.
             Every figure below is read from the live database at request time.
           </p>
@@ -85,9 +85,9 @@ export default function Page() {
               ["Traced steps", `${entries.toLocaleString()}`, `${sessions} hash chains`],
             ].map(([k, v, s]) => (
               <div key={k}>
-                <dt className="text-zinc-500">{k}</dt>
-                <dd className="mt-0.5 text-[20px] font-semibold tracking-[-0.02em] text-zinc-900 tnum">{v}</dd>
-                <dd className="text-[12px] text-zinc-500 tnum">{s}</dd>
+                <dt className="text-ink-3">{k}</dt>
+                <dd className="mt-0.5 text-[20px] font-semibold tracking-[-0.02em] text-ink tnum">{v}</dd>
+                <dd className="text-[12px] text-ink-3 tnum">{s}</dd>
               </div>
             ))}
           </dl>
@@ -117,7 +117,7 @@ export default function Page() {
             head={["Trap", "What the adversary plants", "Observable signal", "Listings", "Red-team", "Tasks exposed"]}
             align={["l", "l", "l", "r", "r", "r"]}
             rows={TRAPS.map((x) => [
-              <span key="n" className="font-medium text-zinc-900">{x.name}</span>, x.what, x.signal,
+              <span key="n" className="font-medium text-ink">{x.name}</span>, x.what, x.signal,
               <span key="l" className="tnum">{listings(x.t)}</span>, <span key="r" className="tnum">{scams(x.t)}</span>, <span key="e" className="tnum">{exposed(x.t)}</span>,
             ])}
             note={<>Live counts. <i>Listings</i>: trap products in the store (seeded and red-team). <i>Red-team</i>: kept adversarial scams. <i>Tasks exposed</i>: tasks whose tags put the agent in contact with that trap (§7).</>}
@@ -215,7 +215,7 @@ export default function Page() {
             20,000-draw Monte Carlo estimate with a fixed seed (Marsaglia–Tsang gamma sampler; current max |Δ| = {matrix.method.maxAbsMcError.toFixed(4)}, within 3 standard errors).
             A pair is <em>statistically distinguishable</em> when this probability exceeds 95%.
           </P>
-          <div className="my-5 rounded-lg border border-zinc-200 bg-white p-4"><PairwiseMatrix data={matrix} compact /></div>
+          <div className="my-5 rounded-lg border border-divider bg-white p-4"><PairwiseMatrix data={matrix} compact /></div>
           <P>
             The posteriors treat the two models as independent samples. Because both models usually ran the <em>same</em> tasks, we also run an
             exact McNemar test on the paired outcomes. With <V>b</V> tasks only A passed and <V>c</V> only B passed,
@@ -309,7 +309,7 @@ export default function Page() {
         </S>
 
         <S id="limitations" n="14" title="Limitations">
-          <ul className="space-y-3 text-[15px] leading-[1.75] text-zinc-700">
+          <ul className="space-y-3 text-[15px] leading-[1.75] text-ink-2">
             {[
               ["Simulated agents.", "Without an API key, the five agents are scripted policies with known failure profiles. They test the instrument, not frontier models. Their differences are designed in, so their rankings say nothing about real LLMs."],
               ["Heuristic judges without a key.", "Attribution and the guardrail fall back to deterministic rules. They are transparent and reproducible, but they will miss novel failure patterns that an LLM judge, or a person, would catch."],
@@ -319,7 +319,7 @@ export default function Page() {
               ["Guardrail ground truth is the grader.", "Errors in the grader's spec matching (§4) propagate into guardrail precision and recall. With the sims, no good purchase has been flagged yet, so the false-block rate is bounded only by its interval."],
               ["Chain anchoring.", "Hash chains detect partial edits, not a full rewrite by the database owner, unless the head hash was recorded elsewhere (§11)."],
             ].map(([k, v]) => (
-              <li key={k} className="flex gap-3"><span className="mt-[11px] size-1 shrink-0 rounded-full bg-zinc-400" /><span><b className="font-semibold text-zinc-900">{k}</b> {v}</span></li>
+              <li key={k} className="flex gap-3"><span className="mt-[11px] size-1 shrink-0 rounded-full bg-ink-4" /><span><b className="font-semibold text-ink">{k}</b> {v}</span></li>
             ))}
           </ul>
         </S>
@@ -332,10 +332,10 @@ export default function Page() {
 
 function S({ id, n, title, children }: { id: string; n: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-24 border-b border-zinc-100 py-9 last:border-b-0">
-      <h2 className="mb-4 flex items-baseline gap-3 text-[21px] font-semibold tracking-[-0.015em] text-zinc-900">
-        <span className="text-[15px] font-medium text-zinc-400 tnum">§{n}</span>{title}
-        <a href={`#${id}`} className="text-[14px] font-normal text-zinc-300 opacity-0 hover:text-zinc-500 [section:hover_&]:opacity-100" aria-label="Link to section">#</a>
+    <section id={id} className="scroll-mt-24 border-b border-divider py-9 last:border-b-0">
+      <h2 className="mb-4 flex items-baseline gap-3 text-[21px] font-semibold tracking-[-0.015em] text-ink">
+        <span className="text-[15px] font-medium text-ink-4 tnum">§{n}</span>{title}
+        <a href={`#${id}`} className="text-[14px] font-normal text-ink-5 opacity-0 hover:text-ink-3 [section:hover_&]:opacity-100" aria-label="Link to section">#</a>
       </h2>
       <div className="space-y-4">{children}</div>
     </section>
@@ -343,18 +343,18 @@ function S({ id, n, title, children }: { id: string; n: string; title: string; c
 }
 
 function P({ children }: { children: ReactNode }) {
-  return <p className="text-[15px] leading-[1.75] text-zinc-700">{children}</p>;
+  return <p className="text-[15px] leading-[1.75] text-ink-2">{children}</p>;
 }
 
 function Code({ children }: { children: ReactNode }) {
-  return <code className="rounded bg-zinc-100 px-[5px] py-[1px] font-mono text-[12.5px] text-zinc-800">{children}</code>;
+  return <code className="rounded bg-canvas-sunk px-[5px] py-[1px] font-mono text-[12.5px] text-ink">{children}</code>;
 }
 
 function Figure({ n, caption, children }: { n: number; caption: ReactNode; children: ReactNode }) {
   return (
     <figure className="my-6">
-      <div className="rounded-lg border border-zinc-200 bg-white px-5 py-5 max-lg:overflow-x-auto max-sm:px-3">{children}</div>
-      <figcaption className="mt-2.5 text-[13px] leading-relaxed text-zinc-500"><span className="font-medium text-zinc-700">Figure {n}.</span> {caption}</figcaption>
+      <div className="rounded-lg border border-divider bg-white px-5 py-5 max-lg:overflow-x-auto max-sm:px-3">{children}</div>
+      <figcaption className="mt-2.5 text-[13px] leading-relaxed text-ink-3"><span className="font-medium text-ink-2">Figure {n}.</span> {caption}</figcaption>
     </figure>
   );
 }
@@ -365,31 +365,31 @@ function BookTable({ head, rows, align, note }: { head: ReactNode[]; rows: React
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[13px]">
           <thead>
-            <tr className="border-y-[1.5px] border-zinc-800">
-              {head.map((h, i) => <th key={i} className={`px-2.5 py-2 font-semibold text-zinc-900 first:pl-0 last:pr-0 ${align[i] === "r" ? "text-right" : "text-left"}`}>{h}</th>)}
+            <tr className="border-y-[1.5px] border-ink">
+              {head.map((h, i) => <th key={i} className={`px-2.5 py-2 font-semibold text-ink first:pl-0 last:pr-0 ${align[i] === "r" ? "text-right" : "text-left"}`}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i} className="border-b border-zinc-100 last:border-b-[1.5px] last:border-zinc-800">
-                {r.map((c, j) => <td key={j} className={`px-2.5 py-2.5 align-top leading-relaxed text-zinc-700 first:pl-0 last:pr-0 ${align[j] === "r" ? "text-right" : ""}`}>{c}</td>)}
+              <tr key={i} className="border-b border-divider last:border-b-[1.5px] last:border-ink">
+                {r.map((c, j) => <td key={j} className={`px-2.5 py-2.5 align-top leading-relaxed text-ink-2 first:pl-0 last:pr-0 ${align[j] === "r" ? "text-right" : ""}`}>{c}</td>)}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {note && <p className="mt-2 text-[12.5px] leading-relaxed text-zinc-500">{note}</p>}
+      {note && <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">{note}</p>}
     </div>
   );
 }
 
 function Defs({ items }: { items: [string, ReactNode][] }) {
   return (
-    <dl className="my-4 divide-y divide-zinc-100 border-y border-zinc-200">
+    <dl className="my-4 divide-y divide-divider border-y border-divider">
       {items.map(([k, v]) => (
         <div key={k} className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 py-2.5 text-[14px] leading-relaxed max-sm:grid-cols-1 max-sm:gap-1">
-          <dt className="font-mono text-[12.5px] font-medium text-zinc-900">{k}</dt>
-          <dd className="text-zinc-700">{v}</dd>
+          <dt className="font-mono text-[12.5px] font-medium text-ink">{k}</dt>
+          <dd className="text-ink-2">{v}</dd>
         </div>
       ))}
     </dl>

@@ -148,54 +148,54 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
   const head = entries[entries.length - 1]?.hash;
 
   return (
-    <Card padded={false} className={cx("mb-8 overflow-hidden transition-colors", done && firstBreak >= 0 && "border-rose-300")}>
+    <Card padded={false} className={cx("mb-8 overflow-hidden transition-colors", done && firstBreak >= 0 && "border-coral/35")}>
       <div ref={box} />
       {/* header */}
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-zinc-100 px-5 py-4 max-sm:px-4">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-divider px-5 py-4 max-sm:px-4">
         <div className="min-w-[320px] max-w-2xl flex-1 max-sm:min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[14px] font-semibold text-zinc-900">Verify it yourself</h2>
+            <h2 className="text-[14px] font-semibold text-ink">Verify it yourself</h2>
             <Badge tone="outline">WebCrypto · SHA-256</Badge>
             {tampered && <Badge tone="warn">Local edits: {edited.size}</Badge>}
           </div>
-          <p className="mt-1 text-[13px] leading-relaxed text-zinc-500">
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-3">
             Your browser downloads the raw entries, rebuilds each one&apos;s canonical JSON and recomputes{" "}
-            <span className="font-mono text-[12px] text-zinc-700">sha256(prevHash ‖ canonical(entry))</span>. It doesn&apos;t rely on the
+            <span className="font-mono text-[12px] text-ink-2">sha256(prevHash ‖ canonical(entry))</span>. It doesn&apos;t rely on the
             server&apos;s integrity flag. <Link href="/methodology#hash-chain" className="text-accent hover:underline">Spec</Link>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => original && run(entries, 0, true)} disabled={!original || running}
-            className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-50">
+            className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-divider bg-white px-2.5 text-[13px] text-ink shadow-sm hover:bg-ivory disabled:opacity-50">
             <Play size={13} /> Re-run
           </button>
           <button type="button" onClick={() => { setEditMode((m) => !m); if (!editMode && selected == null && entries.length) setSelected(entries[Math.min(entries.length - 1, Math.max(0, entries.findIndex((e) => e.action === "add_to_cart")))].seq); }}
             className={cx("inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border px-2.5 text-[13px] shadow-sm",
-              editMode ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")}>
+              editMode ? "border-accent bg-accent-soft text-accent" : "border-divider bg-white text-ink hover:bg-ivory")}>
             <Pencil size={13} /> Edit history
           </button>
           {tampered && (
-            <button type="button" onClick={reset} className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50">
+            <button type="button" onClick={reset} className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-divider bg-white px-2.5 text-[13px] text-ink shadow-sm hover:bg-ivory">
               <RotateCcw size={13} /> Restore
             </button>
           )}
           <a href={`/api/traces/${encodeURIComponent(sessionId)}/raw?download=1`}
-            className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50">
+            className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-divider bg-white px-2.5 text-[13px] text-ink shadow-sm hover:bg-ivory">
             <Download size={13} /> Raw JSON
           </a>
         </div>
       </div>
 
-      {error && <div className="px-5 py-4 text-[13px] text-rose-700">Couldn&apos;t load raw chain: {error}</div>}
+      {error && <div className="px-5 py-4 text-[13px] text-coral-ink">Couldn&apos;t load raw chain: {error}</div>}
 
       {original && (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
           {/* chain */}
-          <div className="min-w-0 border-zinc-100 px-5 py-4 max-sm:px-3 lg:border-r">
+          <div className="min-w-0 border-divider px-5 py-4 max-sm:px-3 lg:border-r">
             <Summary rows={rows} running={running} done={done} firstBreak={firstBreak} entries={entries} verified={verifiedCount} elapsed={elapsed} tampered={tampered} />
             <ol className="mt-3">
-              <li className="flex items-center gap-3 pb-1 pl-[3px] text-[11.5px] text-zinc-400">
-                <span className="grid size-[18px] place-items-center rounded-full border border-dashed border-zinc-300 font-mono text-[9px]">G</span>
+              <li className="flex items-center gap-3 pb-1 pl-[3px] text-[11.5px] text-ink-4">
+                <span className="grid size-[18px] place-items-center rounded-full border border-dashed border-ink-5 font-mono text-[9px]">G</span>
                 <span className="font-mono">GENESIS</span>
               </li>
               {entries.map((e, i) => {
@@ -206,42 +206,42 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
                   <li key={e.seq} className="relative">
                     {/* connector from previous */}
                     <span className={cx("absolute left-[14.5px] -top-[3px] h-[8px] w-px transition-colors duration-300",
-                      r.state === "ok" ? "bg-emerald-400" : r.state === "link" || r.state === "downstream" ? "bg-rose-300" : bad ? "bg-rose-300" : "bg-zinc-200")} />
+                      r.state === "ok" ? "bg-pass" : r.state === "link" || r.state === "downstream" ? "bg-coral/45" : bad ? "bg-coral/45" : "bg-ink-5")} />
                     <button type="button" onClick={() => setSelected(isSel && !editMode ? null : e.seq)}
                       className={cx("mt-1 grid w-full grid-cols-[24px_52px_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-0.5 py-[3px] text-left transition-colors max-lg:py-2 max-sm:grid-cols-[24px_40px_minmax(0,1fr)_auto]",
-                        isSel ? "bg-zinc-100/80" : "hover:bg-zinc-50", bad && "bg-rose-50 hover:bg-rose-50", r.state === "downstream" && "bg-rose-50/40")}>
+                        isSel ? "bg-canvas-sunk/80" : "hover:bg-ivory", bad && "bg-coral-soft hover:bg-coral-soft", r.state === "downstream" && "bg-coral-soft/40")}>
                       <StatusDot state={r.state} />
-                      <span className="font-mono text-[12px] text-zinc-500 tnum">#{e.seq}</span>
+                      <span className="font-mono text-[12px] text-ink-3 tnum">#{e.seq}</span>
                       <span className="flex min-w-0 items-center gap-1.5">
-                        <span className={cx("truncate text-[13px]", bad ? "font-medium text-rose-800" : "text-zinc-800")}>{e.action.replace(/_/g, " ")}</span>
+                        <span className={cx("truncate text-[13px]", bad ? "font-medium text-coral-ink" : "text-ink")}>{e.action.replace(/_/g, " ")}</span>
                         {edited.has(e.seq) && <Badge tone="warn" className="h-[18px]">edited</Badge>}
                       </span>
-                      <span className={cx("font-mono text-[11.5px] tnum", bad ? "text-rose-700" : r.state === "ok" ? "text-zinc-500" : "text-zinc-400")}>
+                      <span className={cx("font-mono text-[11.5px] tnum", bad ? "text-coral-ink" : r.state === "ok" ? "text-ink-3" : "text-ink-4")}>
                         {r.state === "content" ? <>hash mismatch at #{e.seq}</> : r.state === "link" ? <>prevHash mismatch at #{e.seq}</>
-                          : r.state === "downstream" ? <span className="text-rose-500">not anchored</span> : short(e.hash)}
+                          : r.state === "downstream" ? <span className="text-coral">not anchored</span> : short(e.hash)}
                       </span>
                     </button>
                   </li>
                 );
               })}
             </ol>
-            <div className="mt-3 flex items-center gap-2 border-t border-zinc-100 pt-3 text-[11.5px] text-zinc-500 max-sm:flex-wrap max-sm:gap-y-0">
+            <div className="mt-3 flex items-center gap-2 border-t border-divider pt-3 text-[11.5px] text-ink-3 max-sm:flex-wrap max-sm:gap-y-0">
               <span>Head</span>
-              <span className="font-mono text-zinc-700 max-sm:break-anywhere">{short(head, 24)}…</span>
-              <span className="text-zinc-400">· anyone who keeps this value can detect a full rewrite</span>
+              <span className="font-mono text-ink-2 max-sm:break-anywhere">{short(head, 24)}…</span>
+              <span className="text-ink-4">· anyone who keeps this value can detect a full rewrite</span>
             </div>
           </div>
 
           {/* inspector */}
-          <div className="min-w-0 bg-zinc-50/40 px-5 py-4 max-sm:px-3">
+          <div className="min-w-0 bg-ivory/40 px-5 py-4 max-sm:px-3">
             {selEntry ? (
               <Inspector entry={selEntry} original={original[sel]} row={selRow} editMode={editMode} leaves={editable}
                 onField={(p, raw, like) => updateField(selEntry.seq, p, raw, like)} onReseal={() => reseal(selEntry.seq)} isEdited={edited.has(selEntry.seq)} />
             ) : (
               <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-2 text-center">
-                <FlaskConical size={18} className="text-zinc-300" />
-                <p className="max-w-xs text-[13px] text-zinc-500">
-                  Select an entry to see the exact bytes that were hashed. Turn on <span className="font-medium text-zinc-700">Edit history</span> to rewrite
+                <FlaskConical size={18} className="text-ink-5" />
+                <p className="max-w-xs text-[13px] text-ink-3">
+                  Select an entry to see the exact bytes that were hashed. Turn on <span className="font-medium text-ink-2">Edit history</span> to rewrite
                   one locally and see where verification fails.
                 </p>
               </div>
@@ -249,18 +249,18 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
           </div>
         </div>
       )}
-      {!original && !error && <div className="h-[260px] animate-pulse bg-zinc-50" />}
+      {!original && !error && <div className="h-[260px] animate-pulse bg-ivory" />}
     </Card>
   );
 }
 
 function StatusDot({ state }: { state: Row["state"] }) {
   const base = "relative z-[1] grid size-[24px] place-items-center rounded-full border transition-all duration-300";
-  if (state === "ok") return <span className={cx(base, "border-emerald-200 bg-emerald-50 text-emerald-600")}><Check size={13} strokeWidth={2.5} /></span>;
-  if (state === "content" || state === "link") return <span className={cx(base, "border-rose-300 bg-rose-100 text-rose-600")}><X size={13} strokeWidth={2.5} /></span>;
-  if (state === "downstream") return <span className={cx(base, "border-rose-200 bg-white text-rose-300")}><span className="size-1.5 rounded-full bg-rose-300" /></span>;
+  if (state === "ok") return <span className={cx(base, "border-pass/35 bg-pass-soft text-pass-ink")}><Check size={13} strokeWidth={2.5} /></span>;
+  if (state === "content" || state === "link") return <span className={cx(base, "border-coral/35 bg-coral-soft text-coral-ink")}><X size={13} strokeWidth={2.5} /></span>;
+  if (state === "downstream") return <span className={cx(base, "border-coral/35 bg-white text-coral/60")}><span className="size-1.5 rounded-full bg-coral/45" /></span>;
   if (state === "checking") return <span className={cx(base, "border-accent bg-accent-soft")}><span className="size-1.5 rounded-full bg-accent pulse-dot" /></span>;
-  return <span className={cx(base, "border-zinc-200 bg-white")}><span className="size-1 rounded-full bg-zinc-300" /></span>;
+  return <span className={cx(base, "border-divider bg-white")}><span className="size-1 rounded-full bg-ink-5" /></span>;
 }
 
 function Summary({ rows, running, done, firstBreak, entries, verified, elapsed, tampered }: {
@@ -272,22 +272,22 @@ function Summary({ rows, running, done, firstBreak, entries, verified, elapsed, 
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <div className={cx("text-[13.5px] font-medium", broken ? "text-rose-700" : done ? "text-emerald-700" : "text-zinc-800")}>
+        <div className={cx("text-[13.5px] font-medium", broken ? "text-coral-ink" : done ? "text-pass-ink" : "text-ink")}>
           {broken ? <>Chain broken at #{entries[firstBreak].seq}{rows[firstBreak].state === "link" ? ": prevHash doesn't match the previous entry" : ": recomputed hash ≠ recorded hash"}</>
             : done ? <>All {n} links recomputed and verified locally{tampered ? " (edits restored to original values)" : ""}</>
             : running ? <>Recomputing link {Math.min(n, rows.filter((r) => r.check).length + 1)} of {n}…</> : <>Ready to verify {n} links</>}
         </div>
-        <span className="shrink-0 text-[11.5px] text-zinc-400 tnum">{done && elapsed != null ? `${verified}/${n} ok` : ""}</span>
+        <span className="shrink-0 text-[11.5px] text-ink-4 tnum">{done && elapsed != null ? `${verified}/${n} ok` : ""}</span>
       </div>
       {broken && done && (
-        <p className="mt-1 text-[12.5px] leading-relaxed text-zinc-500">
+        <p className="mt-1 text-[12.5px] leading-relaxed text-ink-3">
           {rows[firstBreak].state === "link"
             ? <>Re-sealing #{entries[firstBreak - 1]?.seq} only moves the break to the next link. To hide the edit, an attacker would have to rewrite every later hash, which changes the head.</>
             : <>Entries after #{entries[firstBreak].seq} still check out on their own, but they are no longer anchored to GENESIS through an honest link.</>}
         </p>
       )}
-      <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-zinc-100">
-        <div className={cx("h-full rounded-full transition-[width] duration-150", broken ? "bg-rose-500" : done ? "bg-emerald-500" : "bg-accent")} style={{ width: `${pct}%` }} />
+      <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-canvas-sunk">
+        <div className={cx("h-full rounded-full transition-[width] duration-150", broken ? "bg-coral" : done ? "bg-pass" : "bg-accent")} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -305,10 +305,10 @@ function Inspector({ entry, original, row, editMode, leaves: ls, onField, onRese
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between gap-3 max-sm:flex-wrap">
-        <div className="text-[13px] font-medium text-zinc-900 max-sm:min-w-0 max-sm:break-anywhere">Entry <span className="font-mono">#{entry.seq}</span> <span className="font-normal text-zinc-500">· {entry.actor} · {entry.action}</span></div>
+        <div className="text-[13px] font-medium text-ink max-sm:min-w-0 max-sm:break-anywhere">Entry <span className="font-mono">#{entry.seq}</span> <span className="font-normal text-ink-3">· {entry.actor} · {entry.action}</span></div>
         {editMode && isEdited && (
           <button type="button" onClick={onReseal} title="Recompute this entry's own hash, as an attacker would. The next link then breaks."
-            className="inline-flex h-7 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700 hover:bg-zinc-50">
+            className="inline-flex h-7 max-lg:h-10 items-center gap-1.5 rounded-md border border-divider bg-white px-2 text-[12px] text-ink-2 hover:bg-ivory">
             <Stamp size={12} /> Re-seal this entry
           </button>
         )}
@@ -316,18 +316,18 @@ function Inspector({ entry, original, row, editMode, leaves: ls, onField, onRese
 
       {editMode && (
         <div>
-          <div className="mb-1.5 text-[11.5px] font-medium uppercase tracking-[0.06em] text-zinc-400">Fields (edits stay in this tab)</div>
-          <div className="max-h-[220px] overflow-auto rounded-md border border-zinc-200 bg-white">
+          <div className="mb-1.5 text-[11.5px] font-medium uppercase tracking-[0.06em] text-ink-4">Fields (edits stay in this tab)</div>
+          <div className="max-h-[220px] overflow-auto rounded-md border border-divider bg-white">
             {ls.map((l) => {
               const key = pathLabel(l.path);
               const changed = was.has(key) && was.get(key) !== l.value;
               return (
-                <label key={key} className={cx("grid grid-cols-[minmax(0,40%)_1fr_auto] items-center gap-2 border-b border-zinc-100 px-2.5 py-1 last:border-b-0", changed && "bg-amber-50/70")}>
-                  <span className={cx("truncate font-mono text-[11.5px]", changed ? "text-amber-800" : "text-zinc-500")} title={key}>{key}</span>
+                <label key={key} className={cx("grid grid-cols-[minmax(0,40%)_1fr_auto] items-center gap-2 border-b border-divider px-2.5 py-1 last:border-b-0", changed && "bg-amber-soft/70")}>
+                  <span className={cx("truncate font-mono text-[11.5px]", changed ? "text-amber-ink" : "text-ink-3")} title={key}>{key}</span>
                   <input defaultValue={l.value === null ? "null" : String(l.value)} key={`${entry.seq}:${key}:${String(l.value)}`}
                     onChange={(ev) => onField(l.path, ev.target.value, l.value)}
-                    className="h-6 max-lg:h-10 max-md:text-[16px] min-w-0 rounded border border-transparent bg-transparent px-1.5 font-mono text-[12px] text-zinc-900 outline-none hover:border-zinc-200 focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/15" />
-                  <span className="font-mono text-[11px] text-amber-700">{changed ? <>was <span className="line-through">{String(was.get(key))}</span></> : null}</span>
+                    className="h-6 max-lg:h-10 max-md:text-[16px] min-w-0 rounded border border-transparent bg-transparent px-1.5 font-mono text-[12px] text-ink outline-none hover:border-divider focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/15" />
+                  <span className="font-mono text-[11px] text-amber-ink">{changed ? <>was <span className="line-through">{String(was.get(key))}</span></> : null}</span>
                 </label>
               );
             })}
@@ -337,21 +337,21 @@ function Inspector({ entry, original, row, editMode, leaves: ls, onField, onRese
 
       <div>
         <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-[11.5px]">
-          <span className="font-medium uppercase tracking-[0.06em] text-zinc-400">Preimage · exact bytes hashed</span>
-          {c && <span className="text-zinc-400 tnum">{c.bytes.toLocaleString()} bytes UTF-8</span>}
+          <span className="font-medium uppercase tracking-[0.06em] text-ink-4">Preimage · exact bytes hashed</span>
+          {c && <span className="text-ink-4 tnum">{c.bytes.toLocaleString()} bytes UTF-8</span>}
         </div>
-        <pre className="max-h-[180px] overflow-auto whitespace-pre-wrap break-all rounded-md border border-zinc-200 bg-white p-2.5 font-mono text-[11.5px] leading-[1.55] text-zinc-700">
-          <span className="text-accent">{entry.prevHash}</span><span className="text-zinc-300">‖</span>{canon}
+        <pre className="max-h-[180px] overflow-auto whitespace-pre-wrap break-all rounded-md border border-divider bg-white p-2.5 font-mono text-[11.5px] leading-[1.55] text-ink-2">
+          <span className="text-accent">{entry.prevHash}</span><span className="text-ink-5">‖</span>{canon}
         </pre>
       </div>
 
       <dl className="grid grid-cols-[84px_minmax(0,1fr)] gap-x-3 gap-y-1.5 font-mono text-[11px] tracking-[-0.01em]">
-        <dt className="font-sans text-zinc-500">recomputed</dt>
-        <dd className={cx("break-all", c ? (match ? "text-emerald-700" : "text-rose-700") : "text-zinc-400")}>{c?.computed ?? "…"}</dd>
-        <dt className="font-sans text-zinc-500">recorded</dt>
-        <dd className="break-all text-zinc-700">{entry.hash}</dd>
-        <dt className="font-sans text-zinc-500">prev link</dt>
-        <dd className={cx("break-all", c && c.status === "link" ? "text-rose-700" : "text-zinc-500")}>
+        <dt className="font-sans text-ink-3">recomputed</dt>
+        <dd className={cx("break-all", c ? (match ? "text-pass-ink" : "text-coral-ink") : "text-ink-4")}>{c?.computed ?? "…"}</dd>
+        <dt className="font-sans text-ink-3">recorded</dt>
+        <dd className="break-all text-ink-2">{entry.hash}</dd>
+        <dt className="font-sans text-ink-3">prev link</dt>
+        <dd className={cx("break-all", c && c.status === "link" ? "text-coral-ink" : "text-ink-3")}>
           {c ? (c.status === "link" ? <>expected {short(c.expectedPrev, 16)}…, entry says {short(entry.prevHash, 16)}…</> : <>matches {c.expectedPrev === GENESIS ? "GENESIS" : `previous entry (${short(c.expectedPrev, 16)}…)`}</>) : "…"}
         </dd>
       </dl>

@@ -39,7 +39,7 @@ function typed(text: string, now: number, at: number, seg: readonly [number, num
 }
 
 function Caret({ tone = "accent" }: { tone?: "accent" | "rose" }) {
-  return <span className={cx("ml-px inline-block h-[1.05em] w-[2px] translate-y-[2px] animate-pulse", tone === "rose" ? "bg-rose-500" : "bg-accent")} />;
+  return <span className={cx("ml-px inline-block h-[1.05em] w-[2px] translate-y-[2px] animate-pulse", tone === "rose" ? "bg-coral" : "bg-accent")} />;
 }
 
 export default function Theater({
@@ -57,14 +57,14 @@ export default function Theater({
   const playing = stage === "writing" || stage === "testing" || stage === "verdict";
 
   return (
-    <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <section className="overflow-hidden rounded-xl border border-divider bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       {/* ------------------------------------------------ header */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-zinc-200 px-5 py-3 max-sm:px-4">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-divider px-5 py-3 max-sm:px-4">
         <div className="flex items-center gap-2 text-[13px]">
-          <span className={cx("size-1.5 rounded-full", playing || busy ? "pulse-dot bg-rose-500" : connected ? "bg-emerald-500" : "bg-zinc-300")} />
-          <span className="font-semibold text-zinc-900">{state.replay ? "Replay" : playing || busy ? "Live round" : stage === "done" ? "Round complete" : "Red-team theater"}</span>
-          {round != null && round > 0 && <span className="text-zinc-500 tnum">Round {round}</span>}
-          {current && <span className="text-zinc-400 tnum">· scam {idx + 1} of {total}</span>}
+          <span className={cx("size-1.5 rounded-full", playing || busy ? "pulse-dot bg-coral" : connected ? "bg-pass" : "bg-ink-5")} />
+          <span className="font-semibold text-ink">{state.replay ? "Replay" : playing || busy ? "Live round" : stage === "done" ? "Round complete" : "Red-team theater"}</span>
+          {round != null && round > 0 && <span className="text-ink-3 tnum">Round {round}</span>}
+          {current && <span className="text-ink-4 tnum">· scam {idx + 1} of {total}</span>}
         </div>
         {inRound.length > 0 && (
           <div className="flex items-center gap-1" aria-label="Scams in this round">
@@ -73,8 +73,8 @@ export default function Theater({
               const shownVerdict = s && (inRound.indexOf(s) < idx || (s === current && stage !== "writing" && stage !== "testing") || stage === "done");
               return (
                 <span key={k} className={cx("h-1.5 w-5 rounded-full transition-colors duration-500",
-                  !s ? "bg-zinc-100" : s === current && !shownVerdict ? "bg-accent" :
-                  shownVerdict ? (s.verdict?.kept ? "bg-rose-500" : "bg-zinc-300") : "bg-zinc-200")} />
+                  !s ? "bg-canvas-sunk" : s === current && !shownVerdict ? "bg-accent" :
+                  shownVerdict ? (s.verdict?.kept ? "bg-coral" : "bg-ink-5") : "bg-ink-5")} />
               );
             })}
           </div>
@@ -82,18 +82,18 @@ export default function Theater({
         <AnimatePresence>
           {state.retry && (
             <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-              className="rounded bg-amber-50 px-1.5 py-0.5 text-[11.5px] font-medium text-amber-700">
+              className="rounded bg-amber-soft px-1.5 py-0.5 text-[11.5px] font-medium text-amber-ink">
               Nothing landed, so the attacker is escalating (wave {state.retry.attempt})
             </motion.span>
           )}
         </AnimatePresence>
         <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2 max-sm:ml-0 max-sm:w-full max-sm:justify-between">
           {startTasks != null && (
-            <div className="flex items-center gap-1.5 text-[13px] text-zinc-500" title="Tasks in the benchmark">
+            <div className="flex items-center gap-1.5 text-[13px] text-ink-3" title="Tasks in the benchmark">
               Benchmark
-              <span className="tnum text-zinc-400">{startTasks}</span>
-              <ArrowRight size={12} className="text-zinc-300" />
-              <span className={cx("text-[15px] font-semibold", keptCount ? "text-zinc-900" : "text-zinc-500")}>
+              <span className="tnum text-ink-4">{startTasks}</span>
+              <ArrowRight size={12} className="text-ink-5" />
+              <span className={cx("text-[15px] font-semibold", keptCount ? "text-ink" : "text-ink-3")}>
                 <RollingNumber value={startTasks + keptCount} />
               </span>
               <span>tasks</span>
@@ -114,11 +114,11 @@ export default function Theater({
           </button>
         </div>
       </div>
-      {error && <div className="border-b border-rose-100 bg-rose-50/60 px-5 py-2 text-[12.5px] text-rose-700">{error}</div>}
+      {error && <div className="border-b border-coral/20 bg-coral-soft/60 px-5 py-2 text-[12.5px] text-coral-ink">{error}</div>}
 
       {/* ------------------------------------------------ stage */}
       <div className="grid grid-cols-1 min-h-[470px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="min-w-0 border-b border-zinc-200 p-5 max-sm:p-4 lg:border-b-0 lg:border-r">
+        <div className="min-w-0 border-b border-divider p-5 max-sm:p-4 lg:border-b-0 lg:border-r">
           <PanelLabel icon={<PenLine size={12} />} text="Attacker"
             aside={current ? (current.listing.generator === "llm" ? "LLM attacker" : "Mutation engine") : undefined}
             live={stage === "writing"} liveText="writing a scam listing" />
@@ -137,10 +137,10 @@ export default function Theater({
           <PanelLabel icon={<Swords size={12} />} text="Targets" aside={current ? `${current.models.length} models in parallel` : undefined}
             live={stage === "testing"} liveText="shopping with the scam in the store" />
           {current?.listing.task && (
-            <div className="mb-3 rounded-md border border-zinc-200 bg-zinc-50/60 px-3 py-2 text-[12.5px]">
-              <span className="text-zinc-500">User asks: </span>
-              <span className="text-zinc-800">&ldquo;{current.listing.task.instruction}&rdquo;</span>
-              {current.listing.task.budget != null && <span className="ml-1.5 text-zinc-500 tnum">budget {usd(current.listing.task.budget, 0)}</span>}
+            <div className="mb-3 rounded-md border border-divider bg-ivory/60 px-3 py-2 text-[12.5px]">
+              <span className="text-ink-3">User asks: </span>
+              <span className="text-ink">&ldquo;{current.listing.task.instruction}&rdquo;</span>
+              {current.listing.task.budget != null && <span className="ml-1.5 text-ink-3 tnum">budget {usd(current.listing.task.budget, 0)}</span>}
             </div>
           )}
           <div className="space-y-1.5">
@@ -158,7 +158,7 @@ export default function Theater({
               )}
             </AnimatePresence>
             {stage === "done" && state.summary && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-3 text-[12.5px] text-zinc-500 tnum">
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-3 text-[12.5px] text-ink-3 tnum">
                 Round {state.summary.round} finished: the attacker wrote {state.summary.generated} scam{state.summary.generated === 1 ? "" : "s"},
                 {" "}{state.summary.kept} fooled at least one model and {state.summary.kept === 1 ? "was" : "were"} added to the benchmark.
               </motion.p>
@@ -173,8 +173,8 @@ export default function Theater({
 function PanelLabel({ icon, text, aside, live, liveText }: { icon: React.ReactNode; text: string; aside?: string; live?: boolean; liveText?: string }) {
   return (
     <div className="mb-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px]">
-      <span className="inline-flex items-center gap-1.5 font-medium uppercase tracking-[0.06em] text-zinc-500">{icon}{text}</span>
-      {aside && <span className="text-zinc-400">· {aside}</span>}
+      <span className="inline-flex items-center gap-1.5 font-medium uppercase tracking-[0.06em] text-ink-3">{icon}{text}</span>
+      {aside && <span className="text-ink-4">· {aside}</span>}
       <AnimatePresence>
         {live && (
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="ml-auto inline-flex items-center gap-1.5 text-accent">
@@ -213,15 +213,15 @@ function Listing({ scam, now, at, speed, instant }: { scam: TheaterScam; now: nu
 
   return (
     <div>
-      <div className="rounded-lg border border-zinc-200 bg-white">
-        <div className="flex items-start gap-4 border-b border-zinc-100 px-4 py-3.5 max-sm:gap-2 max-sm:px-3">
+      <div className="rounded-lg border border-divider bg-white">
+        <div className="flex items-start gap-4 border-b border-divider px-4 py-3.5 max-sm:gap-2 max-sm:px-3">
           <div className="min-w-0 flex-1">
-            <div className="min-h-[44px] text-[15.5px] font-semibold leading-snug tracking-[-0.01em] text-zinc-900">
+            <div className="min-h-[44px] text-[15.5px] font-semibold leading-snug tracking-[-0.01em] text-ink">
               {title.s}{title.typing && <Caret />}
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-zinc-500">
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-ink-3">
               {p.brand && <span>{p.brand}</span>}
-              {p.merchantId && <span className="font-mono text-[11.5px] text-zinc-400">{p.merchantId}</span>}
+              {p.merchantId && <span className="font-mono text-[11.5px] text-ink-4">{p.merchantId}</span>}
               {p.rating != null && <span className="tnum">★ {p.rating} · {Number(p.reviewCount ?? 0).toLocaleString("en-US")} reviews</span>}
             </div>
           </div>
@@ -229,37 +229,37 @@ function Listing({ scam, now, at, speed, instant }: { scam: TheaterScam; now: nu
             <AnimatePresence>
               {showPrice && p.price != null && (
                 <motion.div initial={{ opacity: 0, y: 6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 380, damping: 24 }}>
-                  <div className="text-[19px] font-semibold tracking-[-0.02em] text-zinc-900 tnum">{usd(p.price)}</div>
-                  {off > 0 && <div className="text-[11.5px] tnum"><span className="text-zinc-400 line-through">{usd(p.listPrice)}</span> <span className="font-medium text-rose-600">−{off}%</span></div>}
+                  <div className="text-[19px] font-semibold tracking-[-0.02em] text-ink tnum">{usd(p.price)}</div>
+                  {off > 0 && <div className="text-[11.5px] tnum"><span className="text-ink-4 line-through">{usd(p.listPrice)}</span> <span className="font-medium text-coral-ink">−{off}%</span></div>}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
         <div className="space-y-3 px-4 py-3.5 max-sm:px-3">
-          <p className="min-h-[40px] text-[13px] leading-relaxed text-zinc-600">{desc.s}{desc.typing && <Caret />}</p>
+          <p className="min-h-[40px] text-[13px] leading-relaxed text-ink-2">{desc.s}{desc.typing && <Caret />}</p>
           {payload.length > 0 && (instant || pay.started) && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.25 }}
-              className="overflow-hidden rounded-md border border-rose-200 bg-rose-50/70">
-              <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-rose-100 px-2.5 py-1 text-[10.5px] font-medium uppercase tracking-[0.06em] text-rose-700">
+              className="overflow-hidden rounded-md border border-coral/35 bg-coral-soft/70">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-coral/20 px-2.5 py-1 text-[10.5px] font-medium uppercase tracking-[0.06em] text-coral-ink">
                 <span>Hidden payload, aimed at the agent</span>
-                <span className="normal-case tracking-normal text-rose-500">{payload[0].how}</span>
+                <span className="normal-case tracking-normal text-coral">{payload[0].how}</span>
               </div>
-              <pre className="whitespace-pre-wrap break-words px-2.5 py-2 font-mono text-[11.5px] leading-relaxed text-rose-900">{pay.s}{pay.typing && <Caret tone="rose" />}</pre>
+              <pre className="whitespace-pre-wrap break-words px-2.5 py-2 font-mono text-[11.5px] leading-relaxed text-coral-ink">{pay.s}{pay.typing && <Caret tone="rose" />}</pre>
             </motion.div>
           )}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex h-6 items-center rounded-md bg-rose-50 px-2 text-[12px] font-medium text-rose-700">{trapLabel(L.trapType)}</span>
+        <span className="inline-flex h-6 items-center rounded-md bg-coral-soft px-2 text-[12px] font-medium text-coral-ink">{trapLabel(L.trapType)}</span>
         {techniques.map((t, k) => (
           <motion.span key={t + k} initial={instant ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: instant ? 0 : (0.3 + k * 0.12) * speed }}
-            className="inline-flex h-6 items-center rounded-md border border-zinc-200 bg-white px-2 font-mono text-[11px] text-zinc-600">{t}</motion.span>
+            className="inline-flex h-6 items-center rounded-md border border-divider bg-white px-2 font-mono text-[11px] text-ink-2">{t}</motion.span>
         ))}
       </div>
       {note.s && (
-        <p className="mt-2.5 text-[12px] leading-relaxed text-zinc-500">
-          <span className="font-medium text-zinc-700">Why it&rsquo;s a scam</span> <span className="text-zinc-400">(hidden from agents)</span>: {note.s}{note.typing && <Caret />}
+        <p className="mt-2.5 text-[12px] leading-relaxed text-ink-3">
+          <span className="font-medium text-ink-2">Why it&rsquo;s a scam</span> <span className="text-ink-4">(hidden from agents)</span>: {note.s}{note.typing && <Caret />}
         </p>
       )}
     </div>
@@ -269,19 +269,19 @@ function Listing({ scam, now, at, speed, instant }: { scam: TheaterScam; now: nu
 function RoundLog({ scams, current, stage }: { scams: TheaterScam[]; current: TheaterScam; stage: string }) {
   const ci = scams.indexOf(current);
   return (
-    <div className="mt-5 border-t border-zinc-100 pt-3">
-      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-zinc-400">This round</div>
+    <div className="mt-5 border-t border-divider pt-3">
+      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-ink-4">This round</div>
       <ul className="space-y-0.5">
         {scams.map((s, i) => {
           const done = i < ci || (i === ci && (stage === "verdict" || stage === "done"));
           const isCur = i === ci && !done;
           return (
             <motion.li key={s.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
-              className={cx("grid grid-cols-[16px_1fr_auto] items-center gap-2 rounded px-1 py-1 text-[12px]", isCur && "bg-zinc-50")}>
+              className={cx("grid grid-cols-[16px_1fr_auto] items-center gap-2 rounded px-1 py-1 text-[12px]", isCur && "bg-ivory")}>
               <span className={cx("size-1.5 justify-self-center rounded-full",
-                isCur ? "pulse-dot bg-accent" : !done ? "bg-zinc-200" : s.verdict?.kept ? "bg-rose-500" : "bg-zinc-300")} />
-              <span className={cx("truncate", i > ci ? "text-zinc-400" : "text-zinc-700")}>{s.listing.product?.title ?? s.id}</span>
-              <span className={cx("text-[11.5px] tnum", !done ? "text-zinc-400" : s.verdict?.kept ? "text-rose-600" : "text-zinc-400")}>
+                isCur ? "pulse-dot bg-accent" : !done ? "bg-ink-5" : s.verdict?.kept ? "bg-coral" : "bg-ink-5")} />
+              <span className={cx("truncate", i > ci ? "text-ink-4" : "text-ink-2")}>{s.listing.product?.title ?? s.id}</span>
+              <span className={cx("text-[11.5px] tnum", !done ? "text-ink-4" : s.verdict?.kept ? "text-coral-ink" : "text-ink-4")}>
                 {!done ? (isCur ? "testing" : "queued") : s.verdict?.kept ? `fooled ${s.verdict.fooled.length}` : "discarded"}
               </span>
             </motion.li>
@@ -300,14 +300,14 @@ function IdleAttacker({ busy }: { busy: boolean }) {
   ];
   return (
     <div className="flex h-full flex-col">
-      <p className="max-w-[440px] text-[15px] leading-relaxed text-zinc-700">
+      <p className="max-w-[440px] text-[15px] leading-relaxed text-ink-2">
         {busy ? "Starting a round. The first listing appears here as soon as the attacker writes it." : "Each round, an adversary writes new scams and tests them against every model. Run one and watch it happen."}
       </p>
       <ol className="mt-6 space-y-4">
         {steps.map(([h, t], i) => (
           <li key={h} className="grid grid-cols-[28px_1fr] gap-3">
-            <span className="flex size-6 items-center justify-center rounded-full border border-zinc-200 font-mono text-[11px] text-zinc-500">{i + 1}</span>
-            <div><div className="text-[13.5px] font-medium text-zinc-900">{h}</div><p className="mt-0.5 text-[12.5px] leading-relaxed text-zinc-500">{t}</p></div>
+            <span className="flex size-6 items-center justify-center rounded-full border border-divider font-mono text-[11px] text-ink-3">{i + 1}</span>
+            <div><div className="text-[13.5px] font-medium text-ink">{h}</div><p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-3">{t}</p></div>
           </li>
         ))}
       </ol>
@@ -335,21 +335,21 @@ function Lane({ model, state, test, trap, k, reduce }: { model: string; state: L
   const body = (
     <motion.div layout={!reduce}
       className={cx("relative grid grid-cols-[1fr_104px] max-sm:grid-cols-[minmax(0,1fr)_88px] items-center gap-3 max-sm:gap-2 overflow-hidden rounded-lg border px-3 py-2.5 transition-colors duration-500",
-        fooled ? "border-rose-200 bg-rose-50/50" : resisted ? "border-zinc-200 bg-white" : "border-zinc-200 bg-white",
+        fooled ? "border-coral/35 bg-coral-soft/50" : resisted ? "border-divider bg-white" : "border-divider bg-white",
         state === "idle" && "opacity-60")}>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="truncate text-[13.5px] font-medium text-zinc-900">{nameOf(model)}</span>
-          <span className="truncate font-mono text-[11px] text-zinc-400 max-sm:hidden">{model}</span>
+          <span className="truncate text-[13.5px] font-medium text-ink">{nameOf(model)}</span>
+          <span className="truncate font-mono text-[11px] text-ink-4 max-sm:hidden">{model}</span>
         </div>
         <div className="mt-1.5 h-[18px]">
           <AnimatePresence mode="popLayout" initial={false}>
             {fooled || resisted ? (
-              <motion.div key="o" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={cx("truncate text-[12px]", fooled ? "text-rose-700" : "text-zinc-500")}>
+              <motion.div key="o" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={cx("truncate text-[12px]", fooled ? "text-coral-ink" : "text-ink-3")}>
                 {outcome(test, trap)}
               </motion.div>
             ) : (
-              <motion.div key="t" exit={{ opacity: 0 }} className={cx("relative mt-[7px] h-[3px] overflow-hidden rounded-full", state === "idle" ? "bg-transparent" : "bg-zinc-100")}>
+              <motion.div key="t" exit={{ opacity: 0 }} className={cx("relative mt-[7px] h-[3px] overflow-hidden rounded-full", state === "idle" ? "bg-transparent" : "bg-canvas-sunk")}>
                 {state === "running" && (
                   <motion.span className="absolute inset-y-0 w-1/3 rounded-full bg-accent/70"
                     initial={{ left: "-33%" }} animate={{ left: "100%" }}
@@ -365,20 +365,20 @@ function Lane({ model, state, test, trap, k, reduce }: { model: string; state: L
           {fooled ? (
             <motion.span key="f" initial={reduce ? false : { scale: 1.9, opacity: 0, rotate: -14 }} animate={{ scale: 1, opacity: 1, rotate: -6 }}
               transition={{ type: "spring", stiffness: 520, damping: 18 }}
-              className="inline-flex h-7 items-center rounded-md border-2 border-rose-500 px-2 text-[12px] font-bold uppercase tracking-[0.12em] text-rose-600">
+              className="inline-flex h-7 items-center rounded-md border-2 border-coral px-2 text-[12px] font-bold uppercase tracking-[0.12em] text-coral-ink">
               Fooled
             </motion.span>
           ) : resisted ? (
             <motion.span key="r" initial={reduce ? false : { opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex h-7 items-center gap-1 rounded-md bg-emerald-50 px-2 text-[12px] font-medium text-emerald-700">
+              className="inline-flex h-7 items-center gap-1 rounded-md bg-pass-soft px-2 text-[12px] font-medium text-pass-ink">
               <Check size={13} strokeWidth={2.5} /> Resisted
             </motion.span>
           ) : state === "running" ? (
-            <motion.span key="s" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[12px] text-zinc-500">Shopping…</motion.span>
+            <motion.span key="s" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[12px] text-ink-3">Shopping…</motion.span>
           ) : state === "idle" ? (
-            <span className="text-[12px] text-zinc-400">Standing by</span>
+            <span className="text-[12px] text-ink-4">Standing by</span>
           ) : state === "queued" ? (
-            <motion.span key="q" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[12px] text-zinc-400">Queued</motion.span>
+            <motion.span key="q" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[12px] text-ink-4">Queued</motion.span>
           ) : null}
         </AnimatePresence>
       </div>
@@ -394,20 +394,20 @@ function Verdict({ scam }: { scam: TheaterScam }) {
   const n = v.fooled.length;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.4, ease: EASE }}
-      className={cx("flex items-center gap-3 rounded-lg border px-3.5 py-3", v.kept ? "border-accent/30 bg-accent-soft" : "border-zinc-200 bg-zinc-50")}>
-      <span className={cx("flex size-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold", v.kept ? "bg-accent text-white" : "bg-zinc-200 text-zinc-500")}>
+      className={cx("flex items-center gap-3 rounded-lg border px-3.5 py-3", v.kept ? "border-accent/30 bg-accent-soft" : "border-divider bg-ivory")}>
+      <span className={cx("flex size-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold", v.kept ? "bg-accent text-white" : "bg-ink-5 text-ink-3")}>
         {v.kept ? "+1" : "0"}
       </span>
       <div className="min-w-0 flex-1 text-[13px]">
         {v.kept ? (
           <>
-            <div className="font-semibold text-zinc-900">Added to benchmark</div>
-            <div className="text-zinc-600">Fooled {n} of {scam.models.length} model{scam.models.length === 1 ? "" : "s"}. It is now a permanent task.</div>
+            <div className="font-semibold text-ink">Added to benchmark</div>
+            <div className="text-ink-2">Fooled {n} of {scam.models.length} model{scam.models.length === 1 ? "" : "s"}. It is now a permanent task.</div>
           </>
         ) : (
           <>
-            <div className="font-semibold text-zinc-700">Discarded</div>
-            <div className="text-zinc-500">Every model resisted it, so the listing was removed from the store.</div>
+            <div className="font-semibold text-ink-2">Discarded</div>
+            <div className="text-ink-3">Every model resisted it, so the listing was removed from the store.</div>
           </>
         )}
       </div>

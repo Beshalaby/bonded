@@ -24,21 +24,21 @@ export default function Toc({ items, variant = "list" }: { items: { id: string; 
   if (variant === "dropdown") {
     const cur = items.find((i) => i.id === active);
     return (
-      <details ref={details} className="group sticky top-14 z-20 -mx-4 border-b border-zinc-200 bg-white/95 backdrop-blur-sm sm:-mx-8">
+      <details ref={details} className="group sticky top-14 z-20 -mx-4 border-b border-divider bg-white/95 backdrop-blur-sm sm:-mx-8">
         <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 text-[13px] sm:px-8 [&::-webkit-details-marker]:hidden">
-          <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-zinc-400">Contents</span>
-          <span className="min-w-0 flex-1 truncate text-zinc-800">{cur ? <><span className="mr-1.5 text-zinc-400 tnum">{cur.n}</span>{cur.label}</> : null}</span>
-          <ChevronDown size={16} className="shrink-0 text-zinc-500 transition-transform group-open:rotate-180" />
+          <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-4">Contents</span>
+          <span className="min-w-0 flex-1 truncate text-ink">{cur ? <><span className="mr-1.5 text-ink-4 tnum">{cur.n}</span>{cur.label}</> : null}</span>
+          <ChevronDown size={16} className="shrink-0 text-ink-3 transition-transform group-open:rotate-180" />
         </summary>
-        <nav aria-label="Contents" className="max-h-[60vh] overflow-y-auto border-t border-zinc-100 px-2 pb-2 pt-1 sm:px-6">
+        <nav aria-label="Contents" className="max-h-[60vh] overflow-y-auto border-t border-divider px-2 pb-2 pt-1 sm:px-6">
           <ol>
             {items.map((i) => (
               <li key={i.id}>
                 <a href={`#${i.id}`} onClick={() => details.current?.removeAttribute("open")}
                   aria-current={active === i.id ? "location" : undefined}
                   className={cx("flex min-h-10 items-center gap-2 rounded-md px-2 text-[14px]",
-                    active === i.id ? "bg-zinc-100 font-medium text-zinc-900" : "text-zinc-600 hover:bg-zinc-50")}>
-                  <span className="w-6 shrink-0 text-zinc-400 tnum">{i.n}</span>{i.label}
+                    active === i.id ? "bg-canvas-sunk font-medium text-ink" : "text-ink-2 hover:bg-ivory")}>
+                  <span className="w-6 shrink-0 text-ink-4 tnum">{i.n}</span>{i.label}
                 </a>
               </li>
             ))}
@@ -49,14 +49,14 @@ export default function Toc({ items, variant = "list" }: { items: { id: string; 
   }
   return (
     <nav aria-label="Contents" className="text-[13px]">
-      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-400">Contents</div>
-      <ol className="space-y-0.5 border-l border-zinc-200">
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-4">Contents</div>
+      <ol className="space-y-0.5 border-l border-divider">
         {items.map((i) => (
           <li key={i.id}>
             <a href={`#${i.id}`}
               className={cx("-ml-px flex gap-2 border-l py-1 pl-3 transition-colors",
-                active === i.id ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-500 hover:text-zinc-800")}>
-              <span className="w-5 shrink-0 text-zinc-400 tnum">{i.n}</span>{i.label}
+                active === i.id ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink")}>
+              <span className="w-5 shrink-0 text-ink-4 tnum">{i.n}</span>{i.label}
             </a>
           </li>
         ))}

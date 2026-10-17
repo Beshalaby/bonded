@@ -5,8 +5,8 @@ import type { RedTeamScam } from "@/lib/types";
 import { trapLabel } from "@/lib/ui/format";
 import { RollingNumber } from "@/components/home/RollingNumber";
 
-const ACCENT = "#2563eb";
-const INK = { muted: "#a1a1aa", grid: "#f0f0f2", axis: "#d4d4d8" };
+const ACCENT = "oklch(52% 0.105 72)";
+const INK = { muted: "oklch(72% 0.009 75)", grid: "oklch(96.6% 0.006 85)", axis: "oklch(87% 0.007 80)" };
 const EASE = [0.2, 0.75, 0.15, 1] as const;
 
 export interface GrowthStep { tasks: number; scam?: RedTeamScam }
@@ -115,24 +115,24 @@ export default function GrowthChart({ steps, height = 220, big = false }: { step
               initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 3.2, opacity: 0 }} transition={{ duration: 1.1, delay: 0.85, ease: "easeOut" }}
               style={{ transformOrigin: `${sx(last)}px ${sy(top)}px` }} />
           )}
-          {hi != null && <line x1={sx(hi)} x2={sx(hi)} y1={m.t} y2={m.t + ih} stroke="#52525b" opacity={0.25} pointerEvents="none" />}
+          {hi != null && <line x1={sx(hi)} x2={sx(hi)} y1={m.t} y2={m.t + ih} stroke="oklch(41% 0.012 70)" opacity={0.25} pointerEvents="none" />}
         </svg>
       )}
       {width > 0 && (
-        <div className="pointer-events-none absolute font-semibold text-zinc-900 tnum" style={{ left: sx(last) + 10, top: sy(top) - (big ? 13 : 9), fontSize: big ? 22 : 14 }}>
-          <RollingNumber value={top} /> <span className="font-normal text-zinc-500" style={{ fontSize: fs }}>tasks</span>
+        <div className="pointer-events-none absolute font-semibold text-ink tnum" style={{ left: sx(last) + 10, top: sy(top) - (big ? 13 : 9), fontSize: big ? 22 : 14 }}>
+          <RollingNumber value={top} /> <span className="font-normal text-ink-3" style={{ fontSize: fs }}>tasks</span>
         </div>
       )}
       {hi != null && width > 0 && (
-        <div className="pointer-events-none absolute z-20 w-[240px] max-w-[calc(100%-8px)] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-[12px] shadow-md"
+        <div className="pointer-events-none absolute z-20 w-[240px] max-w-[calc(100%-8px)] rounded-md border border-divider bg-white px-2.5 py-2 text-[12px] shadow-md"
           style={{ left: Math.max(0, Math.min(sx(hi) + 12, W - 252)), top: Math.max(0, sy(steps[hi].tasks) - 12) }}>
-          <div className="text-[13px] font-semibold text-zinc-900 tnum">{steps[hi].tasks} tasks</div>
+          <div className="text-[13px] font-semibold text-ink tnum">{steps[hi].tasks} tasks</div>
           {steps[hi].scam ? (
             <>
-              <div className="mt-0.5 truncate text-zinc-700">{steps[hi].scam!.product?.title ?? steps[hi].scam!.id}</div>
-              <div className="mt-0.5 text-zinc-500">{trapLabel(steps[hi].scam!.trapType)} · fooled {steps[hi].scam!.fooled.map((f) => f.replace(/^sim\//, "")).join(", ")}</div>
+              <div className="mt-0.5 truncate text-ink-2">{steps[hi].scam!.product?.title ?? steps[hi].scam!.id}</div>
+              <div className="mt-0.5 text-ink-3">{trapLabel(steps[hi].scam!.trapType)} · fooled {steps[hi].scam!.fooled.map((f) => f.replace(/^sim\//, "")).join(", ")}</div>
             </>
-          ) : <div className="text-zinc-500">Base benchmark, before the red team</div>}
+          ) : <div className="text-ink-3">Base benchmark, before the red team</div>}
         </div>
       )}
     </div>

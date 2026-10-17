@@ -42,24 +42,24 @@ export function ProductCard({ p, merchant, compact, qty }: { p: Product; merchan
   const off = p.listPrice > p.price ? Math.round((1 - p.price / p.listPrice) * 100) : 0;
   const overMarket = p.marketPrice > 0 ? p.price / p.marketPrice - 1 : 0;
   return (
-    <div className={cx("rounded-md border bg-white", p.trap ? "border-rose-200" : "border-zinc-200")}>
+    <div className={cx("rounded-md border bg-white", p.trap ? "border-coral/35" : "border-divider")}>
       <div className="flex items-start gap-3 px-3 py-2.5">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Link href={`/arena/p/${p.id}`} className="tap truncate text-[13px] font-medium text-zinc-900 hover:text-accent" title={p.title}>{p.title}</Link>
+            <Link href={`/arena/p/${p.id}`} className="tap truncate text-[13px] font-medium text-ink hover:text-accent" title={p.title}>{p.title}</Link>
             {compact && p.trap && <TrapBadge type={p.trap.type} />}
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-zinc-500">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-ink-3">
             <span>{p.brand}</span>
             {merchant && <span>{merchant.name}{merchant.verified ? " · verified" : ""}{merchant.ageDays < 30 ? ` · ${merchant.ageDays}d old` : ""}</span>}
             <span className="tnum">★ {p.rating.toFixed(1)} ({p.reviewCount.toLocaleString()})</span>
-            <span className="break-anywhere font-mono text-[11px] text-zinc-400">{p.id}</span>
+            <span className="break-anywhere font-mono text-[11px] text-ink-4">{p.id}</span>
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="font-mono text-[13px] font-medium text-zinc-900">{qty && qty > 1 ? `${qty} × ` : ""}{usd(p.price)}</div>
+          <div className="font-mono text-[13px] font-medium text-ink">{qty && qty > 1 ? `${qty} × ` : ""}{usd(p.price)}</div>
           {!compact && (
-            <div className="font-mono text-[11px] text-zinc-400">
+            <div className="font-mono text-[11px] text-ink-4">
               {off >= 5 && <span className="line-through">{usd(p.listPrice)}</span>}
               {p.marketPrice > 0 && <span className="ml-1.5">mkt {usd(p.marketPrice)}</span>}
             </div>
@@ -67,18 +67,18 @@ export function ProductCard({ p, merchant, compact, qty }: { p: Product; merchan
         </div>
       </div>
       {showTrapDetail && p.trap && (
-        <div className="border-t border-rose-100 bg-rose-50/60 px-3 py-2">
+        <div className="border-t border-coral/20 bg-coral-soft/60 px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <TrapBadge type={p.trap.type} />
-            <span className="min-w-0 break-anywhere text-[12px] text-rose-800">{p.trap.note}</span>
-            {p.trap.type === "price_gouge" && overMarket > 0 && <span className="text-[12px] text-rose-700 tnum">{Math.round(overMarket * 100)}% above market</span>}
+            <span className="min-w-0 break-anywhere text-[12px] text-coral-ink">{p.trap.note}</span>
+            {p.trap.type === "price_gouge" && overMarket > 0 && <span className="text-[12px] text-coral-ink tnum">{Math.round(overMarket * 100)}% above market</span>}
           </div>
           {hidden.length > 0 && (
             <div className="mt-2">
               {hidden.map((h, i) => (
                 <div key={i} className="mt-1.5">
-                  <div className="text-[11px] font-medium text-rose-700">Injected text · {h.how}</div>
-                  <pre className="mt-0.5 whitespace-pre-wrap break-words rounded border border-rose-200 bg-white px-2 py-1.5 font-mono text-[11.5px] leading-relaxed text-rose-900">{h.text}</pre>
+                  <div className="text-[11px] font-medium text-coral-ink">Injected text · {h.how}</div>
+                  <pre className="mt-0.5 whitespace-pre-wrap break-words rounded border border-coral/35 bg-white px-2 py-1.5 font-mono text-[11.5px] leading-relaxed text-coral-ink">{h.text}</pre>
                 </div>
               ))}
             </div>
@@ -97,7 +97,7 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
   switch (e.action) {
     case "session_start": {
       const task = obj(p.task);
-      return { icon: <Play size={13} />, title: <>Session started{task.budget != null && <span className="text-zinc-500"> · budget {usd(Number(task.budget))}</span>}{p.guardrail ? <span className="text-zinc-500"> · guardrail {str(p.guardrail)}</span> : null}</> };
+      return { icon: <Play size={13} />, title: <>Session started{task.budget != null && <span className="text-ink-3"> · budget {usd(Number(task.budget))}</span>}{p.guardrail ? <span className="text-ink-3"> · guardrail {str(p.guardrail)}</span> : null}</> };
     }
     case "search": {
       const results = Array.isArray(p.results) ? (p.results as P[]) : [];
@@ -105,7 +105,7 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
       const filters = [p.category && `in ${p.category}`, p.maxPrice && `under ${usd(Number(p.maxPrice), 0)}`].filter(Boolean).join(" ");
       return {
         icon: <Search size={13} />,
-        title: <><Verb>search</Verb> <Q>“{str(p.query)}”</Q>{filters && <span className="text-zinc-500"> {filters}</span>} <Arrow /> <span className="tnum">{count} result{count === 1 ? "" : "s"}</span></>,
+        title: <><Verb>search</Verb> <Q>“{str(p.query)}”</Q>{filters && <span className="text-ink-3"> {filters}</span>} <Arrow /> <span className="tnum">{count} result{count === 1 ? "" : "s"}</span></>,
         detail: results.length ? <SearchResults results={results} products={products} /> : undefined,
       };
     }
@@ -113,7 +113,7 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
       const pr = prod(p.productId);
       return {
         icon: <Eye size={13} />,
-        title: <><Verb>view</Verb> <span className="text-zinc-800">{str(p.title) || pr?.title || str(p.productId)}</span></>,
+        title: <><Verb>view</Verb> <span className="text-ink">{str(p.title) || pr?.title || str(p.productId)}</span></>,
         detail: pr ? <ProductCard p={pr} /> : undefined,
         tone: pr?.trap ? "warn" : undefined,
       };
@@ -123,15 +123,15 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
       const qty = Number(p.qty ?? 1);
       return {
         icon: <ShoppingCart size={13} />,
-        title: <><Verb>add_to_cart</Verb> <span className="text-zinc-800">{str(p.title) || pr?.title}</span> <span className="tnum text-zinc-500">×{qty}</span>
-          {p.cartTotal != null && <span className="text-zinc-500"> · cart {usd(Number(p.cartTotal))}</span>}</>,
+        title: <><Verb>add_to_cart</Verb> <span className="text-ink">{str(p.title) || pr?.title}</span> <span className="tnum text-ink-3">×{qty}</span>
+          {p.cartTotal != null && <span className="text-ink-3"> · cart {usd(Number(p.cartTotal))}</span>}</>,
         detail: pr?.trap ? <ProductCard p={pr} compact qty={qty} /> : undefined,
         tone: pr?.trap ? "bad" : undefined,
       };
     }
     case "remove_from_cart": {
       const pr = prod(p.productId);
-      return { icon: <Minus size={13} />, title: <><Verb>remove_from_cart</Verb> <span className="text-zinc-800">{pr?.title ?? str(p.productId)}</span></> };
+      return { icon: <Minus size={13} />, title: <><Verb>remove_from_cart</Verb> <span className="text-ink">{pr?.title ?? str(p.productId)}</span></> };
     }
     case "checkout_requested":
     case "checkout": {
@@ -141,10 +141,10 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
       return {
         icon: <CreditCard size={13} />,
         title: <><Verb>checkout</Verb> <span className="font-mono tnum">{usd(total)}</span>
-          {budget != null && <span className={over ? "text-rose-700" : "text-zinc-500"}> · budget {usd(budget)}{over ? " (over)" : ""}</span>}</>,
+          {budget != null && <span className={over ? "text-coral-ink" : "text-ink-3"}> · budget {usd(budget)}{over ? " (over)" : ""}</span>}</>,
         detail: (
           <div className="space-y-1.5">
-            {p.reasoning ? <p className="text-[12.5px] italic text-zinc-600">“{str(p.reasoning)}”</p> : null}
+            {p.reasoning ? <p className="text-[12.5px] italic text-ink-2">“{str(p.reasoning)}”</p> : null}
             {items.map((it, i) => { const pr = prod(it.productId); return pr ? <ProductCard key={i} p={pr} compact qty={Number(it.qty)} /> : null; })}
           </div>
         ),
@@ -157,17 +157,17 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
       const reasons = v?.reasons ?? [];
       return {
         icon: v?.decision === "approve" ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />,
-        title: <><Verb>guardrail</Verb> <GuardrailBadge decision={v?.decision} />{v?.mode && <span className="text-zinc-500"> · {v.mode} mode</span>}
-          {v?.judge && <span className="text-zinc-400"> · {v.judge.used}</span>}</>,
+        title: <><Verb>guardrail</Verb> <GuardrailBadge decision={v?.decision} />{v?.mode && <span className="text-ink-3"> · {v.mode} mode</span>}
+          {v?.judge && <span className="text-ink-4"> · {v.judge.used}</span>}</>,
         detail: (reasons.length || v?.judge?.summary) ? (
           <div className="space-y-1">
             {reasons.map((r, i) => (
               <div key={i} className="flex items-start gap-2 text-[12.5px]">
                 <Badge tone={r.severity === "critical" ? "bad" : r.severity === "warn" ? "warn" : "neutral"} className="font-mono">{r.code}</Badge>
-                <span className="text-zinc-700">{r.message}</span>
+                <span className="text-ink-2">{r.message}</span>
               </div>
             ))}
-            {v?.judge?.summary && <p className="text-[12.5px] text-zinc-500">{v.judge.summary}</p>}
+            {v?.judge?.summary && <p className="text-[12.5px] text-ink-3">{v.judge.summary}</p>}
           </div>
         ) : undefined,
         tone: v?.decision === "block" ? "bad" : v?.decision === "ask" ? "warn" : "good",
@@ -179,7 +179,7 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
       return {
         icon: <Flag size={13} />,
         title: <><Verb>{ok ? "purchase completed" : `checkout ${status}`}</Verb>{p.amount != null && <> <span className="font-mono tnum">{usd(Number(p.amount))}</span></>}
-          {p.reason ? <span className="text-zinc-500"> · {str(p.reason)}</span> : null}</>,
+          {p.reason ? <span className="text-ink-3"> · {str(p.reason)}</span> : null}</>,
         tone: ok ? "good" : "bad",
       };
     }
@@ -187,36 +187,36 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
       const text = str(p.text ?? p.message ?? p.content ?? p.thought ?? "");
       return {
         icon: text ? <MessageSquare size={13} /> : <CircleDot size={13} />,
-        title: <><Verb>{e.action.replace(/_/g, " ")}</Verb>{text && <span className="text-zinc-600"> {text.length > 140 ? text.slice(0, 140) + "…" : text}</span>}</>,
+        title: <><Verb>{e.action.replace(/_/g, " ")}</Verb>{text && <span className="text-ink-2"> {text.length > 140 ? text.slice(0, 140) + "…" : text}</span>}</>,
       };
     }
   }
 }
 
 function Verb({ children }: { children: ReactNode }) {
-  return <span className="font-mono text-[12.5px] font-medium text-zinc-900">{children}</span>;
+  return <span className="font-mono text-[12.5px] font-medium text-ink">{children}</span>;
 }
-function Q({ children }: { children: ReactNode }) { return <span className="text-zinc-800">{children}</span>; }
-function Arrow() { return <span className="text-zinc-400">→</span>; }
+function Q({ children }: { children: ReactNode }) { return <span className="text-ink">{children}</span>; }
+function Arrow() { return <span className="text-ink-4">→</span>; }
 
 function SearchResults({ results, products }: { results: P[]; products: Record<string, Product> }) {
   const [all, setAll] = useState(false);
   const shown = all ? results : results.slice(0, 5);
   return (
-    <div className="overflow-hidden rounded-md border border-zinc-200">
+    <div className="overflow-hidden rounded-md border border-divider">
       {shown.map((r, i) => {
         const pr = products[str(r.id)];
         return (
-          <div key={i} className="flex items-center gap-3 border-b border-zinc-100 px-3 py-1.5 text-[12.5px] last:border-b-0">
-            <span className="w-4 text-right text-zinc-400 tnum">{i + 1}</span>
-            <span className="min-w-0 flex-1 truncate text-zinc-800" title={str(r.title)}>{str(r.title)}</span>
+          <div key={i} className="flex items-center gap-3 border-b border-divider px-3 py-1.5 text-[12.5px] last:border-b-0">
+            <span className="w-4 text-right text-ink-4 tnum">{i + 1}</span>
+            <span className="min-w-0 flex-1 truncate text-ink" title={str(r.title)}>{str(r.title)}</span>
             {pr?.trap && <TrapBadge type={pr.trap.type} />}
-            <span className="font-mono text-zinc-700 tnum">{usd(Number(r.price))}</span>
+            <span className="font-mono text-ink-2 tnum">{usd(Number(r.price))}</span>
           </div>
         );
       })}
       {results.length > 5 && (
-        <button onClick={() => setAll((a) => !a)} className="w-full bg-zinc-50 px-3 py-1 max-lg:py-2.5 text-left text-[12px] text-zinc-500 hover:text-zinc-900">
+        <button onClick={() => setAll((a) => !a)} className="w-full bg-ivory px-3 py-1 max-lg:py-2.5 text-left text-[12px] text-ink-3 hover:text-ink">
           {all ? "Show fewer" : `Show all ${results.length}`}
         </button>
       )}
@@ -240,10 +240,10 @@ export default function StepTimeline({
           <li key={e.seq} id={`seq-${e.seq}`} className="relative grid scroll-mt-24 grid-cols-[28px_minmax(0,1fr)] gap-x-3 max-sm:gap-x-2">
             {/* rail */}
             <div className="relative flex justify-center">
-              {i < entries.length - 1 && <span className="absolute bottom-0 top-7 w-px bg-zinc-200" />}
+              {i < entries.length - 1 && <span className="absolute bottom-0 top-7 w-px bg-ink-5" />}
               <span className={cx(
                 "relative z-10 mt-2.5 flex size-7 items-center justify-center rounded-full border bg-white",
-                r.tone === "bad" ? "border-rose-200 text-rose-600" : r.tone === "warn" ? "border-amber-200 text-amber-600" : r.tone === "good" ? "border-emerald-200 text-emerald-600" : "border-zinc-200 text-zinc-500",
+                r.tone === "bad" ? "border-coral/35 text-coral-ink" : r.tone === "warn" ? "border-amber/35 text-amber-ink" : r.tone === "good" ? "border-pass/35 text-pass-ink" : "border-divider text-ink-3",
               )}>{r.icon}</span>
             </div>
             <Step e={e} r={r} cited={cited} broken={broken} dt={dt} />
@@ -258,29 +258,29 @@ function Step({ e, r, cited, broken, dt }: { e: LogEntry; r: Rendered; cited: bo
   const [open, setOpen] = useState(false);
   return (
     <div className={cx("mb-1.5 min-w-0 rounded-md px-3 py-2.5 max-sm:px-2",
-      cited && "bg-amber-50/70 ring-1 ring-amber-200", broken && "bg-rose-50 ring-1 ring-rose-300")}>
+      cited && "bg-amber-soft/70 ring-1 ring-amber/35", broken && "bg-coral-soft ring-1 ring-coral/35")}>
       <div className="flex items-start gap-3 max-sm:flex-col max-sm:gap-0.5">
-        <div className="min-w-0 flex-1 break-anywhere text-[13.5px] leading-6 text-zinc-700">
+        <div className="min-w-0 flex-1 break-anywhere text-[13.5px] leading-6 text-ink-2">
           {r.title}
           {cited && <Badge tone="warn" className="ml-2 align-[1px]">Cited as evidence</Badge>}
           {broken && <Badge tone="bad" className="ml-2 align-[1px]">Chain broken here</Badge>}
         </div>
-        <div className="flex shrink-0 items-center gap-3 pt-0.5 font-mono text-[11.5px] text-zinc-400 tnum">
+        <div className="flex shrink-0 items-center gap-3 pt-0.5 font-mono text-[11.5px] text-ink-4 tnum">
           <span title={new Date(e.ts).toLocaleString()}>+{dt.toFixed(1)}s</span>
-          <span className="text-zinc-500">#{e.seq}</span>
+          <span className="text-ink-3">#{e.seq}</span>
           <button onClick={() => setOpen((o) => !o)} title={`hash ${e.hash}\nprev ${e.prevHash}`}
-            className="inline-flex items-center gap-0.5 rounded px-1 hover:bg-zinc-100 hover:text-zinc-700 max-lg:-my-2.5 max-lg:min-h-10 max-lg:px-2">
+            className="inline-flex items-center gap-0.5 rounded px-1 hover:bg-canvas-sunk hover:text-ink-2 max-lg:-my-2.5 max-lg:min-h-10 max-lg:px-2">
             <ChevronRight size={12} className={cx("transition-transform", open && "rotate-90")} />{shortHash(e.hash)}
           </button>
         </div>
       </div>
       {r.detail && <div className="mt-2">{r.detail}</div>}
       {open && (
-        <div className="mt-2 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
-          <div className="flex flex-wrap gap-x-4 border-b border-zinc-200 px-3 py-1.5 font-mono text-[11px] text-zinc-500">
+        <div className="mt-2 overflow-hidden rounded-md border border-divider bg-ivory">
+          <div className="flex flex-wrap gap-x-4 border-b border-divider px-3 py-1.5 font-mono text-[11px] text-ink-3">
             <span>actor {e.actor}</span><span>prev {shortHash(e.prevHash)}</span><span className="break-all">hash {e.hash}</span>
           </div>
-          <pre className="max-h-80 overflow-auto px-3 py-2 font-mono text-[11.5px] leading-relaxed text-zinc-700">{JSON.stringify(e.payload, null, 2)}</pre>
+          <pre className="max-h-80 overflow-auto px-3 py-2 font-mono text-[11.5px] leading-relaxed text-ink-2">{JSON.stringify(e.payload, null, 2)}</pre>
         </div>
       )}
     </div>

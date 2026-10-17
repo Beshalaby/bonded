@@ -2,9 +2,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Play } from "lucide-react";
-import { Badge, OutcomeBadge, cx, outcomeOf } from "@/components/ui";
+import { cx, outcomeOf, type Outcome } from "@/components/ui";
 import { useEvents } from "@/components/useEvents";
 import type { FeedEvent, LogEntry } from "@/lib/types";
+import "./connect.css";
 import { ago, failureLabel, ms, traceHref, usd } from "@/lib/ui/format";
 
 export interface McpOverview {
@@ -22,11 +23,6 @@ export interface McpOverview {
     };
   }[];
 }
-
-const STEP_TONE: Record<string, string> = {
-  search: "bg-zinc-400", view: "bg-zinc-400", add_to_cart: "bg-accent", remove_from_cart: "bg-zinc-400",
-  checkout_requested: "bg-accent", guardrail_verdict: "bg-amber-500", checkout_result: "bg-emerald-500", end_task: "bg-zinc-400",
-};
 
 export default function LivePanel({ className }: { className?: string }) {
   const [data, setData] = useState<McpOverview | null>(null);
@@ -57,7 +53,7 @@ export default function LivePanel({ className }: { className?: string }) {
 
   const flash = (id: string) => {
     setFresh((s) => new Set(s).add(id));
-    setTimeout(() => setFresh((s) => { const n = new Set(s); n.delete(id); return n; }), 1600);
+    setTimeout(() => setFresh((s) => { const n = new Set(s); n.delete(id); return n; }), 2600);
   };
 
   const live = useEvents(["log", "result", "run"], (e: FeedEvent) => {
@@ -70,8 +66,8 @@ export default function LivePanel({ className }: { className?: string }) {
         soon();
       }
     } else if (e.type === "result") {
-      const r = e.data as { model?: string };
-      if (r.model?.startsWith("mcp/")) soon();
+      const r = e.data as { model?: string; sessionId?: string };
+      if (r.model?.startsWith("mcp/")) { if (r.sessionId) setTimeout(() => flash(r.sessionId!), 400); soon(); }
     } else if (e.type === "run") {
       const r = e.data as { name?: string };
       if (r.name?.startsWith("MCP:")) soon();
@@ -94,115 +90,94 @@ export default function LivePanel({ className }: { className?: string }) {
   const idleClients = clients.filter((c) => !(c.calls > 0 || c.activeSessionId));
 
   return (
-    <div className={cx("overflow-hidden rounded-lg border border-zinc-200 bg-white", className)}>
-      <div className="flex h-11 items-center justify-between border-b border-zinc-200 px-4">
-        <h3 className="text-[13.5px] font-semibold text-zinc-900">Connected agents</h3>
-        <span className={cx("inline-flex items-center gap-1.5 text-[12px]", live ? "text-emerald-700" : "text-zinc-400")}>
-          <span className={cx("inline-block size-1.5 rounded-full", live ? "pulse-dot bg-emerald-500" : "bg-zinc-300")} />
-          {live ? "Live" : "Connecting"}
+    <div className={cx("relative", className)}>
+      <div className="flex items-center justify-between gap-4 border-b border-divider pb-4">
+        <h2 className="text-[13px] font-medium uppercase tracking-[0.14em] text-ink-4">Connected agents</h2>
+        <span className={cx("inline-flex items-center gap-2 text-[13px]", live ? "text-ink-3" : "text-ink-4")}>
+          <span aria-hidden className={cx("inline-block size-[7px] rounded-full", live ? "pulse-dot bg-sage" : "bg-ink-5")} />
+          {live ? "Listening" : "Connecting"}
         </span>
       </div>
 
-      {(activeClients.length > 0 || idleClients.length > 0) && (
-        <ul className="divide-y divide-zinc-100 border-b border-zinc-200 bg-zinc-50/50">
-          {[...activeClients, ...idleClients].slice(0, 3).map((c) => (
-            <li key={c.id} className="flex items-center gap-2.5 px-4 py-2 text-[12.5px]">
-              <span className={cx("inline-block size-1.5 shrink-0 rounded-full", c.activeSessionId ? "pulse-dot bg-accent" : "bg-emerald-500")} />
-              <span className="font-medium text-zinc-900">{c.displayName}</span>
-              {c.clientVersion && <span className="font-mono text-[11.5px] text-zinc-400">v{c.clientVersion}</span>}
-              <span className="ml-auto truncate text-zinc-500">
-                {c.activeTaskId ? <>on <span className="font-mono text-[11.5px] text-zinc-700">{c.activeTaskId}</span></> : c.calls ? `${c.completed} graded` : "connected"}
-              </span>
-            </li>
+      {activeClients.length + idleClients.length > 0 && (
+        <p className="pt-4 text-[13.5px] text-ink-3">
+          {[...activeClients, ...idleClients].slice(0, 3).map((c, i) => (
+            <span key={c.id}>
+              {i > 0 && <span className="text-ink-5"> · </span>}
+              <span className="text-ink-2">{c.displayName}</span>
+              {c.clientVersion && <span className="text-ink-4"> v{c.clientVersion}</span>}
+              <span className="text-ink-4"> {c.activeTaskId ? `on ${c.activeTaskId}` : c.calls ? `${c.completed} graded` : "connected"}</span>
+            </span>
           ))}
-        </ul>
+        </p>
       )}
 
       {!data ? (
-        <div className="space-y-3 p-4">
-          {[0, 1].map((i) => <div key={i} className="h-24 animate-pulse rounded-md bg-zinc-100" />)}
-        </div>
+        <ul aria-hidden className="grid gap-2 pt-4">{[0, 1].map((i) => <li key={i} className="h-[68px] animate-pulse rounded-[20px] bg-canvas-sunk/60" />)}</ul>
       ) : sessions.length === 0 ? (
         <Waiting />
       ) : (
-        <ul className="divide-y divide-zinc-100">
-          {sessions.slice(0, 3).map((s) => <SessionRow key={s.sessionId} s={s} fresh={fresh.has(s.sessionId)} />)}
+        <ul className="grid pt-2">
+          {sessions.slice(0, 5).map((s) => <SessionRow key={s.sessionId} s={s} fresh={fresh.has(s.sessionId)} />)}
         </ul>
       )}
+      <p className="mt-6 text-[13px] leading-relaxed text-ink-4">
+        Finished agents join the <Link href="/#ranking" className="text-ink-3 underline-offset-4 hover:text-ink hover:underline">ranking</Link> under their client name, like <span className="font-mono text-[12px]">mcp/claude-code</span>.
+      </p>
     </div>
   );
 }
 
 function Waiting() {
   return (
-    <div className="flex flex-col items-center px-6 py-10 text-center">
-      <div className="relative mb-4 flex size-10 items-center justify-center">
-        <span className="absolute inset-0 animate-ping rounded-full bg-accent/10" />
-        <span className="relative size-2.5 rounded-full bg-accent" />
-      </div>
-      <div className="text-[13.5px] font-medium text-zinc-900">Waiting for an agent</div>
-      <p className="mt-1 max-w-[260px] text-[12.5px] leading-relaxed text-zinc-500">
-        As soon as an agent calls <span className="font-mono text-[11.5px] text-zinc-700">start_task</span>, it appears here and each step streams in as it happens.
-      </p>
+    <div className="flex items-center gap-4 py-10">
+      <span aria-hidden className="relative flex size-3 shrink-0 items-center justify-center">
+        <span className="absolute inset-0 animate-ping rounded-full bg-gold/40" />
+        <span className="relative size-2 rounded-full bg-gold" />
+      </span>
+      <p className="text-[19px] tracking-[-0.02em] text-ink-3">Waiting for an agent to call <span className="font-mono text-[0.85em] text-ink-2">start_task</span>.</p>
     </div>
   );
 }
+
+const WORD: Record<Outcome, [string, string]> = {
+  success: ["Passed", "text-pass-ink"], scammed: ["Scammed", "text-coral-ink"], over_budget: ["Over budget", "text-coral-ink"],
+  wrong_item: ["Wrong item", "text-coral-ink"], failed: ["Failed", "text-coral-ink"], no_purchase: ["No purchase", "text-ink-3"], error: ["Error", "text-ink-3"],
+};
 
 function SessionRow({ s, fresh }: { s: McpOverview["sessions"][number]; fresh: boolean }) {
   const r = s.result;
   const active = s.status === "active";
   const outcome = r ? outcomeOf({ ...r, error: r.error ?? undefined, attribution: r.failureMode ? { mode: r.failureMode } : undefined }) : null;
   const steps = s.steps;
-  const tail = steps.slice(-5);
-  const hidden = steps.length - tail.length;
+  const last = steps[steps.length - 1];
+  const tone = outcome === "success" ? "sage" : outcome && WORD[outcome][1] === "text-coral-ink" ? "coral" : "gold";
 
   return (
-    <li className={cx("px-4 py-3.5 transition-colors", fresh && "row-in")}>
-      <div className="flex items-center gap-2">
-        <span className="truncate text-[13.5px] font-medium text-zinc-900">{s.displayName}</span>
-        <span className="ml-auto shrink-0">
+    <li className={"group relative isolate border-b border-divider py-5 last:border-b-0"}>
+      {fresh && <div aria-hidden className={cx("burst lp-burst", `burst-${tone}`)} style={{ ["--bx" as string]: "30%", ["--bs" as string]: "min(620px, 120%)" }} />}
+      <div className="flex items-baseline gap-3">
+        <span className="min-w-0 truncate text-[18px] font-medium tracking-[-0.02em] text-ink">{s.displayName}</span>
+        <span className="ml-auto shrink-0 text-[14px] font-medium">
           {active ? (
-            <Badge tone="accent"><span className="pulse-dot inline-block size-1.5 rounded-full bg-accent" />Shopping</Badge>
-          ) : outcome ? <OutcomeBadge outcome={outcome} /> : <Badge>Ended</Badge>}
+            <span className="inline-flex items-center gap-2 text-ink-2"><span aria-hidden className="pulse-dot inline-block size-[7px] rounded-full bg-gold" />Shopping</span>
+          ) : outcome ? <span className={WORD[outcome][1]}>{WORD[outcome][0]}</span> : <span className="text-ink-4">Ended</span>}
         </span>
       </div>
-      <div className="mt-0.5 flex items-center gap-2 text-[12px] text-zinc-500">
-        <span className="font-mono text-[11.5px] text-zinc-700">{s.taskId}</span>
-        <span className="text-zinc-300">·</span>
-        <span>budget {usd(s.budget, 0)}</span>
-        <span className="text-zinc-300">·</span>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-3">
+        <span className="font-mono text-[12px]">{s.taskId}</span>
+        <span className="text-ink-5">·</span>
+        <span>{active && last ? last.label : r ? `${r.bought !== false && r.amount != null ? usd(r.amount) : "no purchase"} of ${usd(s.budget, 0)}` : `budget ${usd(s.budget, 0)}`}</span>
+        {r && !r.success && r.failureMode && <><span className="text-ink-5">·</span><span className="text-coral-ink">{failureLabel(r.failureMode)}</span></>}
+        {r && <><span className="text-ink-5">·</span><span className="tnum">{steps.filter((x) => !["guardrail_verdict", "checkout_result"].includes(x.action)).length} steps · {ms(r.latencyMs)}</span></>}
+        <span className="text-ink-5">·</span>
         <span>{ago(s.createdAt)}</span>
-      </div>
-
-      {steps.length > 0 && (
-        <ol className="relative mt-3 space-y-1.5 border-l border-zinc-200 pl-3.5">
-          {hidden > 0 && <li className="text-[11.5px] text-zinc-400">{hidden} earlier step{hidden === 1 ? "" : "s"}</li>}
-          {tail.map((st, i) => (
-            <li key={st.seq} className={cx("relative text-[12px] leading-snug text-zinc-600", i === tail.length - 1 && fresh && "row-in")}>
-              <span className={cx("absolute -left-[18px] top-[5px] size-[7px] rounded-full ring-2 ring-white", STEP_TONE[st.action] ?? "bg-zinc-400")} />
-              <span className="mr-1.5 font-mono text-[10.5px] text-zinc-400 tnum">#{st.seq}</span>
-              <span className="break-words">{st.label}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {r && !r.success && r.failureMode && (
-        <div className="mt-2.5 text-[12px] text-rose-700">{failureLabel(r.failureMode)}</div>
-      )}
-
-      <div className="mt-3 flex items-center gap-3 text-[12px]">
-        {r && (
-          <span className="text-zinc-500 tnum">
-            {r.bought !== false && r.amount != null ? usd(r.amount) : "no purchase"} · {steps.filter((x) => !["guardrail_verdict", "checkout_result"].includes(x.action)).length} steps · {ms(r.latencyMs)}
-          </span>
-        )}
-        <span className="ml-auto flex items-center gap-3">
-          <Link href={traceHref(s.sessionId)} className="tap inline-flex items-center gap-0.5 font-medium text-zinc-600 hover:text-accent">
-            Trace <ArrowUpRight size={12} />
+        <span className="ml-auto flex items-center gap-4">
+          <Link href={traceHref(s.sessionId)} className="tap inline-flex items-center gap-0.5 font-medium text-ink-3 hover:text-ink">
+            Trace <ArrowUpRight size={12} aria-hidden />
           </Link>
-          <Link href={`/live?replay=${encodeURIComponent(s.sessionId)}`} className="tap inline-flex items-center gap-1 font-medium text-accent hover:underline underline-offset-2">
-            <Play size={11} fill="currentColor" /> Replay
+          <Link href={`/live?replay=${encodeURIComponent(s.sessionId)}`} className="tap inline-flex items-center gap-1 font-medium text-accent hover:text-ink">
+            <Play size={10} fill="currentColor" aria-hidden /> Replay
           </Link>
         </span>
       </div>

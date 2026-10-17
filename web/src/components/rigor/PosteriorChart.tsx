@@ -58,11 +58,11 @@ export default function PosteriorChart({ series, height = 260, domain }: { serie
           {/* grid + axis */}
           {ticks.map((t, i) => (
             <g key={t}>
-              <line x1={sx(t)} x2={sx(t)} y1={M.t} y2={M.t + ih} stroke="#f0f0f2" />
-              {(!narrow || i % 2 === 0) && <text x={sx(t)} y={M.t + ih + 15} textAnchor="middle" fontSize={narrow || (typeof window !== "undefined" && window.innerWidth < 1024) ? 12 : 10.5} fill="#a1a1aa" className="tnum">{Math.round(t * 1000) / 10}%</text>}
+              <line x1={sx(t)} x2={sx(t)} y1={M.t} y2={M.t + ih} stroke="oklch(96.6% 0.006 85)" />
+              {(!narrow || i % 2 === 0) && <text x={sx(t)} y={M.t + ih + 15} textAnchor="middle" fontSize={narrow || (typeof window !== "undefined" && window.innerWidth < 1024) ? 12 : 10.5} fill="oklch(72% 0.009 75)" className="tnum">{Math.round(t * 1000) / 10}%</text>}
             </g>
           ))}
-          <line x1={M.l} x2={M.l + iw} y1={M.t + ih} y2={M.t + ih} stroke="#d4d4d8" />
+          <line x1={M.l} x2={M.l + iw} y1={M.t + ih} y2={M.t + ih} stroke="oklch(87% 0.007 80)" />
           {/* densities */}
           {curves.map((c) => {
             const d = c.pts.map((p, i) => `${i ? "L" : "M"}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join("");
@@ -91,7 +91,7 @@ export default function PosteriorChart({ series, height = 260, domain }: { serie
             let px = bx + (side === "start" ? 6 : side === "end" ? -6 : 0);
             if (side === "middle") px = Math.min(Math.max(px, est / 2 + 2), width - est / 2 - 2);
             return (
-              <text key={c.key} x={px} y={Math.max(12, sy(best[1]) - (side === "middle" ? 8 : 4))} textAnchor={side} fontSize={12} fontWeight={500} fill="#18181b"
+              <text key={c.key} x={px} y={Math.max(12, sy(best[1]) - (side === "middle" ? 8 : 4))} textAnchor={side} fontSize={12} fontWeight={500} fill="oklch(20% 0.012 70)"
                 stroke="#fff" strokeWidth={3} paintOrder="stroke">{c.label}</text>
             );
           })}
@@ -110,23 +110,23 @@ export default function PosteriorChart({ series, height = 260, domain }: { serie
           {/* crosshair */}
           {hx != null && (
             <g pointerEvents="none">
-              <line x1={sx(hx)} x2={sx(hx)} y1={M.t} y2={M.t + ih} stroke="#18181b" strokeOpacity={0.35} />
+              <line x1={sx(hx)} x2={sx(hx)} y1={M.t} y2={M.t + ih} stroke="oklch(20% 0.012 70)" strokeOpacity={0.35} />
               {curves.map((c) => <circle key={c.key} cx={sx(hx)} cy={sy(betaPdf(hx, c.a, c.b))} r={3.5} fill={c.color} stroke="#fff" strokeWidth={1.5} />)}
             </g>
           )}
         </svg>
       )}
       {hx != null && width > 0 && (
-        <div className="pointer-events-none absolute z-10 min-w-[170px] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-[12px] shadow-md"
+        <div className="pointer-events-none absolute z-10 min-w-[170px] rounded-md border border-divider bg-white px-2.5 py-2 text-[12px] shadow-md"
           style={{ top: M.t, ...(sx(hx) > width - 200 ? { right: width - sx(hx) + 10 } : { left: sx(hx) + 10 }) }}>
-          <div className="mb-1 font-medium text-zinc-900 tnum">success rate = {(hx * 100).toFixed(1)}%</div>
+          <div className="mb-1 font-medium text-ink tnum">success rate = {(hx * 100).toFixed(1)}%</div>
           {curves.map((c) => (
             <div key={c.key} className="flex items-center justify-between gap-3 tnum">
-              <span className="flex items-center gap-1.5 text-zinc-600"><span className="inline-block size-2 rounded-full" style={{ background: c.color }} />{c.label}</span>
-              <span className="text-zinc-900">{betaPdf(hx, c.a, c.b).toFixed(2)}</span>
+              <span className="flex items-center gap-1.5 text-ink-2"><span className="inline-block size-2 rounded-full" style={{ background: c.color }} />{c.label}</span>
+              <span className="text-ink">{betaPdf(hx, c.a, c.b).toFixed(2)}</span>
             </div>
           ))}
-          <div className="mt-1 text-[11px] text-zinc-400">posterior density</div>
+          <div className="mt-1 text-[11px] text-ink-4">posterior density</div>
         </div>
       )}
     </div>

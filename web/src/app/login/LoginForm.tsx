@@ -38,17 +38,17 @@ export default function LoginForm() {
   return (
     <div className="mx-auto max-w-sm pt-6">
       <PageHeader title="Sign in" description="Enter the admin token to start runs, red-team rounds and live sessions." />
-      {mode === "open" && <p className="mb-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-[13px] text-zinc-600">This server runs in open demo mode. No sign-in is needed.</p>}
-      {mode === "closed" && <p className="mb-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-[13px] text-zinc-600">Sign-in is not configured on this server (BONDED_ADMIN_TOKEN is unset), so runs are disabled.</p>}
-      {mode === "token" && admin && <p className="mb-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-[13px] text-zinc-600">You are already signed in.</p>}
+      {mode === "open" && <p className="mb-4 rounded-md border border-divider bg-ivory px-3 py-2 text-[13px] text-ink-2">This server runs in open demo mode. No sign-in is needed.</p>}
+      {mode === "closed" && <p className="mb-4 rounded-md border border-divider bg-ivory px-3 py-2 text-[13px] text-ink-2">Sign-in is not configured on this server (BONDED_ADMIN_TOKEN is unset), so runs are disabled.</p>}
+      {mode === "token" && admin && <p className="mb-4 rounded-md border border-divider bg-ivory px-3 py-2 text-[13px] text-ink-2">You are already signed in.</p>}
       <form onSubmit={submit} className="space-y-3">
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-zinc-800">Admin token</span>
+          <span className="mb-1.5 block text-[13px] font-medium text-ink">Admin token</span>
           <input type="password" autoComplete="current-password" autoFocus value={token} onChange={(e) => setToken(e.target.value)}
             disabled={mode === "closed" || mode === "open"}
-            className="h-9 w-full rounded-md border border-zinc-200 px-2.5 font-mono text-[13px] shadow-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:bg-zinc-50" />
+            className="h-9 w-full rounded-md border border-divider px-2.5 font-mono text-[13px] shadow-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:bg-ivory" />
         </label>
-        {err && <p className="text-[12.5px] text-rose-700" role="alert">{err}</p>}
+        {err && <p className="text-[12.5px] text-coral-ink" role="alert">{err}</p>}
         <button type="submit" disabled={busy || !token || mode === "closed" || mode === "open"} className={`${buttonClass("primary")} h-9 w-full`}>
           {busy ? "Signing in…" : "Sign in"}
         </button>

@@ -1,5 +1,5 @@
 // Static SVG figures for /methodology. Hairline strokes, zinc ink, one accent; text stays in text tokens.
-const INK = "#18181b", MUTED = "#71717a", LINE = "#d4d4d8", FAINT = "#f4f4f5", ACCENT = "#2563eb";
+const INK = "oklch(20% 0.012 70)", MUTED = "oklch(52% 0.011 70)", LINE = "oklch(87% 0.007 80)", FAINT = "oklch(96.6% 0.006 85)", ACCENT = "oklch(52% 0.105 72)";
 
 function Arrow({ id = "arr", color = MUTED }: { id?: string; color?: string }) {
   return (
@@ -14,7 +14,7 @@ function Arrow({ id = "arr", color = MUTED }: { id?: string; color?: string }) {
 function Box({ x, y, w, h, title, sub, accent, dashed }: { x: number; y: number; w: number; h: number; title: string; sub?: string; accent?: boolean; dashed?: boolean }) {
   return (
     <g>
-      <rect x={x} y={y} width={w} height={h} rx={7} fill={accent ? "#eff6ff" : "#fff"} stroke={accent ? ACCENT : LINE} strokeDasharray={dashed ? "4 3" : undefined} />
+      <rect x={x} y={y} width={w} height={h} rx={7} fill={accent ? "oklch(96.5% 0.03 88)" : "#fff"} stroke={accent ? ACCENT : LINE} strokeDasharray={dashed ? "4 3" : undefined} />
       <text x={x + w / 2} y={y + (sub ? h / 2 - 3 : h / 2 + 4)} textAnchor="middle" fontSize={12.5} fontWeight={500} fill={INK}>{title}</text>
       {sub && <text x={x + w / 2} y={y + h / 2 + 13} textAnchor="middle" fontSize={10.5} fill={MUTED}>{sub}</text>}
     </g>
@@ -35,11 +35,11 @@ export function PipelineFigure() {
     <ol className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-3 sm:space-y-0 lg:hidden" aria-label="Pipeline: task, agent, trace, grader, attribution, statistics">
       {boxes.map(([t, s], i) => (
         <li key={t}>
-          {i > 0 && <div className="mx-auto mb-1.5 h-3 w-px bg-zinc-300 sm:hidden" aria-hidden />}
-          <div className={`h-full rounded-[7px] border px-3 py-2 text-center ${i === 2 ? "border-accent bg-accent-soft" : "border-zinc-300 bg-white"}`}>
-            <div className="text-[13px] font-medium text-zinc-900">{t}</div>
-            <div className="text-[12px] text-zinc-500">{s}</div>
-            {i === 1 && <div className="mt-1.5 rounded-md bg-zinc-100 px-2 py-1 text-[12px] text-zinc-500">store contains traps · guardrail verdict at checkout, appended to the trace</div>}
+          {i > 0 && <div className="mx-auto mb-1.5 h-3 w-px bg-ink-5 sm:hidden" aria-hidden />}
+          <div className={`h-full rounded-[7px] border px-3 py-2 text-center ${i === 2 ? "border-accent bg-accent-soft" : "border-ink-5 bg-white"}`}>
+            <div className="text-[13px] font-medium text-ink">{t}</div>
+            <div className="text-[12px] text-ink-3">{s}</div>
+            {i === 1 && <div className="mt-1.5 rounded-md bg-canvas-sunk px-2 py-1 text-[12px] text-ink-3">store contains traps · guardrail verdict at checkout, appended to the trace</div>}
           </div>
         </li>
       ))}
@@ -83,7 +83,7 @@ export function ChainFigure() {
           </text>
           <text x={x + 12} y={y + 62} fontSize={10.5} fill={MUTED}>seq · ts · actor · action</text>
           <text x={x + 12} y={y + 77} fontSize={10.5} fill={MUTED}>payload</text>
-          <rect x={x + 8} y={y + bh - 24} width={bw - 16} height={17} rx={4} fill="#eff6ff" />
+          <rect x={x + 8} y={y + bh - 24} width={bw - 16} height={17} rx={4} fill="oklch(96.5% 0.03 88)" />
           <text x={x + bw / 2} y={y + bh - 12} textAnchor="middle" fontSize={10.5} fill={ACCENT} fontFamily="var(--font-geist-mono)">
             <H i={idx[i]} /> = sha256(prev ‖ canonical)
           </text>

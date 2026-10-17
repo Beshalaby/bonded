@@ -13,8 +13,8 @@ import {
 import { useApi } from "@/lib/ui/api";
 import { modelHref, taskHref, traceHref, usd } from "@/lib/ui/format";
 
-const COLOR_A = "#2563eb";
-const COLOR_B = "#ea580c";
+const COLOR_A = "oklch(52% 0.105 72)";
+const COLOR_B = "oklch(47% 0.06 150)";
 const short = (s: string) => s.replace(/\s*\(sim\)\s*$/i, "");
 const pctf = (x: number, d = 1) => `${(x * 100).toFixed(d)}%`;
 const fmtPval = (p: number) => (p < 0.0001 ? "< 0.0001" : p < 0.001 ? p.toExponential(1) : p.toFixed(p < 0.01 ? 4 : 3));
@@ -51,7 +51,7 @@ export default function CompareView() {
   return (
     <>
       <PageHeader
-        eyebrow={<Link href="/methodology#compare" className="tap hover:text-zinc-900">Methodology · Comparing models</Link>}
+        eyebrow={<Link href="/methodology#compare" className="tap hover:text-ink">Methodology · Comparing models</Link>}
         title="Head-to-head"
         description="Is one model actually better than another, or is the gap within noise? Each model's success rate has a Beta posterior; we report the probability that one exceeds the other, then check the paired tasks with an exact McNemar test."
       />
@@ -63,9 +63,9 @@ export default function CompareView() {
           <Card>
             {base.data ? <PairwiseMatrix data={base.data.matrix} onSelect={select} selected={pick} /> : <LoadingBlock rows={5} />}
           </Card>
-          <Card className="text-[13px] leading-relaxed text-zinc-600">
-            <div className="text-[12px] font-medium uppercase tracking-[0.06em] text-zinc-400">How it is computed</div>
-            <div className="my-3 rounded-md bg-zinc-50 px-2 py-1">
+          <Card className="text-[13px] leading-relaxed text-ink-2">
+            <div className="text-[12px] font-medium uppercase tracking-[0.06em] text-ink-4">How it is computed</div>
+            <div className="my-3 rounded-md bg-ivory px-2 py-1">
               <Eq className="!my-1 text-[15px]">
                 <M>P(<V>p</V><Sub>A</Sub> &gt; <V>p</V><Sub>B</Sub>) = <Op lower={<><V>i</V>=0</>} upper={<><V>α</V><Sub>A</Sub>−1</>} />
                   <Frac n={<>B(<V>α</V><Sub>B</Sub>+<V>i</V>, <V>β</V><Sub>A</Sub>+<V>β</V><Sub>B</Sub>)</>} d={<>(<V>β</V><Sub>A</Sub>+<V>i</V>) B(1+<V>i</V>, <V>β</V><Sub>A</Sub>) B(<V>α</V><Sub>B</Sub>, <V>β</V><Sub>B</Sub>)</>} /></M>
@@ -85,7 +85,7 @@ export default function CompareView() {
             <div className="flex items-center gap-2 max-sm:w-[calc(100vw-32px)] max-sm:flex-col max-sm:items-stretch">
               <ModelPicker value={pick.a} color={COLOR_A} models={models} onChange={(a) => setPick((p) => (p ? { a, b: a === p.b ? p.a : p.b } : p))} />
               <button type="button" aria-label="Swap models" onClick={() => setPick((p) => (p ? { a: p.b, b: p.a } : p))}
-                className="grid size-8 max-lg:size-10 place-items-center rounded-md border border-zinc-200 bg-white text-zinc-600 shadow-sm hover:bg-zinc-50 max-sm:self-center max-sm:rotate-90">
+                className="grid size-8 max-lg:size-10 place-items-center rounded-md border border-divider bg-white text-ink-2 shadow-sm hover:bg-ivory max-sm:self-center max-sm:rotate-90">
                 <ArrowLeftRight size={14} />
               </button>
               <ModelPicker value={pick.b} color={COLOR_B} models={models} onChange={(b) => setPick((p) => (p ? { b, a: b === p.a ? p.b : p.a } : p))} />
@@ -131,12 +131,12 @@ function PairBody({ pair }: { pair: PairDetail }) {
   return (
     <div className="space-y-4">
       {/* verdict sentence */}
-      <div className={cx("rounded-lg border px-5 py-4 max-sm:px-4", pw > 0.95 ? "border-accent/30 bg-accent-soft/60" : "border-zinc-200 bg-zinc-50/60")}>
-        <p className="text-[15px] leading-relaxed text-zinc-800">
+      <div className={cx("rounded-lg border px-5 py-4 max-sm:px-4", pw > 0.95 ? "border-accent/30 bg-accent-soft/60" : "border-divider bg-ivory/60")}>
+        <p className="text-[15px] leading-relaxed text-ink">
           {pw > 0.5 ? (
-            <>There is a <span className="font-semibold text-zinc-950 tnum">{pctf(pw)}</span> posterior probability that <span className="font-semibold">{short(winner.displayName)}</span> has a higher true success rate than <span className="font-semibold">{short(loser.displayName)}</span>. </>
+            <>There is a <span className="font-semibold text-ink tnum">{pctf(pw)}</span> posterior probability that <span className="font-semibold">{short(winner.displayName)}</span> has a higher true success rate than <span className="font-semibold">{short(loser.displayName)}</span>. </>
           ) : <>The two posteriors are identical. </>}
-          <span className={cx("font-medium", pw > 0.95 ? "text-accent" : "text-zinc-600")}>
+          <span className={cx("font-medium", pw > 0.95 ? "text-accent" : "text-ink-2")}>
             {verdict === "distinguishable" ? "Statistically distinguishable at the 95% level." : verdict === "likely better" ? "Leaning, but not distinguishable at 95%." : "Not distinguishable: more tasks are needed."}
           </span>
         </p>
@@ -157,11 +157,11 @@ function PairBody({ pair }: { pair: PairDetail }) {
         <Card>
           <CardTitle aside="posterior density · 90% credible interval below the axis">Where each model&apos;s true success rate probably lies</CardTitle>
           <PosteriorChart series={series} height={290} />
-          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-zinc-500">
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-ink-3">
             {[{ m: a, c: COLOR_A }, { m: b, c: COLOR_B }].map(({ m, c }) => (
               <span key={m.model} className="inline-flex items-center gap-1.5 tnum">
                 <span className="inline-block h-[2px] w-4 rounded" style={{ background: c }} />
-                <Link href={modelHref(m.model)} className="tap text-zinc-800 hover:text-accent">{short(m.displayName)}</Link>
+                <Link href={modelHref(m.model)} className="tap text-ink hover:text-accent">{short(m.displayName)}</Link>
                 {m.s}/{m.n} · Beta({m.a}, {m.b}) · {pctf(m.mean)} [{pctf(m.lower)}, {pctf(m.upper)}]
               </span>
             ))}
@@ -170,7 +170,7 @@ function PairBody({ pair }: { pair: PairDetail }) {
         <Card>
           <CardTitle>Paired outcomes</CardTitle>
           <Contingency pair={pair} />
-          <p className="mt-4 text-[12px] leading-relaxed text-zinc-500">
+          <p className="mt-4 text-[12px] leading-relaxed text-ink-3">
             McNemar uses only the off-diagonal tasks. Under the null, each discordant task is equally likely to favour either model, so
             min(b, c) ~ Binomial(b + c, ½).
           </p>
@@ -180,13 +180,13 @@ function PairBody({ pair }: { pair: PairDetail }) {
       <Card padded={false}>
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-4 max-sm:px-4">
           <div>
-            <h3 className="text-[14px] font-semibold text-zinc-900">Where they disagree</h3>
-            <p className="mt-0.5 text-[12.5px] text-zinc-500">Tasks where one model passed and the other failed. Open both traces side by side.</p>
+            <h3 className="text-[14px] font-semibold text-ink">Where they disagree</h3>
+            <p className="mt-0.5 text-[12.5px] text-ink-3">Tasks where one model passed and the other failed. Open both traces side by side.</p>
           </div>
-          <div className="inline-flex max-w-full overflow-x-auto rounded-md border border-zinc-200 p-0.5 text-[12.5px]">
+          <div className="inline-flex max-w-full overflow-x-auto rounded-md border border-divider p-0.5 text-[12.5px]">
             {([["all", `All ${pair.disagreements.length}`], ["a", `${short(a.displayName)} won ${paired.aOnly}`], ["b", `${short(b.displayName)} won ${paired.bOnly}`]] as const).map(([k, l]) => (
               <button key={k} type="button" onClick={() => setFilter(k)}
-                className={cx("shrink-0 whitespace-nowrap rounded px-2.5 py-1 max-lg:min-h-10", filter === k ? "bg-zinc-900 text-white" : "text-zinc-600 hover:text-zinc-900")}>{l}</button>
+                className={cx("shrink-0 whitespace-nowrap rounded px-2.5 py-1 max-lg:min-h-10", filter === k ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}>{l}</button>
             ))}
           </div>
         </div>
@@ -202,14 +202,14 @@ function PairBody({ pair }: { pair: PairDetail }) {
             <tbody>
               {rows.map((d) => (
                 <Tr key={d.taskId}>
-                  <Td className="whitespace-nowrap"><Link href={taskHref(d.taskId)} className="tap font-mono text-[12.5px] text-zinc-800 hover:text-accent">{d.taskId}</Link></Td>
+                  <Td className="whitespace-nowrap"><Link href={taskHref(d.taskId)} className="tap font-mono text-[12.5px] text-ink hover:text-accent">{d.taskId}</Link></Td>
                   <Td><Side s={d.a} /></Td>
                   <Td><Side s={d.b} /></Td>
                 </Tr>
               ))}
             </tbody>
           </Table>
-        ) : <p className="border-t border-zinc-100 px-5 py-8 text-center text-[13px] text-zinc-500">No disagreements in this direction.</p>}
+        ) : <p className="border-t border-divider px-5 py-8 text-center text-[13px] text-ink-3">No disagreements in this direction.</p>}
       </Card>
     </div>
   );
@@ -219,9 +219,9 @@ function Side({ s }: { s: PairDetail["disagreements"][number]["a"] }) {
   return (
     <span className="inline-flex items-center gap-2">
       <OutcomeBadge outcome={s.outcome as Outcome} />
-      {s.amount != null && <span className="font-mono text-[12px] text-zinc-500">{usd(s.amount)}</span>}
+      {s.amount != null && <span className="font-mono text-[12px] text-ink-3">{usd(s.amount)}</span>}
       {s.sessionId && (
-        <Link href={traceHref(s.sessionId)} className="inline-flex items-center gap-0.5 text-[12.5px] text-zinc-500 hover:text-accent max-lg:min-h-10">
+        <Link href={traceHref(s.sessionId)} className="inline-flex items-center gap-0.5 text-[12.5px] text-ink-3 hover:text-accent max-lg:min-h-10">
           trace <ArrowUpRight size={12} />
         </Link>
       )}
@@ -232,26 +232,26 @@ function Side({ s }: { s: PairDetail["disagreements"][number]["a"] }) {
 function Contingency({ pair }: { pair: PairDetail }) {
   const { paired: p, a, b } = pair;
   const cell = (v: number, hl: boolean, label: string) => (
-    <div className={cx("flex flex-col items-center justify-center rounded-md py-3", hl ? "bg-zinc-900 text-white" : "bg-zinc-50 text-zinc-700")}>
+    <div className={cx("flex flex-col items-center justify-center rounded-md py-3", hl ? "bg-ink text-white" : "bg-ivory text-ink-2")}>
       <span className="text-[20px] font-semibold leading-none tnum">{v}</span>
-      <span className={cx("mt-1 text-[10.5px]", hl ? "text-white/60" : "text-zinc-400")}>{label}</span>
+      <span className={cx("mt-1 text-[10.5px]", hl ? "text-white/60" : "text-ink-4")}>{label}</span>
     </div>
   );
   const dot = (c: string) => <span className="inline-block size-2 rounded-full" style={{ background: c }} />;
   return (
     <div>
-      <div className="mb-3 space-y-1 text-[12px] text-zinc-600">
+      <div className="mb-3 space-y-1 text-[12px] text-ink-2">
         <div className="flex items-center gap-1.5">{dot(COLOR_A)} A = {short(a.displayName)}</div>
         <div className="flex items-center gap-1.5">{dot(COLOR_B)} B = {short(b.displayName)}</div>
       </div>
       <div className="grid grid-cols-[52px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-1.5 text-[11.5px]">
         <span />
-        <span className="flex items-center justify-center gap-1 text-zinc-500">{dot(COLOR_B)} pass</span>
-        <span className="flex items-center justify-center gap-1 text-zinc-500">{dot(COLOR_B)} fail</span>
-        <span className="flex items-center gap-1 text-zinc-500">{dot(COLOR_A)} pass</span>
+        <span className="flex items-center justify-center gap-1 text-ink-3">{dot(COLOR_B)} pass</span>
+        <span className="flex items-center justify-center gap-1 text-ink-3">{dot(COLOR_B)} fail</span>
+        <span className="flex items-center gap-1 text-ink-3">{dot(COLOR_A)} pass</span>
         {cell(p.bothPass, false, "both pass")}
         {cell(p.aOnly, true, "b · A only")}
-        <span className="flex items-center gap-1 text-zinc-500">{dot(COLOR_A)} fail</span>
+        <span className="flex items-center gap-1 text-ink-3">{dot(COLOR_A)} fail</span>
         {cell(p.bOnly, true, "c · B only")}
         {cell(p.bothFail, false, "both fail")}
       </div>

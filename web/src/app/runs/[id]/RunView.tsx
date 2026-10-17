@@ -12,13 +12,13 @@ import { useApi, type RunResponse, type TasksResponse } from "@/lib/ui/api";
 import { dateTime, duration, failureLabel, modelHref, pct, taskHref, traceHref } from "@/lib/ui/format";
 
 const CELL: Record<Outcome, { label: string; cls: string }> = {
-  success: { label: "Pass", cls: "text-emerald-700 hover:bg-emerald-50" },
-  scammed: { label: "Scammed", cls: "bg-rose-50 text-rose-700 hover:bg-rose-100" },
-  failed: { label: "Fail", cls: "bg-rose-50 text-rose-700 hover:bg-rose-100" },
-  over_budget: { label: "Over budget", cls: "bg-rose-50 text-rose-700 hover:bg-rose-100" },
-  wrong_item: { label: "Wrong item", cls: "bg-amber-50 text-amber-700 hover:bg-amber-100" },
-  no_purchase: { label: "No purchase", cls: "bg-zinc-100 text-zinc-600 hover:bg-zinc-200" },
-  error: { label: "Error", cls: "bg-zinc-100 text-zinc-600 hover:bg-zinc-200" },
+  success: { label: "Pass", cls: "text-pass-ink hover:bg-pass-soft" },
+  scammed: { label: "Scammed", cls: "bg-coral-soft text-coral-ink hover:bg-coral-soft" },
+  failed: { label: "Fail", cls: "bg-coral-soft text-coral-ink hover:bg-coral-soft" },
+  over_budget: { label: "Over budget", cls: "bg-coral-soft text-coral-ink hover:bg-coral-soft" },
+  wrong_item: { label: "Wrong item", cls: "bg-amber-soft text-amber-ink hover:bg-amber-soft" },
+  no_purchase: { label: "No purchase", cls: "bg-canvas-sunk text-ink-2 hover:bg-ink-5" },
+  error: { label: "Error", cls: "bg-canvas-sunk text-ink-2 hover:bg-ink-5" },
 };
 
 export default function RunView({ id }: { id: string }) {
@@ -72,7 +72,7 @@ export default function RunView({ id }: { id: string }) {
           <span>Started {dateTime(run.startedAt ?? run.createdAt)}</span>
           <span>{run.finishedAt ? `Took ${duration(run.startedAt ?? run.createdAt, run.finishedAt)}` : live ? `Running for ${duration(run.startedAt ?? run.createdAt)}` : null}</span>
           <span>Guardrail: <span className="capitalize">{run.guardrail}</span></span>
-          {live && <span className="inline-flex items-center gap-1.5"><span className={cx("size-1.5 rounded-full", connected ? "pulse-dot bg-emerald-500" : "bg-zinc-300")} />{connected ? "Live" : "Connecting…"}</span>}
+          {live && <span className="inline-flex items-center gap-1.5"><span className={cx("size-1.5 rounded-full", connected ? "pulse-dot bg-pass" : "bg-ink-5")} />{connected ? "Live" : "Connecting…"}</span>}
         </>}
       />
 
@@ -80,8 +80,8 @@ export default function RunView({ id }: { id: string }) {
 
       <Card className="mb-4">
         <div className="mb-2 flex items-baseline justify-between text-[13px]">
-          <span className="font-medium text-zinc-900">Progress</span>
-          <span className="text-zinc-500 tnum">{run.progress.done} of {run.progress.total} episodes · {pct(run.progress.total ? run.progress.done / run.progress.total : 0)}</span>
+          <span className="font-medium text-ink">Progress</span>
+          <span className="text-ink-3 tnum">{run.progress.done} of {run.progress.total} episodes · {pct(run.progress.total ? run.progress.done / run.progress.total : 0)}</span>
         </div>
         <ProgressBar done={run.progress.done} total={run.progress.total} />
       </Card>
@@ -104,13 +104,13 @@ export default function RunView({ id }: { id: string }) {
           <Chip active={filter === "failed"} onClick={() => setFilter("failed")}>With failures</Chip>
         </>}>
         {taskIds.length === 0 ? <EmptyState title="No tasks in this run" /> : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-divider bg-white">
             <table className="w-full border-collapse text-[13px]">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-10 h-auto border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-left text-[12px] font-medium text-zinc-500 max-lg:shadow-[inset_-1px_0_0_#e4e4e7] max-sm:px-3">Task</th>
+                  <th className="sticky left-0 z-10 h-auto border-b border-divider bg-ivory px-4 py-2 text-left text-[12px] font-medium text-ink-3 max-lg:shadow-[inset_-1px_0_0_oklch(92%_0.006_80)] max-sm:px-3">Task</th>
                   {run.models.map((m) => (
-                    <th key={m} className="h-auto min-w-[112px] max-sm:min-w-[96px] border-b border-l border-zinc-200 bg-zinc-50 px-2 py-2 text-center text-[12px] font-medium text-zinc-500">
+                    <th key={m} className="h-auto min-w-[112px] max-sm:min-w-[96px] border-b border-l border-divider bg-ivory px-2 py-2 text-center text-[12px] font-medium text-ink-3">
                       <Link href={modelHref(m)} className="tap font-mono text-[11.5px] hover:text-accent">{m.replace(/^sim\//, "")}</Link>
                     </th>
                   ))}
@@ -120,20 +120,20 @@ export default function RunView({ id }: { id: string }) {
                 {rowsShown.map((tid) => {
                   const task = instr.get(tid);
                   return (
-                    <tr key={tid} className="hover:bg-zinc-50/60">
-                      <td className="sticky left-0 z-10 max-w-[420px] border-b border-zinc-100 bg-white px-4 py-2 max-lg:max-w-[240px] max-lg:shadow-[inset_-1px_0_0_#e4e4e7] max-sm:min-w-[132px] max-sm:max-w-[148px] max-sm:px-3">
+                    <tr key={tid} className="hover:bg-ivory/60">
+                      <td className="sticky left-0 z-10 max-w-[420px] border-b border-divider bg-white px-4 py-2 max-lg:max-w-[240px] max-lg:shadow-[inset_-1px_0_0_oklch(92%_0.006_80)] max-sm:min-w-[132px] max-sm:max-w-[148px] max-sm:px-3">
                         <div className="flex min-w-0 items-center gap-2 max-sm:flex-wrap max-sm:gap-1">
-                          <Link href={taskHref(tid)} className="tap min-w-0 truncate font-mono text-[12px] text-zinc-500 hover:text-accent">{tid}</Link>
+                          <Link href={taskHref(tid)} className="tap min-w-0 truncate font-mono text-[12px] text-ink-3 hover:text-accent">{tid}</Link>
                           {task?.adversarial && <Badge tone="warn">Adversarial</Badge>}
                         </div>
-                        {task && <div className="truncate text-[12.5px] text-zinc-700" title={task.instruction}>{task.instruction}</div>}
+                        {task && <div className="truncate text-[12.5px] text-ink-2" title={task.instruction}>{task.instruction}</div>}
                       </td>
                       {run.models.map((m) => {
                         const key = `${m}::${tid}`;
                         const r = byCell.get(key);
                         if (!r) return (
-                          <td key={m} className="border-b border-l border-zinc-100 px-2 py-2 text-center">
-                            <span className={cx("inline-block size-1.5 rounded-full", live ? "pulse-dot bg-zinc-300" : "bg-zinc-200")} />
+                          <td key={m} className="border-b border-l border-divider px-2 py-2 text-center">
+                            <span className={cx("inline-block size-1.5 rounded-full", live ? "pulse-dot bg-ink-5" : "bg-ink-5")} />
                           </td>
                         );
                         const o = outcomeOf(r);
@@ -141,7 +141,7 @@ export default function RunView({ id }: { id: string }) {
                         const tip = r.attribution ? `${failureLabel(r.attribution.mode)}: ${r.attribution.explanation}` : o === "success" ? "Passed" : c.label;
                         const content = <span className={cx("flex h-7 max-lg:h-10 items-center justify-center gap-1 rounded text-[12px] font-medium transition-colors", c.cls)}>{o === "success" && <Check size={12} strokeWidth={2.5} />}{c.label}</span>;
                         return (
-                          <td key={m} title={tip} className={cx("border-b border-l border-zinc-100 px-1.5 py-1.5", fresh.has(key) && "row-in")}>
+                          <td key={m} title={tip} className={cx("border-b border-l border-divider px-1.5 py-1.5", fresh.has(key) && "row-in")}>
                             {r.sessionId ? <Link href={traceHref(r.sessionId)}>{content}</Link> : content}
                           </td>
                         );
@@ -151,7 +151,7 @@ export default function RunView({ id }: { id: string }) {
                 })}
               </tbody>
             </table>
-            {rowsShown.length === 0 && <p className="px-4 py-8 text-center text-[13px] text-zinc-500">No failures so far.</p>}
+            {rowsShown.length === 0 && <p className="px-4 py-8 text-center text-[13px] text-ink-3">No failures so far.</p>}
           </div>
         )}
       </Section>
@@ -161,8 +161,8 @@ export default function RunView({ id }: { id: string }) {
 
 function Crumb({ id }: { id: string }) {
   return (
-    <nav className="mb-3 flex min-w-0 items-center gap-1.5 text-[13px] text-zinc-500">
-      <Link href="/runs" className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Runs</Link><span className="text-zinc-300">/</span><span className="min-w-0 truncate font-mono text-[12.5px]">{id}</span>
+    <nav className="mb-3 flex min-w-0 items-center gap-1.5 text-[13px] text-ink-3">
+      <Link href="/runs" className="hover:text-ink max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Runs</Link><span className="text-ink-5">/</span><span className="min-w-0 truncate font-mono text-[12.5px]">{id}</span>
     </nav>
   );
 }

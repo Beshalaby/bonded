@@ -36,10 +36,10 @@ export default function TaskView({ id }: { id: string }) {
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_340px]">
         <Card>
-          <div className="text-[12px] text-zinc-500">Instruction given to the agent</div>
-          <p className="mt-2 text-[17px] max-sm:text-[16px] leading-relaxed text-zinc-900">“{task.instruction}”</p>
+          <div className="text-[12px] text-ink-3">Instruction given to the agent</div>
+          <p className="mt-2 text-[17px] max-sm:text-[16px] leading-relaxed text-ink">“{task.instruction}”</p>
           <div className="mt-5 flex flex-wrap gap-1.5">
-            {task.tags.map((g) => <span key={g} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[12px] text-zinc-600">{g}</span>)}
+            {task.tags.map((g) => <span key={g} className="rounded bg-canvas-sunk px-1.5 py-0.5 text-[12px] text-ink-2">{g}</span>)}
           </div>
         </Card>
         <Card>
@@ -56,15 +56,15 @@ export default function TaskView({ id }: { id: string }) {
         {results.length ? (
           <>
           {/* Phones: one card per model */}
-          <ul className="divide-y divide-zinc-100 overflow-hidden rounded-lg border border-zinc-200 bg-white sm:hidden">
+          <ul className="divide-y divide-divider overflow-hidden rounded-lg border border-divider bg-white sm:hidden">
             {results.map((r) => (
               <li key={r.model + r.runId} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <Link href={modelHref(r.model)} className="min-w-0 truncate font-mono text-[12.5px] text-zinc-800 hover:text-accent">{r.model}</Link>
+                  <Link href={modelHref(r.model)} className="min-w-0 truncate font-mono text-[12.5px] text-ink hover:text-accent">{r.model}</Link>
                   <div className="flex shrink-0 items-center gap-1.5"><OutcomeBadge outcome={outcomeOf(r)} />{(r.trapTypes ?? []).slice(0, 1).map((t) => r.scammed && <TrapBadge key={t} type={t} />)}</div>
                 </div>
-                {r.attribution && <div className="mt-1 text-[13px] text-zinc-600">{failureLabel(r.attribution.mode)}</div>}
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-zinc-500 tnum">
+                {r.attribution && <div className="mt-1 text-[13px] text-ink-2">{failureLabel(r.attribution.mode)}</div>}
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-ink-3 tnum">
                   {r.amount != null && r.bought !== false && <span>spent <span className="font-mono">{usd(r.amount)}</span></span>}
                   <span>{r.steps} steps</span>
                   <span className="font-mono">{cost(r.costUsd)}</span>
@@ -81,13 +81,13 @@ export default function TaskView({ id }: { id: string }) {
             <tbody>
               {results.map((r) => (
                 <Tr key={r.model + r.runId}>
-                  <Td><Link href={modelHref(r.model)} className="font-mono text-[12.5px] text-zinc-800 hover:text-accent">{r.model}</Link></Td>
+                  <Td><Link href={modelHref(r.model)} className="font-mono text-[12.5px] text-ink hover:text-accent">{r.model}</Link></Td>
                   <Td><div className="flex items-center gap-1.5"><OutcomeBadge outcome={outcomeOf(r)} />{(r.trapTypes ?? []).slice(0, 1).map((t) => r.scammed && <TrapBadge key={t} type={t} />)}</div></Td>
-                  <Td className="max-w-[320px] truncate text-zinc-600" >{r.attribution ? <span title={r.attribution.explanation}>{failureLabel(r.attribution.mode)}</span> : <span className="text-zinc-300">—</span>}</Td>
-                  <Td align="right" mono>{r.amount != null && r.bought !== false ? usd(r.amount) : <span className="text-zinc-300">—</span>}</Td>
+                  <Td className="max-w-[320px] truncate text-ink-2" >{r.attribution ? <span title={r.attribution.explanation}>{failureLabel(r.attribution.mode)}</span> : <span className="text-ink-5">—</span>}</Td>
+                  <Td align="right" mono>{r.amount != null && r.bought !== false ? usd(r.amount) : <span className="text-ink-5">—</span>}</Td>
                   <Td align="right">{r.steps}</Td>
-                  <Td align="right" mono className="text-zinc-600">{cost(r.costUsd)}</Td>
-                  <Td align="right" className="whitespace-nowrap text-zinc-500">{ago(r.createdAt)}</Td>
+                  <Td align="right" mono className="text-ink-2">{cost(r.costUsd)}</Td>
+                  <Td align="right" className="whitespace-nowrap text-ink-3">{ago(r.createdAt)}</Td>
                   <Td align="right">{r.sessionId && <Link href={traceHref(r.sessionId)} className="inline-flex items-center gap-1 whitespace-nowrap text-accent hover:underline">Trace <ArrowRight size={12} /></Link>}</Td>
                 </Tr>
               ))}

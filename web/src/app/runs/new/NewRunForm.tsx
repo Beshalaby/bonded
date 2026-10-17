@@ -84,8 +84,8 @@ export default function NewRunForm() {
 
   return (
     <>
-      <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-zinc-500">
-        <Link href="/runs" className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Runs</Link><span className="text-zinc-300">/</span><span>New</span>
+      <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-ink-3">
+        <Link href="/runs" className="hover:text-ink max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Runs</Link><span className="text-ink-5">/</span><span>New</span>
       </nav>
       <PageHeader title="New run" description="Pick models and tasks. The run starts immediately; results stream in as each task is graded." />
 
@@ -101,19 +101,19 @@ export default function NewRunForm() {
                 return (
                   <label key={m.model}
                     className={cx("flex cursor-pointer items-start gap-3 rounded-lg border bg-white px-3.5 py-3 transition-colors",
-                      on ? "border-accent ring-1 ring-accent" : "border-zinc-200 hover:border-zinc-300")}>
+                      on ? "border-accent ring-1 ring-accent" : "border-divider hover:border-ink-5")}>
                     <input type="checkbox" checked={on} onChange={() => toggle(m.model)} className="sr-only" />
                     <span className={cx("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border",
-                      on ? "border-accent bg-accent text-white" : "border-zinc-300 bg-white")}>
+                      on ? "border-accent bg-accent text-white" : "border-ink-5 bg-white")}>
                       {on && <Check size={12} strokeWidth={3} />}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
-                        <span className="truncate text-[13.5px] font-medium text-zinc-900">{m.displayName}</span>
+                        <span className="truncate text-[13.5px] font-medium text-ink">{m.displayName}</span>
                         <ProviderBadge provider={m.provider} simulated={m.simulated} />
                       </span>
-                      <span className="block truncate font-mono text-[11.5px] text-zinc-400">{m.model}{m.n ? ` · ${m.n} results` : ""}</span>
-                      {m.note && <span className="mt-1 block text-[12px] leading-snug text-zinc-500">{m.note}</span>}
+                      <span className="block truncate font-mono text-[11.5px] text-ink-4">{m.model}{m.n ? ` · ${m.n} results` : ""}</span>
+                      {m.note && <span className="mt-1 block text-[12px] leading-snug text-ink-3">{m.note}</span>}
                     </span>
                   </label>
                 );
@@ -122,16 +122,16 @@ export default function NewRunForm() {
             <div className="mt-3 flex gap-2">
               <input value={custom} onChange={(e) => setCustom(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())}
                 placeholder="Add a model id, e.g. openai/gpt-4o-mini"
-                className="h-8 max-lg:h-10 max-md:text-[16px] w-full min-w-0 max-w-sm rounded-md border border-zinc-200 px-2.5 font-mono text-[12.5px] shadow-sm outline-none placeholder:font-sans placeholder:text-zinc-400 focus:border-accent focus:ring-2 focus:ring-accent/15" />
+                className="h-8 max-lg:h-10 max-md:text-[16px] w-full min-w-0 max-w-sm rounded-md border border-divider px-2.5 font-mono text-[12.5px] shadow-sm outline-none placeholder:font-sans placeholder:text-ink-4 focus:border-accent focus:ring-2 focus:ring-accent/15" />
               <button type="button" onClick={addCustom} className={buttonClass("secondary")}><Plus size={14} /> Add</button>
             </div>
           </FormSection>
 
           <FormSection n={2} title="Tasks" description={tasks.data ? `${allTasks.length} tasks in the library, ${allTasks.filter((t) => t.adversarial).length} of them adversarial.` : "Loading task library…"}>
-            <div className="flex gap-1 rounded-md bg-zinc-100 p-0.5 text-[13px] w-fit">
+            <div className="flex gap-1 rounded-md bg-canvas-sunk p-0.5 text-[13px] w-fit">
               {(["sample", "tags"] as const).map((m) => (
                 <button key={m} type="button" onClick={() => setTaskMode(m)}
-                  className={cx("rounded px-3 py-1 max-lg:min-h-10", taskMode === m ? "bg-white font-medium text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")}>
+                  className={cx("rounded px-3 py-1 max-lg:min-h-10", taskMode === m ? "bg-white font-medium text-ink shadow-sm" : "text-ink-2 hover:text-ink")}>
                   {m === "sample" ? "Random sample" : "Filter by tag"}
                 </button>
               ))}
@@ -141,8 +141,8 @@ export default function NewRunForm() {
                 <input type="range" min={5} max={Math.max(5, Math.min(200, allTasks.length || 100))} step={5} value={taskCount}
                   onChange={(e) => setTaskCount(Number(e.target.value))} className="w-64 max-w-full accent-[var(--color-accent)] max-lg:h-10" />
                 <input type="number" min={1} value={taskCount} onChange={(e) => setTaskCount(Math.max(1, Number(e.target.value) || 1))}
-                  className="h-8 max-lg:h-10 max-md:text-[16px] w-20 rounded-md border border-zinc-200 px-2 text-right text-[13px] tnum shadow-sm outline-none focus:border-accent" />
-                <span className="text-[13px] text-zinc-500">tasks, sampled</span>
+                  className="h-8 max-lg:h-10 max-md:text-[16px] w-20 rounded-md border border-divider px-2 text-right text-[13px] tnum shadow-sm outline-none focus:border-accent" />
+                <span className="text-[13px] text-ink-3">tasks, sampled</span>
               </div>
             ) : (
               <div className="mt-4 flex flex-wrap gap-1.5">
@@ -150,14 +150,14 @@ export default function NewRunForm() {
                   <Chip key={t.tag} active={tags.includes(t.tag)} count={t.count}
                     onClick={() => setTags((s) => (s.includes(t.tag) ? s.filter((x) => x !== t.tag) : [...s, t.tag]))}>{t.tag}</Chip>
                 ))}
-                {!tasks.data?.tags?.length && <span className="text-[13px] text-zinc-500">No tags available.</span>}
+                {!tasks.data?.tags?.length && <span className="text-[13px] text-ink-3">No tags available.</span>}
               </div>
             )}
             <label className="mt-4 flex cursor-pointer items-start gap-2.5">
               <input type="checkbox" checked={adversarial} onChange={(e) => setAdversarial(e.target.checked)} className="mt-0.5 size-4 accent-[var(--color-accent)]" />
               <span>
-                <span className="text-[13.5px] font-medium text-zinc-900">Include adversarial tasks</span>
-                <span className="block text-[12.5px] text-zinc-500">Tasks generated by the red team from scams that fooled at least one model.</span>
+                <span className="text-[13.5px] font-medium text-ink">Include adversarial tasks</span>
+                <span className="block text-[12.5px] text-ink-3">Tasks generated by the red team from scams that fooled at least one model.</span>
               </span>
             </label>
           </FormSection>
@@ -169,15 +169,15 @@ export default function NewRunForm() {
                 return (
                   <label key={g.mode}
                     className={cx("cursor-pointer rounded-lg border bg-white px-3.5 py-3 transition-colors",
-                      on ? "border-accent ring-1 ring-accent" : "border-zinc-200 hover:border-zinc-300")}>
+                      on ? "border-accent ring-1 ring-accent" : "border-divider hover:border-ink-5")}>
                     <input type="radio" name="guardrail" checked={on} onChange={() => setGuardrail(g.mode)} className="sr-only" />
                     <span className="flex items-center gap-2">
-                      <span className={cx("flex size-4 items-center justify-center rounded-full border", on ? "border-accent" : "border-zinc-300")}>
+                      <span className={cx("flex size-4 items-center justify-center rounded-full border", on ? "border-accent" : "border-ink-5")}>
                         {on && <span className="size-2 rounded-full bg-accent" />}
                       </span>
-                      <span className="text-[13.5px] font-medium text-zinc-900">{g.title}</span>
+                      <span className="text-[13.5px] font-medium text-ink">{g.title}</span>
                     </span>
-                    <span className="mt-1.5 block text-[12.5px] leading-snug text-zinc-500">{g.body}</span>
+                    <span className="mt-1.5 block text-[12.5px] leading-snug text-ink-3">{g.body}</span>
                   </label>
                 );
               })}
@@ -187,23 +187,23 @@ export default function NewRunForm() {
 
         <div className="lg:sticky lg:top-20">
           <Card>
-            <div className="text-[14px] font-semibold text-zinc-900">Summary</div>
+            <div className="text-[14px] font-semibold text-ink">Summary</div>
             <dl className="mt-3 space-y-2 text-[13px]">
               <Row k="Models" v={selected.length || "—"} />
               <Row k="Tasks" v={taskMode === "tags" && !tags.length ? `all (${matching})` : nTasks || "—"} />
               <Row k="Adversarial" v={adversarial ? "Included" : "Excluded"} />
               <Row k="Guardrail" v={<span className="capitalize">{guardrail}</span>} />
-              <div className="border-t border-zinc-100 pt-2"><Row k="Episodes" v={<span className="font-semibold text-zinc-900">{episodes || "—"}</span>} /></div>
+              <div className="border-t border-divider pt-2"><Row k="Episodes" v={<span className="font-semibold text-ink">{episodes || "—"}</span>} /></div>
             </dl>
             {selected.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1">
-                {selected.map((m) => <span key={m} className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600">{m}</span>)}
+                {selected.map((m) => <span key={m} className="rounded bg-canvas-sunk px-1.5 py-0.5 font-mono text-[11px] text-ink-2">{m}</span>)}
               </div>
             )}
             <button type="button" disabled={!selected.length || submitting} onClick={submit} className={cx(buttonClass("primary"), "mt-4 w-full h-9")}>
               {submitting ? <><Loader2 size={14} className="animate-spin" /> Starting…</> : "Start run"}
             </button>
-            {!selected.length && <p className="mt-2 text-center text-[12px] text-zinc-500">Select at least one model.</p>}
+            {!selected.length && <p className="mt-2 text-center text-[12px] text-ink-3">Select at least one model.</p>}
             <AuthError message={err} className="mt-2" />
           </Card>
         </div>
@@ -213,17 +213,17 @@ export default function NewRunForm() {
 }
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
-  return <div className="flex justify-between gap-4"><dt className="text-zinc-500">{k}</dt><dd className="text-right text-zinc-800 tnum">{v}</dd></div>;
+  return <div className="flex justify-between gap-4"><dt className="text-ink-3">{k}</dt><dd className="text-right text-ink tnum">{v}</dd></div>;
 }
 
 function FormSection({ n, title, description, children, action }: { n: number; title: string; description?: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <section>
       <div className="mb-3 flex items-baseline gap-2.5">
-        <span className="text-[13px] text-zinc-400 tnum">{n}</span>
+        <span className="text-[13px] text-ink-4 tnum">{n}</span>
         <div className="flex-1">
-          <h2 className="text-[15px] font-semibold text-zinc-900">{title}</h2>
-          {description && <p className="mt-0.5 text-[13px] text-zinc-500">{description}</p>}
+          <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
+          {description && <p className="mt-0.5 text-[13px] text-ink-3">{description}</p>}
         </div>
         {action}
       </div>

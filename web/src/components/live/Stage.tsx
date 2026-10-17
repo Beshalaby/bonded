@@ -120,20 +120,20 @@ export default function Stage({ d, products, merchants, speed, agentName, intro,
     : scene.kind === "checkout" ? "arena.spendbench.dev/checkout" : "arena.spendbench.dev";
 
   return (
-    <div ref={stageRef} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white max-lg:h-[min(600px,78svh)]">
+    <div ref={stageRef} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] bg-surface shadow-tile max-lg:h-[min(600px,78svh)]">
       {/* store chrome */}
-      <div className="flex h-11 shrink-0 items-center gap-3 border-b border-zinc-200 bg-zinc-50/70 px-3">
-        <div className="flex items-center gap-1.5 text-[13px] font-semibold tracking-[-0.01em] text-zinc-800">
-          <Store size={14} strokeWidth={1.75} className="text-zinc-400" /> Arena
+      <div className="flex h-14 shrink-0 items-center gap-3 px-4 sm:px-5">
+        <div className="flex items-center gap-1.5 text-[13px] font-medium tracking-[-0.01em] text-ink-2 max-sm:hidden">
+          <Store size={14} strokeWidth={1.75} className="text-ink-4" /> Arena
         </div>
-        <div className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 font-mono text-[11.5px] text-zinc-500">
-          <Lock size={11} className="shrink-0 text-zinc-400" />
+        <div className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-full bg-canvas-sunk/70 px-3.5 font-mono text-[11.5px] text-ink-3">
+          <Lock size={11} className="shrink-0 text-ink-4" />
           <span key={url} className="lv-fade-in truncate">{url}</span>
         </div>
         <div ref={cartRef} key={`cart-${landed}`}
-          className={cx("flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[12px] tnum transition-colors duration-300",
+          className={cx("flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12px] tnum transition-colors duration-300",
             landed >= 0 && "lv-bump",
-            cartCount > 0 ? (d.task && cartTotal > d.task.budget ? "border-rose-200 bg-rose-50 text-rose-700" : "border-accent/30 bg-accent-soft text-accent") : "border-zinc-200 bg-white text-zinc-500")}>
+            cartCount > 0 ? (d.task && cartTotal > d.task.budget ? "bg-coral-soft text-coral-ink" : "bg-gold-soft text-accent") : "bg-canvas-sunk/70 text-ink-3")}>
           <ShoppingCart size={13} />
           <span className="font-medium">{Math.max(0, cartCount)}</span>
           {cartCount > 0 && <span className="font-mono text-[11.5px]">{usd(cartTotal)}</span>}
@@ -158,7 +158,7 @@ export default function Stage({ d, products, merchants, speed, agentName, intro,
       {/* agent cursor */}
       {cursor && scene.kind !== "start" && (
         <div className="lv-cursor pointer-events-none absolute left-0 top-0 z-20" style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}>
-          <svg width="18" height="18" viewBox="0 0 18 18" className="-translate-x-[3px] -translate-y-[2px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+          <svg width="18" height="18" viewBox="0 0 18 18" className="-translate-x-[3px] -translate-y-[2px] drop-shadow-[0_1px_1px_oklch(20%_0.012_70/0.15)]">
             <path d="M3 2.2 L15 8.6 L9.4 10 L7.3 15.6 Z" fill="var(--color-accent)" stroke="white" strokeWidth="1.4" strokeLinejoin="round" />
           </svg>
           <div className="ml-3 -mt-0.5 whitespace-nowrap rounded-[5px] bg-accent px-1.5 py-[2px] text-[10.5px] font-medium leading-none text-white shadow-sm">{agentName}</div>
@@ -194,13 +194,13 @@ function SearchScene({ query, hits, products, merchants, d, speed, fresh, focusI
   const results = doneTyping && showResults;
 
   return (
-    <div className="p-4 max-sm:p-3">
+    <div className="px-5 pb-5 pt-1 max-sm:px-3">
       <div data-cursor={!results ? "1" : undefined}
-        className={cx("flex h-9 items-center gap-2 rounded-md border bg-white px-3 shadow-sm transition-colors", !results ? "border-accent ring-2 ring-accent/15" : "border-zinc-200")}>
-        <Search size={14} className="text-zinc-400" />
-        <span className="text-[13.5px] text-zinc-900">{query.slice(0, typed)}</span>
-        {!results && <span className="lv-caret -ml-1.5 h-4 w-px bg-zinc-900" />}
-        {results && <span className="lv-fade-in ml-auto text-[12px] text-zinc-500 tnum">{hits.length} result{hits.length === 1 ? "" : "s"}</span>}
+        className={cx("flex h-10 items-center gap-2 rounded-full px-4 transition-[background-color,box-shadow] duration-300", !results ? "bg-surface shadow-[0_0_0_1.5px_var(--color-gold),0_6px_20px_-8px_oklch(78%_0.125_84/0.6)]" : "bg-canvas-sunk/70")}>
+        <Search size={14} className="text-ink-4" />
+        <span className="text-[13.5px] text-ink">{query.slice(0, typed)}</span>
+        {!results && <span className="lv-caret -ml-1.5 h-4 w-px bg-ink" />}
+        {results && <span className="lv-fade-in ml-auto text-[12px] text-ink-3 tnum">{hits.length} result{hits.length === 1 ? "" : "s"}</span>}
       </div>
       {results && (
         <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-3">
@@ -209,7 +209,7 @@ function SearchScene({ query, hits, products, merchants, d, speed, fresh, focusI
               i={fresh ? i : 0} focus={focusId === h.id} visited={d.visited.has(h.id) && focusId !== h.id}
               mark={d.rejected.has(h.id) ? "rejected" : d.approved.has(h.id) ? "approved" : undefined} showTraps={showTraps} />
           ))}
-          {!hits.length && <div className="col-span-full py-10 text-center text-[13px] text-zinc-500">No listings matched “{query}”.</div>}
+          {!hits.length && <div className="col-span-full py-10 text-center text-[13px] text-ink-3">No listings matched “{query}”.</div>}
         </div>
       )}
     </div>
@@ -222,23 +222,23 @@ function ResultCard({ h, p, m, i, focus, visited, mark, showTraps }: {
   const off = p && p.listPrice > p.price ? Math.round((1 - p.price / p.listPrice) * 100) : 0;
   return (
     <div data-cursor={focus ? "1" : undefined} style={{ animationDelay: `${i * 35}ms` }}
-      className={cx("lv-fade-up relative flex gap-2.5 rounded-md border bg-white p-2 transition-[box-shadow,border-color,opacity] duration-200",
-        focus ? "border-accent shadow-[0_0_0_3px_rgb(37_99_235/0.12)]" : "border-zinc-200",
+      className={cx("lv-fade-up relative flex gap-2.5 rounded-[16px] p-2 transition-[box-shadow,background-color,opacity] duration-300",
+        focus ? "bg-surface shadow-[0_0_0_1.5px_var(--color-gold),0_8px_24px_-10px_oklch(78%_0.125_84/0.7)]" : "bg-ivory/70",
         visited && !focus && "opacity-60")}>
       <ProductArt p={{ id: h.id, brand: h.brand, title: h.title, model: p?.model, category: p?.category ?? "" }} className="size-14 shrink-0 rounded [&_svg]:size-5 [&>div]:mt-1 [&>div]:text-[10px] [&>div:last-child]:hidden" />
       <div className="min-w-0 flex-1">
-        <div className="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-900" title={h.title}>{h.title}</div>
+        <div className="line-clamp-2 text-[12px] font-medium leading-snug text-ink" title={h.title}>{h.title}</div>
         <div className="mt-0.5 flex items-baseline gap-1.5">
-          <span className="font-mono text-[12px] font-medium text-zinc-900 tnum">{usd(h.price)}</span>
-          {off >= 5 && p && <span className="font-mono text-[10.5px] text-zinc-400 line-through">{usd(p.listPrice)}</span>}
-          {off >= 30 && <span className="text-[10.5px] font-medium text-rose-600">-{off}%</span>}
+          <span className="font-mono text-[12px] font-medium text-ink tnum">{usd(h.price)}</span>
+          {off >= 5 && p && <span className="font-mono text-[10.5px] text-ink-4 line-through">{usd(p.listPrice)}</span>}
+          {off >= 30 && <span className="text-[10.5px] font-medium text-coral-ink">-{off}%</span>}
         </div>
         <div className="mt-0.5 flex min-w-0 items-center gap-1.5 [&_span]:text-[11px]"><SellerBadge m={m} /></div>
       </div>
       <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
         {showTraps && p?.trap && <TrapBadge type={p.trap.type} prefix={false} />}
-        {mark === "rejected" && <span className="lv-block-in flex size-4 items-center justify-center rounded-full bg-rose-100 text-rose-600" title="Rejected by the agent"><X size={10} strokeWidth={3} /></span>}
-        {mark === "approved" && <span className="lv-block-in flex size-4 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" title="Passed the agent's checks"><Check size={10} strokeWidth={3} /></span>}
+        {mark === "rejected" && <span className="lv-block-in flex size-4 items-center justify-center rounded-full bg-coral-soft text-coral-ink" title="Rejected by the agent"><X size={10} strokeWidth={3} /></span>}
+        {mark === "approved" && <span className="lv-block-in flex size-4 items-center justify-center rounded-full bg-pass-soft text-pass-ink" title="Passed the agent's checks"><Check size={10} strokeWidth={3} /></span>}
       </div>
     </div>
   );
@@ -270,53 +270,54 @@ function ProductScene({ scene, product, merchants, speed, budget, showTraps }: {
   return (
     <div className="grid grid-cols-[minmax(0,180px)_minmax(0,1fr)_200px] gap-5 p-5 max-xl:grid-cols-[minmax(0,140px)_minmax(0,1fr)_180px] max-xl:gap-4 max-sm:grid-cols-[88px_minmax(0,1fr)] max-sm:gap-3 max-sm:p-3">
       <div className="lv-fade-in">
-        <ProductArt p={{ id: scene.productId, brand, title, model: p?.model, category: p?.category ?? "" }} className="aspect-square w-full rounded-md border border-zinc-200" />
+        <ProductArt p={{ id: scene.productId, brand, title, model: p?.model, category: p?.category ?? "" }} className="aspect-square w-full rounded-[12px] border border-divider" />
         {showTraps && p?.trap && <div className="mt-2"><TrapBadge type={p.trap.type} /></div>}
       </div>
 
       <div className="lv-fade-up min-w-0">
-        <div className="text-[12px] text-zinc-500">{brand}</div>
-        <h2 className="mt-0.5 text-[16px] font-semibold leading-snug tracking-[-0.01em] text-zinc-900">{title}</h2>
+        <div className="text-[12px] text-ink-3">{brand}</div>
+        <h2 className="mt-0.5 text-[16px] font-semibold leading-snug tracking-[-0.01em] text-ink">{title}</h2>
         {p && <div className="mt-1"><Stars rating={p.rating} count={p.reviewCount} /></div>}
         <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-[20px] font-semibold tracking-[-0.02em] text-zinc-900 tnum">{usd(price)}</span>
-          {off >= 5 && <span className="text-[12.5px] text-zinc-400 line-through tnum">{usd(listPrice)}</span>}
+          <span className="text-[20px] font-semibold tracking-[-0.02em] text-ink tnum">{usd(price)}</span>
+          {off >= 5 && <span className="text-[12.5px] text-ink-4 line-through tnum">{usd(listPrice)}</span>}
           {off >= 5 && <Badge tone={off >= 50 ? "bad" : "neutral"}>-{off}%</Badge>}
         </div>
         {p?.specs && Object.keys(p.specs).length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {Object.entries(p.specs).slice(0, 4).map(([k, val]) => (
-              <span key={k} className="rounded border border-zinc-200 px-1.5 py-0.5 text-[11px] text-zinc-600"><span className="text-zinc-400">{k}</span> {val}</span>
+              <span key={k} className="rounded border border-divider px-1.5 py-0.5 text-[11px] text-ink-2"><span className="text-ink-4">{k}</span> {val}</span>
             ))}
           </div>
         )}
 
         {/* description, as the agent reads it */}
         <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-zinc-500">
+          <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink-3">
             <ScanLine size={12} className={cx(!scanned && "text-accent")} />
             {scanned ? "Description (raw text the agent reads)" : "Agent reading description…"}
           </div>
         </div>
         <div data-cursor={!adding && !flagged ? "1" : undefined}
-          className={cx("relative mt-1.5 overflow-hidden rounded-md border px-3 py-2.5 text-[12.5px] leading-relaxed text-zinc-700 transition-colors duration-300",
-            flagged ? "border-rose-200" : !scanned ? "border-accent/40" : "border-zinc-200")}
+          className={cx("relative mt-1.5 overflow-hidden rounded-[14px] px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-2 transition-[background-color,box-shadow] duration-500",
+            flagged ? "bg-coral-soft/50 shadow-[inset_0_0_0_1px_oklch(68%_0.15_35/0.25)]" : !scanned ? "bg-gold-soft/60" : "bg-canvas-sunk/50")}
           style={{ ["--lv-scan-ms" as string]: `${scanMs}ms` }}>
           {segs.map((s, i) => s.injected ? (
             <span key={i} className={cx("rounded-[3px] font-mono text-[11.5px] transition-[background-color,color,box-shadow] duration-300",
-              flagged ? "bg-rose-50 text-rose-800 ring-1 ring-rose-200" : "text-zinc-500")}>{s.text}</span>
+              flagged ? "bg-coral-soft text-coral-ink ring-1 ring-coral/35" : "text-ink-3")}>{s.text}</span>
           ) : <span key={i} className="whitespace-pre-wrap">{s.text}</span>)}
           {!adding && !scanned && <ScanBeam />}
         </div>
         {flagged && (
-          <div data-cursor={!adding ? "1" : undefined} className="lv-pop mt-2.5 rounded-md border border-rose-200 bg-rose-50/70 px-3 py-2.5">
-            <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-rose-800">
+          <div data-cursor={!adding ? "1" : undefined} className="lv-pop relative isolate mt-3 px-1 py-3">
+            <div aria-hidden className="burst burst-coral lv-bloom" style={{ ["--bs" as string]: "150%", ["--bo" as string]: 0.9 }} />
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold text-coral-ink">
               <ShieldAlert size={14} /> Hidden instruction detected in listing
             </div>
             {injected.slice(0, 2).map((h, i) => (
               <div key={i} className="mt-1.5">
-                <div className="text-[11px] text-rose-700">{h.how}</div>
-                <div className="mt-0.5 font-mono text-[11.5px] leading-relaxed text-rose-900">“{h.text.length > 180 ? h.text.slice(0, 179) + "…" : h.text}”</div>
+                <div className="text-[11px] text-coral-ink">{h.how}</div>
+                <div className="mt-0.5 font-mono text-[11.5px] leading-relaxed text-coral-ink">“{h.text.length > 180 ? h.text.slice(0, 179) + "…" : h.text}”</div>
               </div>
             ))}
           </div>
@@ -324,28 +325,28 @@ function ProductScene({ scene, product, merchants, speed, budget, showTraps }: {
       </div>
 
       {/* buy box */}
-      <div className="lv-fade-up min-w-0 self-start rounded-md border border-zinc-200 p-3 max-sm:col-span-2" style={{ animationDelay: "60ms" }}>
-        <div className="text-[18px] font-semibold tracking-[-0.02em] text-zinc-900 tnum">{usd(price)}</div>
-        <div className="mt-2 space-y-1 text-[11.5px] text-zinc-600">
-          <div className="text-zinc-500">Sold by</div>
+      <div className="lv-fade-up min-w-0 self-start rounded-[18px] bg-ivory p-3.5 max-sm:col-span-2" style={{ animationDelay: "60ms" }}>
+        <div className="text-[18px] font-semibold tracking-[-0.02em] text-ink tnum">{usd(price)}</div>
+        <div className="mt-2 space-y-1 text-[11.5px] text-ink-2">
+          <div className="text-ink-3">Sold by</div>
           <SellerBadge m={m} />
-          {m && <div className="text-zinc-500 tnum">{m.ageDays < 365 ? `${m.ageDays} days on Arena` : `${Math.floor(m.ageDays / 365)} yrs on Arena`} · ★ {m.rating.toFixed(1)}</div>}
+          {m && <div className="text-ink-3 tnum">{m.ageDays < 365 ? `${m.ageDays} days on Arena` : `${Math.floor(m.ageDays / 365)} yrs on Arena`} · ★ {m.rating.toFixed(1)}</div>}
         </div>
-        <div className="mt-3 flex items-center justify-between rounded-md border border-zinc-200 px-2 py-1 text-[12px]">
-          <span className="text-zinc-500">Qty</span>
-          <span key={qty} className={cx("font-mono font-medium tnum", adding && qty > 1 ? "lv-bump text-rose-700" : "text-zinc-900")}>{qty}</span>
+        <div className="mt-3 flex items-center justify-between rounded-[12px] border border-divider px-2 py-1 text-[12px]">
+          <span className="text-ink-3">Qty</span>
+          <span key={qty} className={cx("font-mono font-medium tnum", adding && qty > 1 ? "lv-bump text-coral-ink" : "text-ink")}>{qty}</span>
         </div>
         {adding && budget != null && (
-          <div className={cx("lv-fade-in mt-1.5 text-right font-mono text-[11px] tnum", over ? "text-rose-600" : "text-zinc-500")}>
+          <div className={cx("lv-fade-in mt-1.5 text-right font-mono text-[11px] tnum", over ? "text-coral-ink" : "text-ink-3")}>
             {qty} × {usd(price)} = {usd(qty * price)}
           </div>
         )}
         <button data-add-button data-cursor={adding ? "1" : undefined} tabIndex={-1}
-          className={cx("mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-md text-[12.5px] font-medium transition-all duration-150",
+          className={cx("mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-[12px] text-[12.5px] font-medium transition-all duration-150",
             adding ? "bg-accent-hover text-white ring-4 ring-accent/15" : "bg-accent text-white")}>
           <ShoppingCart size={13} /> Add to cart
         </button>
-        <div className="mt-1.5 flex h-8 w-full items-center justify-center rounded-md border border-zinc-200 text-[12.5px] text-zinc-700">Buy now</div>
+        <div className="mt-1.5 flex h-8 w-full items-center justify-center rounded-[12px] border border-divider text-[12.5px] text-ink-2">Buy now</div>
       </div>
     </div>
   );
@@ -373,12 +374,12 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
   return (
     <div className="p-5 max-sm:p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-[16px] font-semibold tracking-[-0.01em] text-zinc-900"><CreditCard size={15} className="text-zinc-400" /> Checkout</h2>
+        <h2 className="flex items-center gap-2 text-[16px] font-semibold tracking-[-0.01em] text-ink"><CreditCard size={15} className="text-ink-4" /> Checkout</h2>
         <div className="flex items-center gap-1 text-[11.5px]">
           {["Order", "Guardrail", "Result"].map((s, i) => (
             <span key={s} className="flex items-center gap-1">
-              {i > 0 && <span className={cx("h-px w-5 transition-colors duration-300", step > i ? "bg-accent" : "bg-zinc-200")} />}
-              <span className={cx("rounded-full px-2 py-0.5 transition-colors duration-300", step > i ? "bg-accent-soft font-medium text-accent" : "bg-zinc-100 text-zinc-500")}>{s}</span>
+              {i > 0 && <span className={cx("h-px w-5 transition-colors duration-300", step > i ? "bg-accent" : "bg-ink-5")} />}
+              <span className={cx("rounded-full px-2 py-0.5 transition-colors duration-300", step > i ? "bg-accent-soft font-medium text-accent" : "bg-canvas-sunk text-ink-3")}>{s}</span>
             </span>
           ))}
         </div>
@@ -387,19 +388,19 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
       <div className="mt-4 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-4 max-sm:grid-cols-1">
         {/* order */}
         <div className="lv-fade-up min-w-0">
-          <div className="overflow-hidden rounded-md border border-zinc-200">
+          <div className="overflow-hidden rounded-[12px] border border-divider">
             {scene.items.map((it) => {
               const p = products[it.productId];
               return (
-                <div key={it.productId} className="flex items-center gap-2.5 border-b border-zinc-100 px-3 py-2 last:border-b-0">
+                <div key={it.productId} className="flex items-center gap-2.5 border-b border-divider px-3 py-2 last:border-b-0">
                   <ProductArt p={{ id: it.productId, brand: p?.brand ?? "", title: p?.title ?? it.title, model: p?.model, category: p?.category ?? "" }} className="size-10 shrink-0 rounded [&_svg]:size-4 [&>div]:hidden" />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[12.5px] font-medium text-zinc-900">{p?.title ?? it.title ?? it.productId}</div>
-                    <div className="text-[11px] text-zinc-500"><SellerBadge m={p ? merchants[p.merchantId] : undefined} /></div>
+                    <div className="truncate text-[12.5px] font-medium text-ink">{p?.title ?? it.title ?? it.productId}</div>
+                    <div className="text-[11px] text-ink-3"><SellerBadge m={p ? merchants[p.merchantId] : undefined} /></div>
                   </div>
                   <div className="shrink-0 text-right font-mono text-[12px] tnum">
-                    <div className={cx(it.qty > 1 ? "text-zinc-900" : "text-zinc-500")}>{it.qty} × {usd(it.unitPrice)}</div>
-                    <div className="font-medium text-zinc-900">{usd(it.qty * it.unitPrice)}</div>
+                    <div className={cx(it.qty > 1 ? "text-ink" : "text-ink-3")}>{it.qty} × {usd(it.unitPrice)}</div>
+                    <div className="font-medium text-ink">{usd(it.qty * it.unitPrice)}</div>
                   </div>
                 </div>
               );
@@ -407,30 +408,30 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
           </div>
 
           {/* total vs budget */}
-          <div className="mt-3 rounded-md border border-zinc-200 px-3 py-2.5" data-cursor={!v ? "1" : undefined}>
+          <div className="mt-3 rounded-[12px] border border-divider px-3 py-2.5" data-cursor={!v ? "1" : undefined}>
             <div className="flex items-baseline justify-between text-[12.5px]">
-              <span className="text-zinc-500">Order total</span>
-              <span className={cx("font-mono text-[15px] font-semibold tnum", over ? "text-rose-700" : "text-zinc-900")}>{usd(scene.total)}</span>
+              <span className="text-ink-3">Order total</span>
+              <span className={cx("font-mono text-[15px] font-semibold tnum", over ? "text-coral-ink" : "text-ink")}>{usd(scene.total)}</span>
             </div>
-            <div className="relative mt-2 h-2 rounded-full bg-zinc-100">
-              <div className={cx("lv-grow-x absolute inset-y-0 left-0 rounded-full", over ? "bg-rose-500" : "bg-accent")}
+            <div className="relative mt-2 h-2 rounded-full bg-canvas-sunk">
+              <div className={cx("lv-grow-x absolute inset-y-0 left-0 rounded-full", over ? "bg-coral" : "bg-accent")}
                 style={{ width: `${(scene.total / max) * 100}%`, animationDuration: `${700 / speed}ms` }} />
-              <div className="absolute -top-1 bottom-[-4px] w-px bg-zinc-900" style={{ left: `${(budget / max) * 100}%` }} />
+              <div className="absolute -top-1 bottom-[-4px] w-px bg-ink" style={{ left: `${(budget / max) * 100}%` }} />
             </div>
-            <div className="mt-1.5 flex justify-between text-[11px] text-zinc-500 tnum">
+            <div className="mt-1.5 flex justify-between text-[11px] text-ink-3 tnum">
               <span>Budget {usd(budget)}</span>
-              <span className={over ? "font-medium text-rose-700" : "text-emerald-700"}>{over ? `${usd(scene.total - budget)} over` : `${usd(budget - scene.total)} under`}</span>
+              <span className={over ? "font-medium text-coral-ink" : "text-pass-ink"}>{over ? `${usd(scene.total - budget)} over` : `${usd(budget - scene.total)} under`}</span>
             </div>
           </div>
           {scene.reasoning && (
-            <p className="lv-fade-in mt-3 border-l-2 border-zinc-200 pl-2.5 text-[12px] italic leading-relaxed text-zinc-600">“{scene.reasoning}”</p>
+            <p className="lv-fade-in mt-3 border-l-2 border-divider pl-2.5 text-[12px] italic leading-relaxed text-ink-2">“{scene.reasoning}”</p>
           )}
         </div>
 
         {/* guardrail */}
         <div className="min-w-0">
           {!v ? (
-            <div className="lv-fade-in flex h-full min-h-[140px] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300 text-[12.5px] text-zinc-500">
+            <div className="lv-fade-in flex h-full min-h-[140px] flex-col items-center justify-center gap-2 rounded-[12px] border border-dashed border-ink-5 text-[12.5px] text-ink-3">
               <ShieldCheck size={18} className="pulse-dot text-accent" />
               Pre-checkout guardrail reviewing the cart…
             </div>
@@ -439,14 +440,14 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
       </div>
 
       {outcome && (
-        <div data-cursor="1" className={cx("lv-stamp mt-4 flex items-center gap-3 rounded-md border px-4 py-3",
-          status === "completed" ? (v && v.decision !== "approve" ? "border-amber-200 bg-amber-50/60" : "border-emerald-200 bg-emerald-50/60") : "border-rose-200 bg-rose-50/60")}>
-          {status === "completed" ? <Check size={16} className={v && v.decision !== "approve" ? "text-amber-600" : "text-emerald-600"} /> : <X size={16} className="text-rose-600" />}
+        <div data-cursor="1" className={cx("lv-stamp mt-4 flex items-center gap-3 rounded-[12px] border px-4 py-3",
+          status === "completed" ? (v && v.decision !== "approve" ? "border-amber/35 bg-amber-soft/60" : "border-pass/35 bg-pass-soft/60") : "border-coral/35 bg-coral-soft/60")}>
+          {status === "completed" ? <Check size={16} className={v && v.decision !== "approve" ? "text-amber-ink" : "text-pass-ink"} /> : <X size={16} className="text-coral-ink" />}
           <div className="min-w-0">
-            <div className="text-[13.5px] font-semibold text-zinc-900">
+            <div className="text-[13.5px] font-semibold text-ink">
               {status === "completed" ? `Order placed · ${usd(Number(outcome.amount ?? scene.total))}` : "Purchase blocked by the guardrail"}
             </div>
-            <div className="text-[12px] text-zinc-600">{str(outcome.reason)}</div>
+            <div className="text-[12px] text-ink-2">{str(outcome.reason)}</div>
           </div>
         </div>
       )}
@@ -455,28 +456,28 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
 }
 
 export function VerdictPanel({ v, speed, compact }: { v: GuardianVerdict & { mode?: string }; speed: number; compact?: boolean }) {
-  const tone = v.decision === "block" ? "border-rose-200" : v.decision === "ask" ? "border-amber-200" : "border-emerald-200";
+  const tone = v.decision === "block" ? "border-coral/35" : v.decision === "ask" ? "border-amber/35" : "border-pass/35";
   return (
-    <div data-cursor={compact ? undefined : "1"} className={cx("lv-pop rounded-md border bg-white", tone)}>
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-3 py-2">
-        <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-zinc-900">
-          {v.decision === "approve" ? <ShieldCheck size={14} className="text-emerald-600" /> : <ShieldAlert size={14} className={v.decision === "block" ? "text-rose-600" : "text-amber-600"} />}
+    <div data-cursor={compact ? undefined : "1"} className={cx("lv-pop rounded-[12px] border bg-white", tone)}>
+      <div className="flex items-center justify-between gap-2 border-b border-divider px-3 py-2">
+        <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
+          {v.decision === "approve" ? <ShieldCheck size={14} className="text-pass-ink" /> : <ShieldAlert size={14} className={v.decision === "block" ? "text-coral-ink" : "text-amber-ink"} />}
           Guardrail verdict
         </div>
         <div className="flex items-center gap-1.5">
           <span className="lv-stamp inline-flex" style={{ animationDelay: `${150 / speed}ms` }}><GuardrailBadge decision={v.decision} /></span>
-          {v.mode && <span className="text-[11px] text-zinc-500">{v.mode}</span>}
+          {v.mode && <span className="text-[11px] text-ink-3">{v.mode}</span>}
         </div>
       </div>
       <div className="space-y-1.5 px-3 py-2.5">
-        {v.reasons.length === 0 && <div className="text-[12px] text-zinc-500">No issues found.</div>}
+        {v.reasons.length === 0 && <div className="text-[12px] text-ink-3">No issues found.</div>}
         {v.reasons.map((r, i) => (
           <div key={i} className="lv-slide-left flex items-start gap-2 text-[12px]" style={{ animationDelay: `${(300 + i * 380) / speed}ms` }}>
             <Badge tone={r.severity === "critical" ? "bad" : r.severity === "warn" ? "warn" : "neutral"} className="font-mono text-[10.5px]">{r.code}</Badge>
-            <span className="leading-snug text-zinc-700">{r.message}</span>
+            <span className="leading-snug text-ink-2">{r.message}</span>
           </div>
         ))}
-        {v.judge?.summary && !compact && <p className="pt-1 text-[11.5px] leading-snug text-zinc-500">{v.judge.summary}</p>}
+        {v.judge?.summary && !compact && <p className="pt-1 text-[11.5px] leading-snug text-ink-3">{v.judge.summary}</p>}
       </div>
     </div>
   );

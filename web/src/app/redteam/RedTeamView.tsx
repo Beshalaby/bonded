@@ -91,11 +91,11 @@ export default function RedTeamView() {
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
             <Card>
               <CardTitle aside="one step per kept scam · R = round">Benchmark growth</CardTitle>
-              {steps.length >= 2 ? <GrowthChart steps={steps} /> : <p className="py-10 text-center text-[13px] text-zinc-500">Growth appears after the first scam is kept.</p>}
+              {steps.length >= 2 ? <GrowthChart steps={steps} /> : <p className="py-10 text-center text-[13px] text-ink-3">Growth appears after the first scam is kept.</p>}
             </Card>
             <Card>
               <CardTitle aside="kept scams">By trap type</CardTitle>
-              {byTrap.length ? <CountBars rows={byTrap} color="#e11d48" /> : <p className="py-10 text-center text-[13px] text-zinc-500">No scams yet.</p>}
+              {byTrap.length ? <CountBars rows={byTrap} color="oklch(68% 0.15 35)" /> : <p className="py-10 text-center text-[13px] text-ink-3">No scams yet.</p>}
             </Card>
           </div>
 
@@ -120,39 +120,39 @@ function ScamCard({ s, fresh }: { s: RedTeamScam; fresh?: boolean }) {
   const notFooled = s.testedModels.filter((m) => !s.fooled.includes(m));
   const taskId = s.variantTaskId ?? s.taskId;
   return (
-    <div className={cx("flex flex-col rounded-lg border bg-white", fresh ? "border-accent/40 row-in" : "border-zinc-200")}>
-      <div className="border-b border-zinc-100 px-4 py-3">
+    <div className={cx("flex flex-col rounded-lg border bg-white", fresh ? "border-accent/40 row-in" : "border-divider")}>
+      <div className="border-b border-divider px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="truncate text-[13.5px] font-medium text-zinc-900" title={p.title}>{p.title ?? s.id}</div>
-            <div className="mt-0.5 text-[12px] text-zinc-500">{p.brand}{p.category ? ` · ${p.category}` : ""}</div>
+            <div className="truncate text-[13.5px] font-medium text-ink" title={p.title}>{p.title ?? s.id}</div>
+            <div className="mt-0.5 text-[12px] text-ink-3">{p.brand}{p.category ? ` · ${p.category}` : ""}</div>
           </div>
           <div className="shrink-0 text-right font-mono text-[13px] tnum">
-            {p.price != null && <div className="font-medium text-zinc-900">{usd(p.price)}</div>}
-            {p.listPrice != null && p.price != null && p.listPrice > p.price && <div className="text-[11px] text-zinc-400 line-through">{usd(p.listPrice)}</div>}
+            {p.price != null && <div className="font-medium text-ink">{usd(p.price)}</div>}
+            {p.listPrice != null && p.price != null && p.listPrice > p.price && <div className="text-[11px] text-ink-4 line-through">{usd(p.listPrice)}</div>}
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <TrapBadge type={s.trapType} />
-          <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600">{s.technique}</span>
+          <span className="rounded bg-canvas-sunk px-1.5 py-0.5 font-mono text-[11px] text-ink-2">{s.technique}</span>
           {fresh && <Badge tone="accent">New</Badge>}
         </div>
         {(p.trap?.note || hidden.length > 0) && (
-          <div className="mt-2 text-[12px] text-zinc-600">
+          <div className="mt-2 text-[12px] text-ink-2">
             {hidden.length > 0
-              ? <pre className="line-clamp-3 whitespace-pre-wrap break-words rounded border border-rose-100 bg-rose-50/50 px-2 py-1 font-mono text-[11px] text-rose-900" title={hidden[0].how}>{hidden.map((h) => h.text).join("\n")}</pre>
+              ? <pre className="line-clamp-3 whitespace-pre-wrap break-words rounded border border-coral/20 bg-coral-soft/50 px-2 py-1 font-mono text-[11px] text-coral-ink" title={hidden[0].how}>{hidden.map((h) => h.text).join("\n")}</pre>
               : p.trap?.note}
           </div>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 px-4 py-3 text-[12px]">
         <div className="flex flex-wrap items-center gap-1">
-          <span className="mr-1 text-zinc-500">Fooled</span>
-          {s.fooled.map((m) => <Link key={m} href={modelHref(m)} className="tap rounded bg-rose-50 px-1.5 py-0.5 font-mono text-[11px] text-rose-700 hover:underline">{m.replace(/^sim\//, "")}</Link>)}
-          {notFooled.length > 0 && <span className="ml-2 mr-1 text-zinc-500">Resisted</span>}
-          {notFooled.map((m) => <Link key={m} href={modelHref(m)} className="tap rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 hover:underline">{m.replace(/^sim\//, "")}</Link>)}
+          <span className="mr-1 text-ink-3">Fooled</span>
+          {s.fooled.map((m) => <Link key={m} href={modelHref(m)} className="tap rounded bg-coral-soft px-1.5 py-0.5 font-mono text-[11px] text-coral-ink hover:underline">{m.replace(/^sim\//, "")}</Link>)}
+          {notFooled.length > 0 && <span className="ml-2 mr-1 text-ink-3">Resisted</span>}
+          {notFooled.map((m) => <Link key={m} href={modelHref(m)} className="tap rounded bg-canvas-sunk px-1.5 py-0.5 font-mono text-[11px] text-ink-2 hover:underline">{m.replace(/^sim\//, "")}</Link>)}
         </div>
-        <div className="mt-auto flex items-center justify-between pt-1 text-zinc-500">
+        <div className="mt-auto flex items-center justify-between pt-1 text-ink-3">
           <span>{s.generator === "llm" ? "LLM-generated" : "Mutation"}{s.round != null ? ` · round ${s.round}` : ""} · {ago(s.createdAt)}</span>
           <Link href={taskHref(taskId)} className="tap inline-flex items-center gap-1 text-accent hover:underline">
             <span className="font-mono">{taskId}</span><ArrowRight size={12} />

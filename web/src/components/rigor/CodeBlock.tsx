@@ -12,25 +12,25 @@ export default function CodeBlock({ tabs }: { tabs: { label: string; filename: s
     try { await navigator.clipboard.writeText(t.code); setCopied(true); setTimeout(() => setCopied(false), 1400); } catch {}
   };
   return (
-    <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/70 px-2">
+    <div className="overflow-hidden rounded-lg border border-divider bg-white">
+      <div className="flex items-center justify-between border-b border-divider bg-ivory/70 px-2">
         <div className="flex min-w-0 overflow-x-auto">
           {tabs.map((x, j) => (
             <button key={x.label} type="button" onClick={() => setI(j)}
-              className={cx("-mb-px shrink-0 border-b-2 px-3 py-2 text-[12.5px] max-lg:min-h-10", j === i ? "border-zinc-900 font-medium text-zinc-900" : "border-transparent text-zinc-500 hover:text-zinc-800")}>
+              className={cx("-mb-px shrink-0 border-b-2 px-3 py-2 text-[12.5px] max-lg:min-h-10", j === i ? "border-ink font-medium text-ink" : "border-transparent text-ink-3 hover:text-ink")}>
               {x.label}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-3 pr-1">
-          <span className="font-mono text-[11.5px] text-zinc-400 max-sm:hidden">{t.filename}</span>
-          <button type="button" onClick={copy} className="inline-flex h-7 max-lg:h-10 items-center gap-1 rounded-md px-2 text-[12px] text-zinc-600 hover:bg-zinc-100">
-            {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}{copied ? "Copied" : "Copy"}
+          <span className="font-mono text-[11.5px] text-ink-4 max-sm:hidden">{t.filename}</span>
+          <button type="button" onClick={copy} className="inline-flex h-7 max-lg:h-10 items-center gap-1 rounded-md px-2 text-[12px] text-ink-2 hover:bg-canvas-sunk">
+            {copied ? <Check size={13} className="text-pass-ink" /> : <Copy size={13} />}{copied ? "Copied" : "Copy"}
           </button>
         </div>
       </div>
-      <pre className="max-h-[440px] overflow-auto px-4 py-3 font-mono text-[12px] leading-[1.6] text-zinc-800"><code>{t.code}</code></pre>
-      <div className="border-t border-zinc-100 max-sm:overflow-x-auto max-sm:whitespace-nowrap bg-zinc-50/50 px-4 py-2 font-mono text-[12px] text-zinc-600"><span className="select-none text-zinc-400">$ </span>{t.run}</div>
+      <pre className="max-h-[440px] overflow-auto px-4 py-3 font-mono text-[12px] leading-[1.6] text-ink"><code>{t.code}</code></pre>
+      <div className="border-t border-divider max-sm:overflow-x-auto max-sm:whitespace-nowrap bg-ivory/50 px-4 py-2 font-mono text-[12px] text-ink-2"><span className="select-none text-ink-4">$ </span>{t.run}</div>
     </div>
   );
 }
