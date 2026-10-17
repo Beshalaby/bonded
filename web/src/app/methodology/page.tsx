@@ -63,15 +63,16 @@ export default function Page() {
   const tagRows = Object.entries(TRAP_TAGS);
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[200px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[200px_minmax(0,1fr)]">
       <aside className="hidden lg:block">
         <div className="sticky top-24"><Toc items={TOC} /></div>
       </aside>
 
       <article className="min-w-0 max-w-[780px]">
+        <div className="-mt-6 mb-6 sm:-mt-8 lg:hidden"><Toc items={TOC} variant="dropdown" /></div>
         <header className="mb-2 border-b border-zinc-200 pb-8">
           <div className="text-[12px] font-medium uppercase tracking-[0.08em] text-zinc-400">Appendix · Methodology</div>
-          <h1 className="mt-2 text-[32px] font-semibold leading-tight tracking-[-0.025em] text-zinc-900">How Bonded measures agents that spend money</h1>
+          <h1 className="mt-2 text-[32px] max-sm:text-[27px] font-semibold leading-tight tracking-[-0.025em] text-zinc-900">How Bonded measures agents that spend money</h1>
           <p className="mt-3 text-[16px] leading-relaxed text-zinc-600">
             This page states exactly what is measured, how each number is computed, and what the measurements cannot tell you.
             Every figure below is read from the live database at request time.
@@ -352,7 +353,7 @@ function Code({ children }: { children: ReactNode }) {
 function Figure({ n, caption, children }: { n: number; caption: ReactNode; children: ReactNode }) {
   return (
     <figure className="my-6">
-      <div className="rounded-lg border border-zinc-200 bg-white px-5 py-5">{children}</div>
+      <div className="rounded-lg border border-zinc-200 bg-white px-5 py-5 max-lg:overflow-x-auto max-sm:px-3">{children}</div>
       <figcaption className="mt-2.5 text-[13px] leading-relaxed text-zinc-500"><span className="font-medium text-zinc-700">Figure {n}.</span> {caption}</figcaption>
     </figure>
   );
@@ -386,7 +387,7 @@ function Defs({ items }: { items: [string, ReactNode][] }) {
   return (
     <dl className="my-4 divide-y divide-zinc-100 border-y border-zinc-200">
       {items.map(([k, v]) => (
-        <div key={k} className="grid grid-cols-[120px_1fr] gap-4 py-2.5 text-[14px] leading-relaxed">
+        <div key={k} className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 py-2.5 text-[14px] leading-relaxed max-sm:grid-cols-1 max-sm:gap-1">
           <dt className="font-mono text-[12.5px] font-medium text-zinc-900">{k}</dt>
           <dd className="text-zinc-700">{v}</dd>
         </div>

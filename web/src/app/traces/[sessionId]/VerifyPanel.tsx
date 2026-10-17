@@ -151,9 +151,9 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
     <Card padded={false} className={cx("mb-8 overflow-hidden transition-colors", done && firstBreak >= 0 && "border-rose-300")}>
       <div ref={box} />
       {/* header */}
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-zinc-100 px-5 py-4">
-        <div className="min-w-[320px] max-w-2xl flex-1">
-          <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-zinc-100 px-5 py-4 max-sm:px-4">
+        <div className="min-w-[320px] max-w-2xl flex-1 max-sm:min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[14px] font-semibold text-zinc-900">Verify it yourself</h2>
             <Badge tone="outline">WebCrypto · SHA-256</Badge>
             {tampered && <Badge tone="warn">Local edits: {edited.size}</Badge>}
@@ -166,21 +166,21 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => original && run(entries, 0, true)} disabled={!original || running}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-50">
+            className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-50">
             <Play size={13} /> Re-run
           </button>
           <button type="button" onClick={() => { setEditMode((m) => !m); if (!editMode && selected == null && entries.length) setSelected(entries[Math.min(entries.length - 1, Math.max(0, entries.findIndex((e) => e.action === "add_to_cart")))].seq); }}
-            className={cx("inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[13px] shadow-sm",
+            className={cx("inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border px-2.5 text-[13px] shadow-sm",
               editMode ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50")}>
             <Pencil size={13} /> Edit history
           </button>
           {tampered && (
-            <button type="button" onClick={reset} className="inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50">
+            <button type="button" onClick={reset} className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50">
               <RotateCcw size={13} /> Restore
             </button>
           )}
           <a href={`/api/traces/${encodeURIComponent(sessionId)}/raw?download=1`}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50">
+            className="inline-flex h-8 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] text-zinc-800 shadow-sm hover:bg-zinc-50">
             <Download size={13} /> Raw JSON
           </a>
         </div>
@@ -189,9 +189,9 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
       {error && <div className="px-5 py-4 text-[13px] text-rose-700">Couldn&apos;t load raw chain: {error}</div>}
 
       {original && (
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
           {/* chain */}
-          <div className="border-zinc-100 px-5 py-4 lg:border-r">
+          <div className="min-w-0 border-zinc-100 px-5 py-4 max-sm:px-3 lg:border-r">
             <Summary rows={rows} running={running} done={done} firstBreak={firstBreak} entries={entries} verified={verifiedCount} elapsed={elapsed} tampered={tampered} />
             <ol className="mt-3">
               <li className="flex items-center gap-3 pb-1 pl-[3px] text-[11.5px] text-zinc-400">
@@ -208,7 +208,7 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
                     <span className={cx("absolute left-[14.5px] -top-[3px] h-[8px] w-px transition-colors duration-300",
                       r.state === "ok" ? "bg-emerald-400" : r.state === "link" || r.state === "downstream" ? "bg-rose-300" : bad ? "bg-rose-300" : "bg-zinc-200")} />
                     <button type="button" onClick={() => setSelected(isSel && !editMode ? null : e.seq)}
-                      className={cx("mt-1 grid w-full grid-cols-[24px_52px_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-0.5 py-[3px] text-left transition-colors",
+                      className={cx("mt-1 grid w-full grid-cols-[24px_52px_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-0.5 py-[3px] text-left transition-colors max-lg:py-2 max-sm:grid-cols-[24px_40px_minmax(0,1fr)_auto]",
                         isSel ? "bg-zinc-100/80" : "hover:bg-zinc-50", bad && "bg-rose-50 hover:bg-rose-50", r.state === "downstream" && "bg-rose-50/40")}>
                       <StatusDot state={r.state} />
                       <span className="font-mono text-[12px] text-zinc-500 tnum">#{e.seq}</span>
@@ -225,15 +225,15 @@ export default function VerifyPanel({ sessionId }: { sessionId: string }) {
                 );
               })}
             </ol>
-            <div className="mt-3 flex items-center gap-2 border-t border-zinc-100 pt-3 text-[11.5px] text-zinc-500">
+            <div className="mt-3 flex items-center gap-2 border-t border-zinc-100 pt-3 text-[11.5px] text-zinc-500 max-sm:flex-wrap max-sm:gap-y-0">
               <span>Head</span>
-              <span className="font-mono text-zinc-700">{short(head, 24)}…</span>
+              <span className="font-mono text-zinc-700 max-sm:break-anywhere">{short(head, 24)}…</span>
               <span className="text-zinc-400">· anyone who keeps this value can detect a full rewrite</span>
             </div>
           </div>
 
           {/* inspector */}
-          <div className="min-w-0 bg-zinc-50/40 px-5 py-4">
+          <div className="min-w-0 bg-zinc-50/40 px-5 py-4 max-sm:px-3">
             {selEntry ? (
               <Inspector entry={selEntry} original={original[sel]} row={selRow} editMode={editMode} leaves={editable}
                 onField={(p, raw, like) => updateField(selEntry.seq, p, raw, like)} onReseal={() => reseal(selEntry.seq)} isEdited={edited.has(selEntry.seq)} />
@@ -304,11 +304,11 @@ function Inspector({ entry, original, row, editMode, leaves: ls, onField, onRese
   const was = new Map(original ? leaves({ ts: original.ts, actor: original.actor, action: original.action, payload: original.payload }).map((l) => [pathLabel(l.path), l.value]) : []);
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="text-[13px] font-medium text-zinc-900">Entry <span className="font-mono">#{entry.seq}</span> <span className="font-normal text-zinc-500">· {entry.actor} · {entry.action}</span></div>
+      <div className="flex items-baseline justify-between gap-3 max-sm:flex-wrap">
+        <div className="text-[13px] font-medium text-zinc-900 max-sm:min-w-0 max-sm:break-anywhere">Entry <span className="font-mono">#{entry.seq}</span> <span className="font-normal text-zinc-500">· {entry.actor} · {entry.action}</span></div>
         {editMode && isEdited && (
           <button type="button" onClick={onReseal} title="Recompute this entry's own hash, as an attacker would. The next link then breaks."
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700 hover:bg-zinc-50">
+            className="inline-flex h-7 max-lg:h-10 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700 hover:bg-zinc-50">
             <Stamp size={12} /> Re-seal this entry
           </button>
         )}
@@ -326,7 +326,7 @@ function Inspector({ entry, original, row, editMode, leaves: ls, onField, onRese
                   <span className={cx("truncate font-mono text-[11.5px]", changed ? "text-amber-800" : "text-zinc-500")} title={key}>{key}</span>
                   <input defaultValue={l.value === null ? "null" : String(l.value)} key={`${entry.seq}:${key}:${String(l.value)}`}
                     onChange={(ev) => onField(l.path, ev.target.value, l.value)}
-                    className="h-6 min-w-0 rounded border border-transparent bg-transparent px-1.5 font-mono text-[12px] text-zinc-900 outline-none hover:border-zinc-200 focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/15" />
+                    className="h-6 max-lg:h-10 max-md:text-[16px] min-w-0 rounded border border-transparent bg-transparent px-1.5 font-mono text-[12px] text-zinc-900 outline-none hover:border-zinc-200 focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/15" />
                   <span className="font-mono text-[11px] text-amber-700">{changed ? <>was <span className="line-through">{String(was.get(key))}</span></> : null}</span>
                 </label>
               );
@@ -336,7 +336,7 @@ function Inspector({ entry, original, row, editMode, leaves: ls, onField, onRese
       )}
 
       <div>
-        <div className="mb-1.5 flex items-baseline justify-between text-[11.5px]">
+        <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 text-[11.5px]">
           <span className="font-medium uppercase tracking-[0.06em] text-zinc-400">Preimage · exact bytes hashed</span>
           {c && <span className="text-zinc-400 tnum">{c.bytes.toLocaleString()} bytes UTF-8</span>}
         </div>

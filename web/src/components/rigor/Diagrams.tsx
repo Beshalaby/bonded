@@ -30,7 +30,21 @@ export function PipelineFigure() {
     ["Grader", "cart vs. ground truth"], ["Attribution", "fault + failure mode"], ["Statistics", "Beta posteriors"],
   ];
   return (
-    <svg viewBox={`0 0 ${W} 150`} className="w-full" role="img" aria-label="Pipeline: task, agent, trace, grader, attribution, statistics">
+    <>
+    {/* Phones: the same pipeline, stacked vertically so the labels stay at reading size */}
+    <ol className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-3 sm:space-y-0 lg:hidden" aria-label="Pipeline: task, agent, trace, grader, attribution, statistics">
+      {boxes.map(([t, s], i) => (
+        <li key={t}>
+          {i > 0 && <div className="mx-auto mb-1.5 h-3 w-px bg-zinc-300 sm:hidden" aria-hidden />}
+          <div className={`h-full rounded-[7px] border px-3 py-2 text-center ${i === 2 ? "border-accent bg-accent-soft" : "border-zinc-300 bg-white"}`}>
+            <div className="text-[13px] font-medium text-zinc-900">{t}</div>
+            <div className="text-[12px] text-zinc-500">{s}</div>
+            {i === 1 && <div className="mt-1.5 rounded-md bg-zinc-100 px-2 py-1 text-[12px] text-zinc-500">store contains traps · guardrail verdict at checkout, appended to the trace</div>}
+          </div>
+        </li>
+      ))}
+    </ol>
+    <svg viewBox={`0 0 ${W} 150`} className="w-full max-lg:hidden" role="img" aria-label="Pipeline: task, agent, trace, grader, attribution, statistics">
       <Arrow />
       {boxes.map(([t, s], i) => <Box key={t} x={xs[i]} y={y} w={w} h={h} title={t} sub={s} accent={i === 2} />)}
       {xs.slice(0, -1).map((x, i) => <line key={i} x1={x + w + 4} x2={xs[i + 1] - 5} y1={y + h / 2} y2={y + h / 2} stroke={MUTED} markerEnd="url(#arr)" />)}
@@ -41,6 +55,7 @@ export function PipelineFigure() {
       <rect x={xs[1] + w / 2 - 150} y={y + h + 22} width={300} height={28} rx={6} fill={FAINT} stroke={LINE} />
       <text x={xs[1] + w / 2} y={y + h + 40} textAnchor="middle" fontSize={11} fill={MUTED}>guardrail verdict at checkout, appended to the trace</text>
     </svg>
+    </>
   );
 }
 
@@ -51,7 +66,7 @@ export function ChainFigure() {
   const idx = ["k", "k+1", "k+2"];
   const H = ({ i }: { i: string }) => <><tspan fontStyle="italic">h</tspan><tspan fontSize={8} dy={3}>{i}</tspan><tspan dy={-3}>{"\u200a"}</tspan></>;
   return (
-    <svg viewBox={`0 0 ${W} 170`} className="w-full" role="img" aria-label="Hash chain: each entry stores the previous entry's hash">
+    <svg viewBox={`0 0 ${W} 170`} className="w-full max-lg:min-w-[862px]" role="img" aria-label="Hash chain: each entry stores the previous entry's hash">
       <Arrow />
       <Arrow id="arr2" color={ACCENT} />
       <rect x={0} y={y + 30} width={80} height={30} rx={15} fill="#fff" stroke={LINE} strokeDasharray="4 3" />
@@ -89,7 +104,7 @@ export function ChainFigure() {
 export function RedTeamFigure() {
   const W = 760;
   return (
-    <svg viewBox={`0 0 ${W} 200`} className="w-full" role="img" aria-label="Red-team loop">
+    <svg viewBox={`0 0 ${W} 200`} className="w-full max-lg:min-w-[760px]" role="img" aria-label="Red-team loop">
       <Arrow />
       <Box x={0} y={70} w={124} h={54} title="Generate scam" sub="LLM or mutation" />
       <Box x={160} y={70} w={124} h={54} title="Inject listing" sub="source = redteam" />

@@ -57,11 +57,11 @@ export default function SetupTabs({ endpoint }: { endpoint: string }) {
 
   return (
     <div>
-      <div role="tablist" aria-label="Client" className="mb-3 inline-flex rounded-lg border border-zinc-200 bg-zinc-100/70 p-0.5">
+      <div role="tablist" aria-label="Client" className="mb-3 inline-flex max-w-full overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-100/70 p-0.5">
         {TABS.map((t) => (
           <button key={t.id} role="tab" type="button" aria-selected={tab === t.id} onClick={() => pick(t.id)}
             className={cx(
-              "h-7 rounded-md px-3 text-[12.5px] font-medium transition-colors",
+              "h-7 max-lg:h-10 shrink-0 whitespace-nowrap rounded-md px-3 max-sm:px-2.5 text-[12.5px] font-medium transition-colors",
               tab === t.id ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200" : "text-zinc-500 hover:text-zinc-900",
             )}>
             {t.label}

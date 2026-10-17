@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Typecheck, unit tests, build, API smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      # For the Postgres persistence suite (web/src/lib/persist/__tests__).
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: web
+        run: npm run lint
+
+      - name: Unit tests (vitest)
+        working-directory: web
+        run: npm test
+
+      - name: Persistence tests (file + Postgres)
+        if: hashFiles('web/src/lib/persist/vitest.config.ts') != ''
+        working-directory: web
+        env:
+          BONDED_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: npx vitest run -c src/lib/persist/vitest.config.ts
+
+      - name: Python unit tests
+        run: python -m unittest discover -v agents/tests
+
+      - name: Build
+        working-directory: web
+        run: npx next build
+
+      - name: Start server (open mode)
+        working-directory: web
+        env:
+          PORT: "3100"
+          SPENDBENCH_DEMO: "1"
+          SPENDBENCH_DATA_DIR: ${{ runner.temp }}/data-open
+          SPENDBENCH_SELF_URL: http://127.0.0.1:3100
+        run: |
+          nohup npx next start -p "$PORT" > "$RUNNER_TEMP/server-open.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:3100/api/leaderboard && exit 0; sleep 1; done
+          echo "server did not come up"; cat "$RUNNER_TEMP/server-open.log"; exit 1
+
+      - name: API smoke test (open mode)
+        run: scripts/smoke.sh http://127.0.0.1:3100
+
+      - name: Start server (token mode)
+        working-directory: web
+        env:
+          PORT: "3101"
+          BONDED_ADMIN_TOKEN: ci-admin-token-0123456789abcdef
+          BONDED_INTERNAL_TOKEN: ci-internal-token-0123456789abcdef
+          SPENDBENCH_DATA_DIR: ${{ runner.temp }}/data-token
+          SPENDBENCH_SELF_URL: http://127.0.0.1:3101
+        run: |
+          nohup npx next start -p "$PORT" > "$RUNNER_TEMP/server-token.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:3101/api/leaderboard && exit 0; sleep 1; done
+          echo "server did not come up"; cat "$RUNNER_TEMP/server-token.log"; exit 1
+
+      - name: API smoke test (token mode)
+        env:
+          BONDED_ADMIN_TOKEN: ci-admin-token-0123456789abcdef
+          BONDED_INTERNAL_TOKEN: ci-internal-token-0123456789abcdef
+        run: scripts/smoke.sh http://127.0.0.1:3101
+
+      - name: Upload server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: ${{ runner.temp }}/server-*.log
+          if-no-files-found: ignore

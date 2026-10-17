@@ -17,7 +17,8 @@ export interface Task {
 
 /** Repo root (contains agents/). Next runs with cwd = web/. Override with SPENDBENCH_ROOT. */
 export function repoRoot(): string {
-  if (process.env.SPENDBENCH_ROOT) return path.resolve(process.env.SPENDBENCH_ROOT);
+  const forced = process.env.BONDED_ROOT || process.env.SPENDBENCH_ROOT;
+  if (forced) return path.resolve(forced);
   const cwd = process.cwd();
   for (const c of [cwd, path.resolve(cwd, "..")]) if (fs.existsSync(path.join(c, "agents", "spendbench"))) return c;
   return path.resolve(cwd, "..");

@@ -59,7 +59,7 @@ export default function Theater({
   return (
     <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       {/* ------------------------------------------------ header */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-zinc-200 px-5 py-3">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-zinc-200 px-5 py-3 max-sm:px-4">
         <div className="flex items-center gap-2 text-[13px]">
           <span className={cx("size-1.5 rounded-full", playing || busy ? "pulse-dot bg-rose-500" : connected ? "bg-emerald-500" : "bg-zinc-300")} />
           <span className="font-semibold text-zinc-900">{state.replay ? "Replay" : playing || busy ? "Live round" : stage === "done" ? "Round complete" : "Red-team theater"}</span>
@@ -87,7 +87,7 @@ export default function Theater({
             </motion.span>
           )}
         </AnimatePresence>
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2 max-sm:ml-0 max-sm:w-full max-sm:justify-between">
           {startTasks != null && (
             <div className="flex items-center gap-1.5 text-[13px] text-zinc-500" title="Tasks in the benchmark">
               Benchmark
@@ -117,8 +117,8 @@ export default function Theater({
       {error && <div className="border-b border-rose-100 bg-rose-50/60 px-5 py-2 text-[12.5px] text-rose-700">{error}</div>}
 
       {/* ------------------------------------------------ stage */}
-      <div className="grid min-h-[470px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="border-b border-zinc-200 p-5 lg:border-b-0 lg:border-r">
+      <div className="grid grid-cols-1 min-h-[470px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="min-w-0 border-b border-zinc-200 p-5 max-sm:p-4 lg:border-b-0 lg:border-r">
           <PanelLabel icon={<PenLine size={12} />} text="Attacker"
             aside={current ? (current.listing.generator === "llm" ? "LLM attacker" : "Mutation engine") : undefined}
             live={stage === "writing"} liveText="writing a scam listing" />
@@ -133,7 +133,7 @@ export default function Theater({
           </AnimatePresence>
           {current && inRound.length > 1 && <RoundLog scams={inRound} current={current} stage={stage} />}
         </div>
-        <div className="flex flex-col p-5">
+        <div className="flex min-w-0 flex-col p-5 max-sm:p-4">
           <PanelLabel icon={<Swords size={12} />} text="Targets" aside={current ? `${current.models.length} models in parallel` : undefined}
             live={stage === "testing"} liveText="shopping with the scam in the store" />
           {current?.listing.task && (
@@ -172,7 +172,7 @@ export default function Theater({
 
 function PanelLabel({ icon, text, aside, live, liveText }: { icon: React.ReactNode; text: string; aside?: string; live?: boolean; liveText?: string }) {
   return (
-    <div className="mb-3.5 flex items-center gap-2 text-[11.5px]">
+    <div className="mb-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px]">
       <span className="inline-flex items-center gap-1.5 font-medium uppercase tracking-[0.06em] text-zinc-500">{icon}{text}</span>
       {aside && <span className="text-zinc-400">· {aside}</span>}
       <AnimatePresence>
@@ -214,7 +214,7 @@ function Listing({ scam, now, at, speed, instant }: { scam: TheaterScam; now: nu
   return (
     <div>
       <div className="rounded-lg border border-zinc-200 bg-white">
-        <div className="flex items-start gap-4 border-b border-zinc-100 px-4 py-3.5">
+        <div className="flex items-start gap-4 border-b border-zinc-100 px-4 py-3.5 max-sm:gap-2 max-sm:px-3">
           <div className="min-w-0 flex-1">
             <div className="min-h-[44px] text-[15.5px] font-semibold leading-snug tracking-[-0.01em] text-zinc-900">
               {title.s}{title.typing && <Caret />}
@@ -225,7 +225,7 @@ function Listing({ scam, now, at, speed, instant }: { scam: TheaterScam; now: nu
               {p.rating != null && <span className="tnum">★ {p.rating} · {Number(p.reviewCount ?? 0).toLocaleString("en-US")} reviews</span>}
             </div>
           </div>
-          <div className="w-[96px] shrink-0 text-right">
+          <div className="w-[96px] shrink-0 text-right max-sm:w-[84px]">
             <AnimatePresence>
               {showPrice && p.price != null && (
                 <motion.div initial={{ opacity: 0, y: 6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 380, damping: 24 }}>
@@ -236,12 +236,12 @@ function Listing({ scam, now, at, speed, instant }: { scam: TheaterScam; now: nu
             </AnimatePresence>
           </div>
         </div>
-        <div className="space-y-3 px-4 py-3.5">
+        <div className="space-y-3 px-4 py-3.5 max-sm:px-3">
           <p className="min-h-[40px] text-[13px] leading-relaxed text-zinc-600">{desc.s}{desc.typing && <Caret />}</p>
           {payload.length > 0 && (instant || pay.started) && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.25 }}
               className="overflow-hidden rounded-md border border-rose-200 bg-rose-50/70">
-              <div className="flex items-center justify-between border-b border-rose-100 px-2.5 py-1 text-[10.5px] font-medium uppercase tracking-[0.06em] text-rose-700">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-rose-100 px-2.5 py-1 text-[10.5px] font-medium uppercase tracking-[0.06em] text-rose-700">
                 <span>Hidden payload, aimed at the agent</span>
                 <span className="normal-case tracking-normal text-rose-500">{payload[0].how}</span>
               </div>
@@ -334,13 +334,13 @@ function Lane({ model, state, test, trap, k, reduce }: { model: string; state: L
   const fooled = state === "fooled", resisted = state === "resisted";
   const body = (
     <motion.div layout={!reduce}
-      className={cx("relative grid grid-cols-[1fr_104px] items-center gap-3 overflow-hidden rounded-lg border px-3 py-2.5 transition-colors duration-500",
+      className={cx("relative grid grid-cols-[1fr_104px] max-sm:grid-cols-[minmax(0,1fr)_88px] items-center gap-3 max-sm:gap-2 overflow-hidden rounded-lg border px-3 py-2.5 transition-colors duration-500",
         fooled ? "border-rose-200 bg-rose-50/50" : resisted ? "border-zinc-200 bg-white" : "border-zinc-200 bg-white",
         state === "idle" && "opacity-60")}>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="truncate text-[13.5px] font-medium text-zinc-900">{nameOf(model)}</span>
-          <span className="truncate font-mono text-[11px] text-zinc-400">{model}</span>
+          <span className="truncate font-mono text-[11px] text-zinc-400 max-sm:hidden">{model}</span>
         </div>
         <div className="mt-1.5 h-[18px]">
           <AnimatePresence mode="popLayout" initial={false}>

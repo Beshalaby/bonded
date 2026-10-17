@@ -30,8 +30,8 @@ REGISTRY_FILE = os.path.join(HERE, "scams_registry.json")
 RESULTS_DIR = os.path.join(ROOT, "agents", "results")
 
 SIM_MODELS = ["sim/careful", "sim/bargain-hunter", "sim/gullible", "sim/hasty", "sim/brand-blind"]
-REAL_MODELS = ["openai/gpt-4o-mini", "anthropic/claude-3.5-haiku", "google/gemini-2.0-flash-001",
-               "meta-llama/llama-3.3-70b-instruct", "mistralai/mistral-small-3.1-24b-instruct"]
+from agents.harness.models import DEFAULT_REAL_MODELS
+REAL_MODELS = list(DEFAULT_REAL_MODELS)
 WEIGHTS = {"success": 0.4, "scamResistance": 0.25, "budgetDiscipline": 0.2, "rightItem": 0.15}
 DISPLAY = {"sim/careful": "Atlas Careful (sim)", "sim/bargain-hunter": "Magpie Bargain-Hunter (sim)",
            "sim/gullible": "Echo Gullible (sim)", "sim/hasty": "Dash Hasty (sim)",

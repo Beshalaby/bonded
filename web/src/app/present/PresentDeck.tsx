@@ -28,7 +28,7 @@ export interface DeckData {
 const SLIDES = ["Title", "The problem", "Leaderboard", "Watch one shop", "Red team", "Your agent"] as const;
 const EASE = [0.2, 0.75, 0.15, 1] as const;
 /** Type scale in "u": 1u = min(1vw, 1.78vh), so a slide composes the same at 1440×900 and 1920×1080. */
-const u = (x: number): CSSProperties => ({ fontSize: `calc(var(--u) * ${x})` });
+const u = (x: number): CSSProperties => ({ fontSize: `max(var(--umin, 0px), calc(var(--u) * ${x}))` });
 
 const stagger: Variants = { show: { transition: { staggerChildren: 0.07, delayChildren: 0.08 } } };
 const item: Variants = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } } };
@@ -93,11 +93,10 @@ export default function PresentDeck({ data, initialSlide }: { data: DeckData; in
   ][i];
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white text-zinc-900"
-      style={{ ["--u" as string]: "min(1vw, 1.78vh)" } as CSSProperties}>
+    <div className="deck-u fixed inset-0 z-[100] flex flex-col bg-white text-zinc-900">
       {/* chrome */}
       <header className="flex items-center justify-between px-[calc(var(--u)*4)] pt-[calc(var(--u)*2.2)]" style={u(1.05)}>
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-[-0.02em]" title="Exit (Esc)">
+        <Link href="/" className="tap flex items-center gap-2 font-semibold tracking-[-0.02em]" title="Exit (Esc)">
           <svg viewBox="0 0 20 20" aria-hidden style={{ width: "1.35em", height: "1.35em" }}>
             <rect width="20" height="20" rx="5" fill="var(--color-accent)" />
             <rect x="5" y="10" width="2.4" height="5" rx="1" fill="white" />
@@ -115,6 +114,8 @@ export default function PresentDeck({ data, initialSlide }: { data: DeckData; in
         </div>
       </header>
 
+      <p className="mx-4 mt-2 rounded-md bg-zinc-50 px-3 py-2 text-[12px] text-zinc-500 sm:hidden">Best viewed on a larger screen. Tap to advance, or scroll a slide.</p>
+
       {/* slide */}
       <main className="relative min-h-0 flex-1 overflow-hidden" onClick={(e) => {
         if ((e.target as HTMLElement).closest("a, button, svg, [data-noadvance]")) return;
@@ -128,7 +129,7 @@ export default function PresentDeck({ data, initialSlide }: { data: DeckData; in
               exit: (d: number) => ({ opacity: 0, x: reduce ? 0 : d * -48, transition: { duration: 0.28, ease: EASE } }),
             }}
             initial="enter" animate="center" exit="exit"
-            className="absolute inset-0 flex flex-col justify-center px-[calc(var(--u)*7)] py-[calc(var(--u)*2)]">
+            className="absolute inset-0 flex flex-col justify-center px-[calc(var(--u)*7)] py-[calc(var(--u)*2)] max-lg:px-[calc(var(--u)*4)] max-sm:justify-start max-sm:overflow-y-auto max-sm:px-4 max-sm:py-4">
             <motion.div variants={stagger} initial="hidden" animate="show" className="mx-auto w-full max-w-[calc(var(--u)*86)]">
               {slide}
             </motion.div>
@@ -140,18 +141,18 @@ export default function PresentDeck({ data, initialSlide }: { data: DeckData; in
       <footer className="px-[calc(var(--u)*4)] pb-[calc(var(--u)*2)]">
         <div className="grid grid-cols-6 gap-[calc(var(--u)*0.6)]">
           {SLIDES.map((label, k) => (
-            <button key={label} onClick={() => go(k)} className="group text-left" aria-label={`Slide ${k + 1}: ${label}`} aria-current={k === i}>
+            <button key={label} onClick={() => go(k)} className="group text-left max-lg:min-h-10" aria-label={`Slide ${k + 1}: ${label}`} aria-current={k === i}>
               <div className="relative h-[3px] overflow-hidden rounded-full bg-zinc-100">
                 {k < i && <div className="absolute inset-0 bg-zinc-300" />}
                 {k === i && <motion.div layoutId="deck-progress" className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", stiffness: 380, damping: 34 }} />}
               </div>
-              <div className={cx("mt-2 truncate transition-colors", k === i ? "text-zinc-900" : "text-zinc-400 group-hover:text-zinc-600")} style={u(0.85)}>
+              <div className={cx("mt-2 truncate transition-colors max-sm:hidden", k === i ? "text-zinc-900" : "text-zinc-400 group-hover:text-zinc-600")} style={u(0.85)}>
                 <span className="mr-1.5 font-mono">{k + 1}</span>{label}
               </div>
             </button>
           ))}
         </div>
-        <div className="mt-[calc(var(--u)*0.9)] flex justify-between text-zinc-400" style={u(0.8)}>
+        <div className="mt-[calc(var(--u)*0.9)] flex justify-between gap-4 text-zinc-400 max-sm:hidden" style={u(0.8)}>
           <span>← → or space to move · 1–6 to jump · Esc to exit</span>
           <span className="tnum">Every number on these slides is computed from the live benchmark</span>
         </div>
@@ -187,9 +188,9 @@ function TitleSlide({ d }: { d: DeckData }) {
           <span className="mt-[calc(var(--u)*0.6)] block font-normal tracking-normal text-zinc-500" style={u(1.2)}>{lead.detail}</span>
         </I>
       )}
-      <I className="mt-[calc(var(--u)*4.5)] grid grid-cols-4 border-t border-zinc-200">
+      <I className="mt-[calc(var(--u)*4.5)] grid grid-cols-4 border-t border-zinc-200 max-sm:grid-cols-2">
         {metrics.map((m, k) => (
-          <div key={m.l} className={cx("pt-[calc(var(--u)*1.6)]", k > 0 && "border-l border-zinc-200 pl-[calc(var(--u)*2)]")}>
+          <div key={m.l} className={cx("min-w-0 pt-[calc(var(--u)*1.6)]", k > 0 && "border-l border-zinc-200 pl-[calc(var(--u)*2)]", k === 2 && "max-sm:border-l-0 max-sm:pl-0")}>
             <div className="font-semibold leading-none tracking-[-0.03em]" style={u(2.9)}><RollingNumber value={m.v} format={m.f} /></div>
             <div className="mt-[calc(var(--u)*0.7)] text-zinc-500" style={u(1.05)}>{m.l}</div>
           </div>
@@ -215,7 +216,7 @@ function ProblemSlide({ d }: { d: DeckData }) {
       <I className="mt-[calc(var(--u)*1.4)] font-semibold leading-[1.05] tracking-[-0.035em]" style={u(4.4)}>
         Agents now hold credit cards.<br /><span className="text-zinc-400">The store is full of traps they can&rsquo;t see.</span>
       </I>
-      <I className="mt-[calc(var(--u)*4)] grid grid-cols-5 gap-px overflow-hidden rounded-[calc(var(--u)*0.9)] border border-zinc-200 bg-zinc-200">
+      <I className="mt-[calc(var(--u)*4)] grid grid-cols-5 gap-px overflow-hidden max-sm:grid-cols-1 rounded-[calc(var(--u)*0.9)] border border-zinc-200 bg-zinc-200">
         {d.traps.map((t, k) => {
           const c = TRAP_COPY[t.type];
           const rate = t.exposed ? t.fooled / t.exposed : 0;
@@ -248,19 +249,19 @@ function LeaderboardSlide({ rows }: { rows: ModelStats[] }) {
   const lo = rows.length ? Math.max(0, Math.floor(Math.min(...rows.map((r) => r.reliability.lower)) * 10) / 10) : 0;
   const x = (v: number) => `${((v - lo) / (1 - lo)) * 100}%`;
   const nMin = rows.length ? Math.min(...rows.map((r) => r.n)) : 0;
-  const cols = "grid-cols-[calc(var(--u)*3)_minmax(0,1.25fr)_calc(var(--u)*7)_minmax(0,1.6fr)_calc(var(--u)*7)_calc(var(--u)*8)]";
+  const cols = "grid-cols-[calc(var(--u)*3)_minmax(0,1.25fr)_calc(var(--u)*7)_minmax(0,1.6fr)_calc(var(--u)*7)_calc(var(--u)*8)] max-sm:grid-cols-[calc(var(--u)*3)_minmax(0,1fr)_calc(var(--u)*8)_calc(var(--u)*9)]";
   return (
     <>
       <Kicker>The leaderboard, live</Kicker>
-      <I className="mt-[calc(var(--u)*1.4)] flex items-end justify-between gap-8">
+      <I className="mt-[calc(var(--u)*1.4)] flex flex-wrap items-end justify-between gap-x-8 gap-y-2">
         <div className="font-semibold leading-[1.05] tracking-[-0.035em]" style={u(4)}>Who you can trust with a card.</div>
-        <div className="pb-[calc(var(--u)*0.6)] text-right text-zinc-500" style={u(1)}>n ≥ {nMin} tasks per model<br />90% credible intervals, Beta posterior</div>
+        <div className="pb-[calc(var(--u)*0.6)] text-right text-zinc-500 max-lg:text-left" style={u(1)}>n ≥ {nMin} tasks per model<br />90% credible intervals, Beta posterior</div>
       </I>
       <I className="mt-[calc(var(--u)*3)]">
         <div className={cx("grid items-center gap-x-[calc(var(--u)*1.6)] border-b border-zinc-200 pb-[calc(var(--u)*0.8)] text-zinc-500", cols)} style={u(0.9)}>
           <span>#</span><span>Model</span><span className="text-right">Score</span>
-          <span>P(success) · 90% credible interval</span>
-          <span className="text-right">Scammed</span><span className="text-right">Over budget</span>
+          <span className="max-sm:hidden">P(success) · 90% credible interval</span>
+          <span className="text-right">Scammed</span><span className="text-right max-sm:hidden">Over budget</span>
         </div>
         <motion.div layout>
           {rows.map((r, k) => (
@@ -272,7 +273,7 @@ function LeaderboardSlide({ rows }: { rows: ModelStats[] }) {
                 <div className="truncate font-mono text-zinc-400" style={u(0.85)}>{r.model}</div>
               </Link>
               <span className="text-right font-semibold tracking-[-0.02em] tnum" style={u(2)}>{r.score.toFixed(1)}</span>
-              <span className="relative h-[calc(var(--u)*1.6)]">
+              <span className="relative h-[calc(var(--u)*1.6)] max-sm:hidden">
                 {[0, 0.5, 1].map((f) => <span key={f} className="absolute inset-y-0 w-px bg-zinc-100" style={{ left: `${f * 100}%` }} />)}
                 <motion.span className="absolute top-1/2 h-[calc(var(--u)*0.75)] -translate-y-1/2 rounded-full bg-accent/25"
                   style={{ left: x(r.reliability.lower) }} initial={{ width: 0 }}
@@ -288,11 +289,11 @@ function LeaderboardSlide({ rows }: { rows: ModelStats[] }) {
                 </span>
               </span>
               <span className={cx("text-right tnum", r.metrics.scamRate >= 0.15 ? "text-rose-600" : r.metrics.scamRate === 0 ? "text-zinc-400" : "text-zinc-700")} style={u(1.45)}>{Math.round(r.metrics.scamRate * 100)}%</span>
-              <span className={cx("text-right tnum", r.metrics.budgetViolationRate >= 0.15 ? "text-rose-600" : r.metrics.budgetViolationRate === 0 ? "text-zinc-400" : "text-zinc-700")} style={u(1.45)}>{Math.round(r.metrics.budgetViolationRate * 100)}%</span>
+              <span className={cx("text-right tnum", r.metrics.budgetViolationRate >= 0.15 ? "text-rose-600" : r.metrics.budgetViolationRate === 0 ? "text-zinc-400" : "text-zinc-700", "max-sm:hidden")} style={u(1.45)}>{Math.round(r.metrics.budgetViolationRate * 100)}%</span>
             </motion.div>
           ))}
         </motion.div>
-        <div className={cx("grid gap-x-[calc(var(--u)*1.6)] pt-[calc(var(--u)*0.6)] text-zinc-400 tnum", cols)} style={u(0.85)}>
+        <div className={cx("grid gap-x-[calc(var(--u)*1.6)] pt-[calc(var(--u)*0.6)] text-zinc-400 tnum max-sm:hidden", cols)} style={u(0.85)}>
           <span /><span /><span />
           <span className="relative h-[1.2em]">
             {[0, 0.5, 1].map((f) => (
@@ -311,7 +312,7 @@ function LeaderboardSlide({ rows }: { rows: ModelStats[] }) {
 function WatchSlide({ d }: { d: DeckData }) {
   const ex = d.example;
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-[calc(var(--u)*6)]">
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-[calc(var(--u)*6)] max-lg:grid-cols-1 max-lg:gap-[calc(var(--u)*3)]">
       <div>
         <Kicker>Watch one shop</Kicker>
         <I className="mt-[calc(var(--u)*1.4)] font-semibold leading-[1.05] tracking-[-0.035em]" style={u(3.6)}>
@@ -320,7 +321,7 @@ function WatchSlide({ d }: { d: DeckData }) {
         <I className="mt-[calc(var(--u)*1.6)] max-w-[calc(var(--u)*40)] leading-relaxed text-zinc-600" style={u(1.3)}>
           Each search, listing view and checkout is a SHA-256 chained trace entry. Change one byte and the chain breaks.
         </I>
-        <I className="mt-[calc(var(--u)*3)] flex items-center gap-[calc(var(--u)*1.4)]">
+        <I className="mt-[calc(var(--u)*3)] flex flex-wrap items-center gap-[calc(var(--u)*1.4)]">
           <Link href="/live" className="group inline-flex items-center gap-[0.55em] rounded-[calc(var(--u)*0.7)] bg-accent px-[1.15em] py-[0.7em] font-medium text-white shadow-[0_1px_2px_rgba(37,99,235,.3)] transition-colors hover:bg-accent-hover" style={u(1.5)}>
             <Play className="fill-current" style={{ width: "0.8em", height: "0.8em" }} /> Watch an agent shop live
             <ArrowRight className="transition-transform group-hover:translate-x-1" style={{ width: "0.9em", height: "0.9em" }} />
@@ -356,7 +357,10 @@ function WatchSlide({ d }: { d: DeckData }) {
 function useUnit() {
   const [px, setPx] = useState(14.4);
   useEffect(() => {
-    const f = () => setPx(Math.min(window.innerWidth / 100, (window.innerHeight * 1.78) / 100));
+    const f = () => {
+      const w = window.innerWidth, h = window.innerHeight;
+      setPx(w < 640 ? w * 0.026 : w < 1024 ? Math.min(w * 0.0145, h * 0.0112) : Math.min(w / 100, (h * 1.78) / 100));
+    };
     f();
     window.addEventListener("resize", f);
     return () => window.removeEventListener("resize", f);
@@ -379,15 +383,15 @@ function RedTeamSlide({ rt, rows }: { rt: RedTeamResponse | null; rows: ModelSta
       <I className="mt-[calc(var(--u)*1.4)] font-semibold leading-[1.05] tracking-[-0.035em]" style={u(3.6)}>
         The benchmark gets harder<br /><span className="text-zinc-400">every time an agent is fooled.</span>
       </I>
-      <I className="mt-[calc(var(--u)*2.4)] grid grid-cols-[minmax(0,1fr)_calc(var(--u)*24)] gap-[calc(var(--u)*3)]">
+      <I className="mt-[calc(var(--u)*2.4)] grid grid-cols-[minmax(0,1fr)_calc(var(--u)*24)] gap-[calc(var(--u)*3)] max-sm:grid-cols-1">
         <div className="rounded-[calc(var(--u)*1)] border border-zinc-200 p-[calc(var(--u)*1.6)]" data-noadvance>
-          <div className="mb-[calc(var(--u)*0.6)] flex justify-between text-zinc-500" style={u(0.95)}>
+          <div className="mb-[calc(var(--u)*0.6)] flex flex-wrap justify-between gap-x-4 text-zinc-500" style={u(0.95)}>
             <span className="font-medium text-zinc-900">Tasks in the benchmark</span><span>one step per scam that fooled a model</span>
           </div>
           {steps.length >= 2 ? <GrowthChart steps={steps} height={Math.round(unit * 21)} big />
             : <div className="flex h-[calc(var(--u)*22)] items-center justify-center text-zinc-400" style={u(1.1)}>{rt ? "Run a red-team round to grow the benchmark." : "Loading…"}</div>}
         </div>
-        <div className="flex flex-col justify-between">
+        <div className="flex flex-col justify-between max-sm:gap-[calc(var(--u)*2)]">
           {[
             { v: scams.length, l: "scams kept: each fooled at least one model" },
             { v: fooled.size, l: `of ${rows.length} models fooled at least once` },
@@ -433,7 +437,7 @@ function ConnectSlide() {
         One command. <span className="text-zinc-400">Then let it shop.</span>
       </I>
       <I className="mt-[calc(var(--u)*3.2)]">
-        <div data-noadvance className="flex items-center gap-[calc(var(--u)*1.2)] rounded-[calc(var(--u)*0.9)] border border-zinc-200 bg-zinc-50 px-[calc(var(--u)*1.8)] py-[calc(var(--u)*1.5)]">
+        <div data-noadvance className="flex items-center gap-[calc(var(--u)*1.2)] max-sm:px-3 rounded-[calc(var(--u)*0.9)] border border-zinc-200 bg-zinc-50 px-[calc(var(--u)*1.8)] py-[calc(var(--u)*1.5)]">
           <span className="select-none font-mono text-zinc-400" style={u(1.5)}>$</span>
           <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-zinc-900" style={u(1.5)}>
             claude mcp add --transport http bonded <span className="text-accent">{origin}/api/mcp</span>
@@ -443,7 +447,7 @@ function ConnectSlide() {
           </button>
         </div>
       </I>
-      <I className="mt-[calc(var(--u)*3.2)] grid grid-cols-3 gap-[calc(var(--u)*3)]">
+      <I className="mt-[calc(var(--u)*3.2)] grid grid-cols-3 gap-[calc(var(--u)*3)] max-sm:grid-cols-1">
         {steps.map(([h, t], k) => (
           <div key={h} className="border-t border-zinc-200 pt-[calc(var(--u)*1.2)]">
             <div className="flex items-baseline gap-[calc(var(--u)*0.8)]">

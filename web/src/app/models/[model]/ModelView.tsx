@@ -33,10 +33,10 @@ export default function ModelView({ model }: { model: string }) {
       <Crumb />
       <PageHeader
         title={<span className="flex flex-wrap items-center gap-3">{s.displayName.replace(/\s*\(sim\)\s*$/i, "")} <ProviderBadge provider={s.provider} simulated={s.simulated} /></span>}
-        meta={<><span className="font-mono text-[12.5px]">{s.model}</span><span>{s.n} graded results</span>{s.simulated && <span>Scripted policy, used to calibrate the benchmark</span>}</>}
+        meta={<><span className="break-anywhere font-mono text-[12.5px]">{s.model}</span><span>{s.n} graded results</span>{s.simulated && <span>Scripted policy, used to calibrate the benchmark</span>}</>}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,340px)_1fr]">
         <Card className="flex flex-col justify-between">
           <div>
             <div className="text-[12px] text-zinc-500">Composite score</div>
@@ -51,8 +51,9 @@ export default function ModelView({ model }: { model: string }) {
               <span className="text-[20px] font-semibold text-zinc-900 tnum">{pct(s.reliability.mean)}</span>
               <span className="text-[13px] text-zinc-500 tnum">{pct(s.reliability.lower)} – {pct(s.reliability.upper)}</span>
             </div>
-            <div className="mt-2"><CIBar interval={s.reliability} width={280} label={false} n={s.n} /></div>
-            <div className="flex w-[280px] justify-between px-[5px] text-[10.5px] text-zinc-400 tnum"><span>0</span><span>50</span><span>100</span></div>
+            <div className="mt-2 max-sm:hidden"><CIBar interval={s.reliability} width={280} label={false} n={s.n} /></div>
+            <div className="mt-2 sm:hidden"><CIBar interval={s.reliability} width={240} label={false} n={s.n} /></div>
+            <div className="flex w-[280px] max-sm:w-[240px] justify-between px-[5px] text-[10.5px] text-zinc-400 tnum"><span>0</span><span>50</span><span>100</span></div>
           </div>
         </Card>
 
@@ -68,7 +69,7 @@ export default function ModelView({ model }: { model: string }) {
         </StatStrip>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardTitle aside="fooled / exposed · 90% CI">Trap resistance</CardTitle>
           <RateBars rows={traps} />
@@ -102,7 +103,7 @@ export default function ModelView({ model }: { model: string }) {
         {hist.length >= 2 && (
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-zinc-500">
             {hist.map((h, i) => (
-              <Link key={h.runId} href={runHref(h.runId)} className="hover:text-accent"><span className="text-zinc-400">Run {i + 1}</span> <span className="font-mono">{h.runId}</span></Link>
+              <Link key={h.runId} href={runHref(h.runId)} className="hover:text-accent max-lg:inline-flex max-lg:min-h-10 max-lg:items-center"><span className="text-zinc-400">Run {i + 1}</span> <span className="font-mono">{h.runId}</span></Link>
             ))}
           </div>
         )}
@@ -120,7 +121,7 @@ export default function ModelView({ model }: { model: string }) {
 function Crumb() {
   return (
     <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-zinc-500">
-      <Link href="/" className="hover:text-zinc-900">Leaderboard</Link><span className="text-zinc-300">/</span><span>Model</span>
+      <Link href="/" className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Leaderboard</Link><span className="text-zinc-300">/</span><span>Model</span>
     </nav>
   );
 }

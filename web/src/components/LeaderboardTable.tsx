@@ -26,6 +26,11 @@ const DEFAULT_DIR: Record<Key, "asc" | "desc"> = {
   rank: "asc", model: "asc", score: "desc", reliability: "desc", success: "desc", scam: "asc", budget: "asc", wrong: "asc", cost: "asc", steps: "asc",
 };
 
+// Below lg the table scrolls sideways; rank + model stay pinned on the left.
+const PIN = "max-lg:sticky max-lg:z-[1]";
+const PIN_TH = "max-lg:bg-zinc-50";
+const PIN_BG = "max-lg:bg-white";
+
 function Rate({ v, bad }: { v: number; bad?: boolean }) {
   return <span className={cx(v === 0 ? "text-zinc-400" : bad && v >= 0.2 ? "text-rose-700" : "text-zinc-800")}>{pct(v)}</span>;
 }
@@ -44,19 +49,49 @@ export default function LeaderboardTable({ rows, compact = false }: { rows: Mode
     return out;
   }, [ranked, sort]);
 
-  const th = (key: Key, label: string, align: "left" | "right" = "right", title?: string) => (
-    <Th align={align} title={title} sorted={sort.key === key && sort.key !== "rank" ? sort.dir : false}
+  const th = (key: Key, label: string, align: "left" | "right" = "right", title?: string, className?: string) => (
+    <Th align={align} title={title} className={className} sorted={sort.key === key && sort.key !== "rank" ? sort.dir : false}
       onClick={() => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: DEFAULT_DIR[key] }))}>
       {label}
     </Th>
   );
 
   return (
-    <Table>
+    <>
+    {/* Phones: one card per model, ranked by score */}
+    <ol className="divide-y divide-zinc-100 overflow-hidden rounded-lg border border-zinc-200 bg-white sm:hidden">
+      {ranked.map(({ r, rank }) => (
+        <li key={r.model}>
+          <Link href={modelHref(r.model)} className="block px-4 py-3.5 transition-colors active:bg-zinc-50">
+            <div className="flex items-start gap-3">
+              <span className="w-5 shrink-0 pt-px text-right text-[13px] text-zinc-400 tnum">{rank}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="truncate font-medium text-zinc-900">{r.displayName.replace(/\s*\(sim\)\s*$/i, "")}</span>
+                  <ProviderBadge provider={r.provider} simulated={r.simulated} />
+                </div>
+                <div className="mt-0.5 truncate font-mono text-[12px] text-zinc-400">{r.model} · n={r.n}</div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-[18px] font-semibold leading-none text-zinc-900 tnum">{num(r.score, 1)}</div>
+                <div className="mt-1 text-[12px] text-zinc-400">score</div>
+              </div>
+            </div>
+            <div className="mt-2.5 pl-8"><CIBar interval={r.reliability} n={r.n} width={150} /></div>
+            <dl className="mt-2.5 grid grid-cols-3 gap-2 pl-8 text-[13px] tnum">
+              <div><dt className="text-[12px] text-zinc-500">Success</dt><dd><Rate v={r.metrics.successRate} /></dd></div>
+              <div><dt className="text-[12px] text-zinc-500">Scammed</dt><dd><Rate v={r.metrics.scamRate} bad /></dd></div>
+              <div><dt className="text-[12px] text-zinc-500">Over budget</dt><dd><Rate v={r.metrics.budgetViolationRate} bad /></dd></div>
+            </dl>
+          </Link>
+        </li>
+      ))}
+    </ol>
+    <Table className="max-sm:hidden">
       <thead>
         <tr>
-          {th("rank", "#", "right")}
-          {th("model", "Model", "left")}
+          {th("rank", "#", "right", undefined, cx(PIN, PIN_TH, "max-lg:left-0 w-10"))}
+          {th("model", "Model", "left", undefined, cx(PIN, PIN_TH, "max-lg:left-10 max-lg:shadow-[inset_-1px_0_0_#e4e4e7]"))}
           {th("score", "Score", "right", "Composite 0–100: success, minus penalties for scams, budget violations and wrong items")}
           {th("reliability", "Reliability · 90% CI", "left", "Posterior P(success), Beta(1+s, 1+f); whisker = 90% credible interval")}
           {th("success", "Success")}
@@ -70,10 +105,10 @@ export default function LeaderboardTable({ rows, compact = false }: { rows: Mode
       <tbody>
         {sorted.map(({ r, rank }) => (
           <Tr key={r.model} onClick={() => router.push(modelHref(r.model))}>
-            <Td align="right" className="w-10 text-zinc-400">{rank}</Td>
-            <Td className="min-w-[210px]">
+            <Td align="right" className={cx("w-10 text-zinc-400", PIN, PIN_BG, "max-lg:left-0")}>{rank}</Td>
+            <Td className={cx("min-w-[210px]", PIN, PIN_BG, "max-lg:left-10 max-lg:shadow-[inset_-1px_0_0_#e4e4e7]")}>
               <div className="flex items-center gap-2 whitespace-nowrap">
-                <Link href={modelHref(r.model)} onClick={(e) => e.stopPropagation()} className="font-medium text-zinc-900 hover:text-accent">
+                <Link href={modelHref(r.model)} onClick={(e) => e.stopPropagation()} className="tap font-medium text-zinc-900 hover:text-accent">
                   {r.displayName.replace(/\s*\(sim\)\s*$/i, "")}
                 </Link>
                 <ProviderBadge provider={r.provider} simulated={r.simulated} />
@@ -99,5 +134,6 @@ export default function LeaderboardTable({ rows, compact = false }: { rows: Mode
         </tr>
       </tfoot>
     </Table>
+    </>
   );
 }

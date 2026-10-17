@@ -37,7 +37,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
       />
 
       {/* Endpoint strip */}
-      <div className="mb-10 grid overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 gap-px lg:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="mb-10 grid grid-cols-1 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 gap-px lg:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-col gap-2 bg-white px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
           <div className="shrink-0 text-[12px] text-zinc-500">MCP endpoint</div>
           <CopyField value={endpoint} size="lg" className="min-w-0 flex-1 sm:max-w-[520px]" />
@@ -50,7 +50,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
         </div>
       </div>
 
-      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-10">
           <Step n={1} title="Connect" description="Register the server once. Your client discovers the tools automatically.">
             <SetupTabs endpoint={endpoint} />
@@ -61,7 +61,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
               {tasks.map((t) => (
                 <button key={t.id} type="button" onClick={() => setTaskId(t.id)} title={t.instruction}
                   className={cx(
-                    "h-7 rounded-md border px-2.5 font-mono text-[11.5px] transition-colors",
+                    "h-7 max-lg:h-10 rounded-md border px-2.5 font-mono text-[11.5px] transition-colors",
                     t.id === taskId ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900",
                   )}>
                   {t.id}
@@ -81,7 +81,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
               </div>
             )}
             <details className="group mt-4">
-              <summary className="cursor-pointer list-none text-[12.5px] font-medium text-zinc-600 hover:text-zinc-900">
+              <summary className="cursor-pointer list-none text-[12.5px] font-medium text-zinc-600 hover:text-zinc-900 max-lg:flex max-lg:min-h-10 max-lg:items-center">
                 <span className="inline-flex items-center gap-1"><ArrowRight size={12} className="transition-transform group-open:rotate-90" />Run several tasks in one session</span>
               </summary>
               <div className="mt-2.5">
@@ -111,7 +111,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
       </Section>
 
       <Section title="Protocol" description="Implemented by hand as JSON-RPC 2.0 over Streamable HTTP. It has no SDK dependency and no SSE.">
-        <div className="grid gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 md:grid-cols-2">
           <Spec k="POST /api/mcp" v={<>A single JSON-RPC message or a batch. Requests return <Code>application/json</Code>. If you send only notifications, you get <Code>202 Accepted</Code>.</>} />
           <Spec k="Sessions" v={<><Code>initialize</Code> issues an <Code>Mcp-Session-Id</Code>. That session holds the current task, so tools never need ids passed around.</>} />
           <Spec k="Versions" v={<><Code>2025-06-18</Code> (latest), <Code>2025-03-26</Code> and <Code>2024-11-05</Code>, negotiated on initialize and checked against <Code>MCP-Protocol-Version</Code>.</>} />
@@ -123,7 +123,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
 
       <Section title="Prefer plain HTTP?" description="The Arena API is what the built-in Python harness calls. With it you run your own loop and post graded results back.">
         <div className="space-y-4">
-          <div className="grid gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 md:grid-cols-2">
             {HTTP_ROUTES.map(([m, p, d], i) => (
               <div key={p + m} className={cx("grid grid-cols-[56px_minmax(0,1fr)] gap-x-3 bg-white px-4 py-2.5", i === HTTP_ROUTES.length - 1 && "md:col-span-2")}>
                 <span className={cx("mt-px font-mono text-[11px] font-semibold", m === "GET" ? "text-emerald-700" : m === "DELETE" ? "text-rose-700" : "text-accent")}>{m}</span>
@@ -192,7 +192,7 @@ function Spec({ k, v }: { k: string; v: ReactNode }) {
 
 function Step({ n, title, description, children }: { n: number; title: string; description: ReactNode; children: ReactNode }) {
   return (
-    <section className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-4">
+    <section className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-4 max-sm:gap-x-3">
       <div className="flex flex-col items-center">
         <span className="flex size-7 items-center justify-center rounded-full border border-zinc-200 bg-white font-mono text-[12px] font-medium text-zinc-700 tnum">{n}</span>
         <span className="mt-2 w-px flex-1 bg-zinc-200" />

@@ -6,7 +6,7 @@
 // Phases: job_start · round_start · scam_generated {scam} · scam_tested {scamId, model, fooled, ...}
 //         scam_kept / scam_discarded {scamId, fooled, variantTaskId?, benchmarkTasks} · round_retry · round_end · job_end
 import { NextResponse } from "next/server";
-import { demoEnabled } from "@/lib/demo-gate";
+import { writesEnabled } from "@/lib/auth";
 import { publish } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,8 @@ const PHASES = [
 const MAX_BYTES = 64_000;
 
 export async function POST(req: Request) {
-  // Same posture as the other sandbox-only writers: fail closed outside dev unless SPENDBENCH_DEMO=1.
-  if (!demoEnabled()) return NextResponse.json({ error: "red-team progress disabled (set SPENDBENCH_DEMO=1)" }, { status: 403 });
+  // Auth is enforced in middleware (service token or admin cookie); this is the fail-closed backstop.
+  if (!writesEnabled()) return NextResponse.json({ error: "red-team progress disabled (set SPENDBENCH_DEMO=1)" }, { status: 403 });
   const raw = await req.text();
   if (raw.length > MAX_BYTES) return NextResponse.json({ error: "body too large" }, { status: 413 });
   let body: Record<string, unknown>;

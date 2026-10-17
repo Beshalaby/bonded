@@ -8,6 +8,20 @@ import urllib.request
 ARENA_URL = os.environ.get("ARENA_URL", "http://localhost:3000").rstrip("/")
 
 
+def auth_headers():
+    """Credentials for the Arena server, from the environment (never from task data).
+    BONDED_INTERNAL_TOKEN: service token the server hands to the runners it spawns (bench/admin routes).
+    BONDED_AGENT_KEY: optional per-agent API key; the server then derives agentId/model from it."""
+    h = {}
+    tok = os.environ.get("BONDED_INTERNAL_TOKEN", "").strip()
+    if tok:
+        h["x-bonded-internal"] = tok
+    key = os.environ.get("BONDED_AGENT_KEY", "").strip()
+    if key:
+        h["Authorization"] = "Bearer " + key
+    return h
+
+
 class ArenaError(Exception):
     def __init__(self, status, message, body=None):
         super().__init__(f"HTTP {status}: {message}")
@@ -20,6 +34,7 @@ def request(method, path, body=None, headers=None, base=None, timeout=60):
     url = (base or ARENA_URL).rstrip("/") + path
     data = json.dumps(body).encode() if body is not None else None
     h = {"Content-Type": "application/json", "Accept": "application/json"}
+    h.update(auth_headers())
     h.update(headers or {})
     req = urllib.request.Request(url, data=data, method=method, headers=h)
     try:

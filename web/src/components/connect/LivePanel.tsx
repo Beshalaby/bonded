@@ -198,10 +198,10 @@ function SessionRow({ s, fresh }: { s: McpOverview["sessions"][number]; fresh: b
           </span>
         )}
         <span className="ml-auto flex items-center gap-3">
-          <Link href={traceHref(s.sessionId)} className="inline-flex items-center gap-0.5 font-medium text-zinc-600 hover:text-accent">
+          <Link href={traceHref(s.sessionId)} className="tap inline-flex items-center gap-0.5 font-medium text-zinc-600 hover:text-accent">
             Trace <ArrowUpRight size={12} />
           </Link>
-          <Link href={`/live?replay=${encodeURIComponent(s.sessionId)}`} className="inline-flex items-center gap-1 font-medium text-accent hover:underline underline-offset-2">
+          <Link href={`/live?replay=${encodeURIComponent(s.sessionId)}`} className="tap inline-flex items-center gap-1 font-medium text-accent hover:underline underline-offset-2">
             <Play size={11} fill="currentColor" /> Replay
           </Link>
         </span>

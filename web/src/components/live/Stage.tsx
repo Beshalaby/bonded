@@ -120,7 +120,7 @@ export default function Stage({ d, products, merchants, speed, agentName, intro,
     : scene.kind === "checkout" ? "arena.spendbench.dev/checkout" : "arena.spendbench.dev";
 
   return (
-    <div ref={stageRef} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white">
+    <div ref={stageRef} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white max-lg:h-[min(600px,78svh)]">
       {/* store chrome */}
       <div className="flex h-11 shrink-0 items-center gap-3 border-b border-zinc-200 bg-zinc-50/70 px-3">
         <div className="flex items-center gap-1.5 text-[13px] font-semibold tracking-[-0.01em] text-zinc-800">
@@ -194,7 +194,7 @@ function SearchScene({ query, hits, products, merchants, d, speed, fresh, focusI
   const results = doneTyping && showResults;
 
   return (
-    <div className="p-4">
+    <div className="p-4 max-sm:p-3">
       <div data-cursor={!results ? "1" : undefined}
         className={cx("flex h-9 items-center gap-2 rounded-md border bg-white px-3 shadow-sm transition-colors", !results ? "border-accent ring-2 ring-accent/15" : "border-zinc-200")}>
         <Search size={14} className="text-zinc-400" />
@@ -268,7 +268,7 @@ function ProductScene({ scene, product, merchants, speed, budget, showTraps }: {
   const over = budget != null && price * qty > budget;
 
   return (
-    <div className="grid grid-cols-[minmax(0,180px)_minmax(0,1fr)_200px] gap-5 p-5 max-xl:grid-cols-[minmax(0,140px)_minmax(0,1fr)_180px] max-xl:gap-4">
+    <div className="grid grid-cols-[minmax(0,180px)_minmax(0,1fr)_200px] gap-5 p-5 max-xl:grid-cols-[minmax(0,140px)_minmax(0,1fr)_180px] max-xl:gap-4 max-sm:grid-cols-[88px_minmax(0,1fr)] max-sm:gap-3 max-sm:p-3">
       <div className="lv-fade-in">
         <ProductArt p={{ id: scene.productId, brand, title, model: p?.model, category: p?.category ?? "" }} className="aspect-square w-full rounded-md border border-zinc-200" />
         {showTraps && p?.trap && <div className="mt-2"><TrapBadge type={p.trap.type} /></div>}
@@ -324,7 +324,7 @@ function ProductScene({ scene, product, merchants, speed, budget, showTraps }: {
       </div>
 
       {/* buy box */}
-      <div className="lv-fade-up min-w-0 self-start rounded-md border border-zinc-200 p-3" style={{ animationDelay: "60ms" }}>
+      <div className="lv-fade-up min-w-0 self-start rounded-md border border-zinc-200 p-3 max-sm:col-span-2" style={{ animationDelay: "60ms" }}>
         <div className="text-[18px] font-semibold tracking-[-0.02em] text-zinc-900 tnum">{usd(price)}</div>
         <div className="mt-2 space-y-1 text-[11.5px] text-zinc-600">
           <div className="text-zinc-500">Sold by</div>
@@ -371,8 +371,8 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
   const step = outcome ? 3 : v ? 2 : 1;
 
   return (
-    <div className="p-5">
-      <div className="flex items-center justify-between">
+    <div className="p-5 max-sm:p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-[16px] font-semibold tracking-[-0.01em] text-zinc-900"><CreditCard size={15} className="text-zinc-400" /> Checkout</h2>
         <div className="flex items-center gap-1 text-[11.5px]">
           {["Order", "Guardrail", "Result"].map((s, i) => (
@@ -384,7 +384,7 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-4">
+      <div className="mt-4 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-4 max-sm:grid-cols-1">
         {/* order */}
         <div className="lv-fade-up min-w-0">
           <div className="overflow-hidden rounded-md border border-zinc-200">

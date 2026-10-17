@@ -26,7 +26,7 @@ export default function TaskView({ id }: { id: string }) {
     <>
       {crumb}
       <PageHeader
-        title={<span className="font-mono text-[22px]">{task.id}</span>}
+        title={<span className="break-anywhere font-mono text-[22px] max-sm:text-[19px]">{task.id}</span>}
         meta={<>
           {task.adversarial ? <Badge tone="warn">Adversarial</Badge> : <Badge>Base task</Badge>}
           {task.baseTaskId && <span>Derived from <Link href={taskHref(task.baseTaskId)} className="font-mono text-accent hover:underline">{task.baseTaskId}</Link></span>}
@@ -34,10 +34,10 @@ export default function TaskView({ id }: { id: string }) {
         </>}
       />
 
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_340px]">
         <Card>
           <div className="text-[12px] text-zinc-500">Instruction given to the agent</div>
-          <p className="mt-2 text-[17px] leading-relaxed text-zinc-900">“{task.instruction}”</p>
+          <p className="mt-2 text-[17px] max-sm:text-[16px] leading-relaxed text-zinc-900">“{task.instruction}”</p>
           <div className="mt-5 flex flex-wrap gap-1.5">
             {task.tags.map((g) => <span key={g} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[12px] text-zinc-600">{g}</span>)}
           </div>
@@ -47,14 +47,34 @@ export default function TaskView({ id }: { id: string }) {
           <KV items={[
             ["Budget", <span key="b" className="font-mono">{usd(task.budget)}</span>],
             ...constraints.map(([k, v]) => [cap(k), <span key={k}>{String(v)}</span>] as [string, React.ReactNode]),
-            ...expected.map(([k, v]) => [`Expected ${cap(k).toLowerCase()}`, <span key={k} className="break-words">{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>] as [string, React.ReactNode]),
+            ...expected.map(([k, v]) => [`Expected ${cap(k).toLowerCase()}`, <span key={k} className="break-anywhere">{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>] as [string, React.ReactNode]),
           ]} />
         </Card>
       </div>
 
       <Section title="Latest result per model">
         {results.length ? (
-          <Table>
+          <>
+          {/* Phones: one card per model */}
+          <ul className="divide-y divide-zinc-100 overflow-hidden rounded-lg border border-zinc-200 bg-white sm:hidden">
+            {results.map((r) => (
+              <li key={r.model + r.runId} className="px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Link href={modelHref(r.model)} className="min-w-0 truncate font-mono text-[12.5px] text-zinc-800 hover:text-accent">{r.model}</Link>
+                  <div className="flex shrink-0 items-center gap-1.5"><OutcomeBadge outcome={outcomeOf(r)} />{(r.trapTypes ?? []).slice(0, 1).map((t) => r.scammed && <TrapBadge key={t} type={t} />)}</div>
+                </div>
+                {r.attribution && <div className="mt-1 text-[13px] text-zinc-600">{failureLabel(r.attribution.mode)}</div>}
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-zinc-500 tnum">
+                  {r.amount != null && r.bought !== false && <span>spent <span className="font-mono">{usd(r.amount)}</span></span>}
+                  <span>{r.steps} steps</span>
+                  <span className="font-mono">{cost(r.costUsd)}</span>
+                  <span>{ago(r.createdAt)}</span>
+                  {r.sessionId && <Link href={traceHref(r.sessionId)} className="ml-auto inline-flex min-h-10 items-center gap-1 whitespace-nowrap text-[13px] text-accent">Trace <ArrowRight size={12} /></Link>}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <Table className="max-sm:hidden" stickyFirst>
             <thead><tr>
               <Th>Model</Th><Th>Outcome</Th><Th>Failure</Th><Th align="right">Spent</Th><Th align="right">Steps</Th><Th align="right">LLM cost</Th><Th align="right">When</Th><Th />
             </tr></thead>
@@ -73,6 +93,7 @@ export default function TaskView({ id }: { id: string }) {
               ))}
             </tbody>
           </Table>
+          </>
         ) : <EmptyState title="Not evaluated yet" description="No model has attempted this task." />}
       </Section>
     </>

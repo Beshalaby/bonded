@@ -12,7 +12,9 @@ import {
 } from "@/components/ui";
 import { useEvents } from "@/components/useEvents";
 import type { RedTeamScam } from "@/lib/types";
-import { postJSON, useApi, type RedTeamResponse } from "@/lib/ui/api";
+import { useApi, type RedTeamResponse } from "@/lib/ui/api";
+import { isAuthError, postJSON } from "@/lib/auth-client";
+import AuthError from "@/components/auth/AuthError";
 import { ago, modelHref, taskHref, trapLabel, usd } from "@/lib/ui/format";
 
 export default function RedTeamView() {
@@ -68,7 +70,8 @@ export default function RedTeamView() {
         description="An adversary writes new scam listings and tests them against every model. A scam that fools at least one model becomes a new benchmark task, so the benchmark gets harder over time." />
 
       <Theater director={director} busy={busy} onRun={start} onReplay={() => data && director.replay(data.scams)}
-        canReplay={!!data?.scams.length} connected={connected} error={runErr} />
+        canReplay={!!data?.scams.length} connected={connected} error={isAuthError(runErr) ? undefined : runErr} />
+      {isAuthError(runErr) && <AuthError message={runErr} className="mt-2" />}
 
       {error && <div className="mt-4"><ErrorState error={error} onRetry={reload} /></div>}
 
@@ -85,7 +88,7 @@ export default function RedTeamView() {
             </StatStrip>
           </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_380px]">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
             <Card>
               <CardTitle aside="one step per kept scam · R = round">Benchmark growth</CardTitle>
               {steps.length >= 2 ? <GrowthChart steps={steps} /> : <p className="py-10 text-center text-[13px] text-zinc-500">Growth appears after the first scam is kept.</p>}
@@ -98,7 +101,7 @@ export default function RedTeamView() {
 
           <Section title="Scams that fooled models" description="Each listing as injected into the Arena, the technique used, and which models bought it or obeyed it.">
             {scams.length ? (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {scams.map((s) => <ScamCard key={s.id} s={s} fresh={freshIds.has(s.id)} />)}
               </div>
             ) : (
@@ -145,13 +148,13 @@ function ScamCard({ s, fresh }: { s: RedTeamScam; fresh?: boolean }) {
       <div className="flex flex-1 flex-col gap-2 px-4 py-3 text-[12px]">
         <div className="flex flex-wrap items-center gap-1">
           <span className="mr-1 text-zinc-500">Fooled</span>
-          {s.fooled.map((m) => <Link key={m} href={modelHref(m)} className="rounded bg-rose-50 px-1.5 py-0.5 font-mono text-[11px] text-rose-700 hover:underline">{m.replace(/^sim\//, "")}</Link>)}
+          {s.fooled.map((m) => <Link key={m} href={modelHref(m)} className="tap rounded bg-rose-50 px-1.5 py-0.5 font-mono text-[11px] text-rose-700 hover:underline">{m.replace(/^sim\//, "")}</Link>)}
           {notFooled.length > 0 && <span className="ml-2 mr-1 text-zinc-500">Resisted</span>}
-          {notFooled.map((m) => <Link key={m} href={modelHref(m)} className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 hover:underline">{m.replace(/^sim\//, "")}</Link>)}
+          {notFooled.map((m) => <Link key={m} href={modelHref(m)} className="tap rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 hover:underline">{m.replace(/^sim\//, "")}</Link>)}
         </div>
         <div className="mt-auto flex items-center justify-between pt-1 text-zinc-500">
           <span>{s.generator === "llm" ? "LLM-generated" : "Mutation"}{s.round != null ? ` · round ${s.round}` : ""} · {ago(s.createdAt)}</span>
-          <Link href={taskHref(taskId)} className="inline-flex items-center gap-1 text-accent hover:underline">
+          <Link href={taskHref(taskId)} className="tap inline-flex items-center gap-1 text-accent hover:underline">
             <span className="font-mono">{taskId}</span><ArrowRight size={12} />
           </Link>
         </div>

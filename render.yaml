@@ -1,0 +1,43 @@
+# Render Blueprint: one Docker web service. See docs/DEPLOY.md.
+# Storage: the persistent disk below holds the JSON store (SPENDBENCH_DATA_DIR=/app/data). To use Supabase /
+# Postgres instead, set DATABASE_URL in the dashboard (the disk then only keeps red-team artifacts).
+# Bonded is single-writer: keep exactly one instance (no autoscaling, numInstances stays 1).
+services:
+  - type: web
+    name: bonded
+    runtime: docker
+    repo: https://github.com/Beshalaby/bonded
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter          # persistent disks need a paid instance type
+    numInstances: 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: bonded-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      # --- security (required in production)
+      - key: BONDED_ADMIN_TOKEN        # sign in at /login with this value (Dashboard > Environment to read it)
+        generateValue: true
+      - key: BONDED_INTERNAL_TOKEN     # service token for the Python runners (optional; derived if unset)
+        generateValue: true
+      - key: BONDED_PROXY_HOPS         # Render's proxy adds one X-Forwarded-For hop
+        value: "1"
+      # SPENDBENCH_ALLOWED_HOSTS defaults to $RENDER_EXTERNAL_HOSTNAME (start-prod.sh); add custom domains here.
+      - key: SPENDBENCH_ALLOWED_HOSTS
+        sync: false
+      # --- storage
+      - key: SPENDBENCH_DATA_DIR
+        value: /app/data
+      - key: DATABASE_URL              # optional: Supabase "Session pooler" connection string
+        sync: false
+      # --- behaviour
+      - key: SPENDBENCH_DEMO
+        value: "0"
+      - key: BONDED_SEED_ON_BOOT       # run the 5-sim baseline once on an empty store
+        value: "1"
+      - key: OPENROUTER_API_KEY        # optional: real models + LLM judges
+        sync: false

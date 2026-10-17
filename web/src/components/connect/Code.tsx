@@ -40,8 +40,8 @@ export function CopyButton({ text, label = "Copy", className, compact }: { text:
   return (
     <button type="button" onClick={onClick} aria-label={state === "ok" ? "Copied" : label}
       className={cx(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md text-[12px] font-medium transition-colors",
-        compact ? "w-7 justify-center" : "px-2",
+        "inline-flex h-7 max-lg:h-10 shrink-0 items-center gap-1.5 rounded-md text-[12px] font-medium transition-colors",
+        compact ? "w-7 max-lg:w-10 justify-center" : "px-2",
         state === "ok" ? "text-emerald-700" : state === "err" ? "text-rose-700" : "text-zinc-500 hover:bg-zinc-200/60 hover:text-zinc-900",
         className,
       )}>
@@ -104,7 +104,7 @@ export function CodeBlock({
   return (
     <div className={cx("group overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50/70", className)}>
       {(title || aside) ? (
-        <div className="flex h-9 items-center justify-between gap-3 border-b border-zinc-200 bg-white/60 pl-3.5 pr-1.5">
+        <div className="flex h-9 max-lg:h-11 items-center justify-between gap-3 border-b border-zinc-200 bg-white/60 pl-3.5 pr-1.5">
           <div className="min-w-0 truncate text-[12px] text-zinc-500">{title}</div>
           <div className="flex items-center gap-1">{aside}<CopyButton text={code} label={copyLabel} /></div>
         </div>
@@ -113,9 +113,9 @@ export function CodeBlock({
         <pre className={cx(
           "overflow-x-auto px-4 py-3.5 font-mono text-[12.5px] leading-[1.7] text-zinc-700",
           wrap && "whitespace-pre-wrap break-words",
-          !(title || aside) && "pr-12",
+          !(title || aside) && "pr-12 max-lg:pr-14",
         )}><code>{body}</code></pre>
-        {!(title || aside) && <CopyButton text={code} compact className="absolute right-2 top-2.5 bg-zinc-50/80" />}
+        {!(title || aside) && <CopyButton text={code} compact className="absolute right-2 top-2.5 bg-zinc-50/80 max-lg:right-1 max-lg:top-1" />}
       </div>
     </div>
   );

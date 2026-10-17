@@ -49,7 +49,9 @@ export default function GrowthChart({ steps, height = 220, big = false }: { step
   const slots = Math.max(n, 2);
   const sx = (i: number) => m.l + (i / (slots - 1)) * iw;
   const sy = (v: number) => m.t + ih - ((v - yMin) / (yMax - yMin || 1)) * ih;
-  const fs = big ? 13 : 11;
+  // phones and tablets (viewport < 1024px): 12px floor. The SVG only renders after mount.
+  const narrowVp = W < 600 || (typeof window !== "undefined" && window.innerWidth < 1024);
+  const fs = big ? 13 : narrowVp ? 12 : 11;
 
   // static path up to the second-to-last point; the newest riser animates in
   const pathTo = (k: number) => {
@@ -94,7 +96,7 @@ export default function GrowthChart({ steps, height = 220, big = false }: { step
           {roundMarks.map((r) => (
             <g key={r.i}>
               <line x1={sx(r.i)} x2={sx(r.i)} y1={m.t + ih} y2={m.t + ih + 4} stroke={INK.axis} />
-              <text x={sx(r.i)} y={H - 8} textAnchor="middle" fontSize={fs - 0.5} fill={INK.muted}>{r.label}</text>
+              <text x={sx(r.i)} y={H - 8} textAnchor="middle" fontSize={narrowVp ? fs : fs - 0.5} fill={INK.muted}>{r.label}</text>
             </g>
           ))}
           <motion.path d={area} fill={ACCENT} initial={false} animate={{ opacity: 0.07 }} />
@@ -122,8 +124,8 @@ export default function GrowthChart({ steps, height = 220, big = false }: { step
         </div>
       )}
       {hi != null && width > 0 && (
-        <div className="pointer-events-none absolute z-20 w-[240px] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-[12px] shadow-md"
-          style={{ left: Math.min(sx(hi) + 12, W - 252), top: Math.max(0, sy(steps[hi].tasks) - 12) }}>
+        <div className="pointer-events-none absolute z-20 w-[240px] max-w-[calc(100%-8px)] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-[12px] shadow-md"
+          style={{ left: Math.max(0, Math.min(sx(hi) + 12, W - 252)), top: Math.max(0, sy(steps[hi].tasks) - 12) }}>
           <div className="text-[13px] font-semibold text-zinc-900 tnum">{steps[hi].tasks} tasks</div>
           {steps[hi].scam ? (
             <>

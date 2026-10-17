@@ -30,3 +30,25 @@ body {
 .row-in { animation: row-in 1.6s ease-out; }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+/* ------------------------------------------------------------------ small screens
+   Phones and tablets: lift the tiny caption sizes to a readable 12px floor. Scoped to <1024px so desktop is untouched.
+   (The 9px "fine print" on arena product pages is a deliberate deception demo and is left alone.) */
+@media (max-width: 1023.98px) {
+  .text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .text-\[11\.5px\] { font-size: 12px; }
+}
+/* Long unbroken strings (hashes, ids, JSON) wrap instead of widening the page. */
+.break-anywhere { overflow-wrap: anywhere; word-break: break-word; }
+
+/* ------------------------------------------------------------------ /present deck unit
+   1u = min(1vw, 1.78vh) on desktop. Tablets get a larger unit so the deck stays legible in portrait;
+   phones get a scrollable, stacked deck. --umin floors small slide text at 12px below desktop. */
+.deck-u { --u: min(1vw, 1.78vh); --umin: 0px; }
+@media (max-width: 1023.98px) { .deck-u { --u: min(1.45vw, 1.12vh); --umin: 12px; } }
+@media (max-width: 639.98px) { .deck-u { --u: 2.6vw; } }
+
+/* Touch: grow the hit area of small inline links/controls to 40px without moving anything. */
+@media (max-width: 1023.98px) {
+  .tap { position: relative; }
+  .tap::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 40px); height: max(100%, 40px); transform: translate(-50%, -50%); }
+}

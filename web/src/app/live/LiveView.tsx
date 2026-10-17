@@ -5,7 +5,9 @@ import { Pause, Play, RotateCcw } from "lucide-react";
 import type { BenchResult, EvalRun, FeedEvent, GuardrailMode, LogEntry } from "@/lib/types";
 import { useEvents } from "@/components/useEvents";
 import { Badge, ProviderBadge, Select, buttonClass, cx } from "@/components/ui";
-import { getJSON, postJSON, useApi, type Task, type TasksResponse } from "@/lib/ui/api";
+import { getJSON, useApi, type Task, type TasksResponse } from "@/lib/ui/api";
+import { isAuthError, postJSON } from "@/lib/auth-client";
+import AuthError from "@/components/auth/AuthError";
 import { traceHref, usd } from "@/lib/ui/format";
 import Theater, { StatusPill } from "@/components/live/Theater";
 import { displayName, obj, str, type LiveConfig, type LiveSessionData } from "@/components/live/model";
@@ -176,14 +178,14 @@ export default function LiveView({ replayId, initialModel, initialTask }: { repl
   );
 
   return (
-    <div className="relative left-1/2 -mb-24 flex h-[calc(100dvh-104px)] min-h-[620px] w-[min(1440px,calc(100vw-40px))] -translate-x-1/2 flex-col">
+    <div className="relative left-1/2 -mb-24 flex h-[calc(100dvh-104px)] min-h-[620px] w-[min(1440px,calc(100vw-40px))] -translate-x-1/2 flex-col max-lg:static max-lg:mb-0 max-lg:h-auto max-lg:min-h-0 max-lg:w-full max-lg:translate-x-0">
       {/* header + controls */}
       <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-[20px] font-semibold leading-tight tracking-[-0.02em] text-zinc-900">
+          <h1 className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[20px] font-semibold leading-tight tracking-[-0.02em] text-zinc-900 min-[900px]:flex-nowrap min-[900px]:items-center">
             {replayId ? "Replay" : "Live"}
             <span className="text-[13px] font-normal tracking-normal text-zinc-500">
-              {replayId ? <>trace <Link href={traceHref(replayId)} className="font-mono text-[12px] text-zinc-700 hover:text-accent">{replayId}</Link></> : "Watch an agent shop. Every step is traced, hash-chained and graded."}
+              {replayId ? <>trace <Link href={traceHref(replayId)} className="break-anywhere font-mono text-[12px] text-zinc-700 hover:text-accent">{replayId}</Link></> : "Watch an agent shop. Every step is traced, hash-chained and graded."}
             </span>
           </h1>
         </div>
@@ -191,23 +193,23 @@ export default function LiveView({ replayId, initialModel, initialTask }: { repl
           <ReplayControls pos={pos} speed={speed} setSpeed={setSpeed} paused={paused} setPaused={setPaused}
             onSeek={(n) => setSeekTo({ n, nonce: Date.now() })} onRestart={() => { setPaused(false); setSeekTo({ n: 0, nonce: Date.now() }); }} />
         ) : (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 max-sm:w-full">
             {(cfg?.presets ?? []).map((p) => (
               <button key={p.key} type="button" disabled={busy} title={p.hint}
                 onClick={() => { setTaskId(p.taskId); setModel(p.model); if (phase !== "idle") reset(); }}
-                className={cx("inline-flex h-8 items-center rounded-md border px-2.5 text-[12.5px] transition-colors disabled:opacity-50",
+                className={cx("inline-flex h-8 max-lg:h-10 items-center rounded-md border px-2.5 text-[12.5px] transition-colors disabled:opacity-50",
                   taskId === p.taskId ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50")}>
                 {p.label}
               </button>
             ))}
-            <span className="mx-1 h-5 w-px bg-zinc-200" />
-            <Select label="Model" value={model} onChange={(v) => { setModel(v); if (phase !== "idle" && !busy) reset(); }} className="w-[168px]">
+            <span className="mx-1 h-5 w-px bg-zinc-200 max-sm:m-0 max-sm:h-0 max-sm:w-auto max-sm:basis-full" />
+            <Select label="Model" value={model} onChange={(v) => { setModel(v); if (phase !== "idle" && !busy) reset(); }} className="w-[168px] max-sm:w-[calc(50%-4px)]">
               {models.map((m) => <option key={m.id} value={m.id} disabled={!m.available}>{m.displayName}{m.available ? "" : " (needs key)"}</option>)}
             </Select>
-            <Select label="Task" value={taskId} onChange={(v) => { setTaskId(v); if (phase !== "idle" && !busy) reset(); }} className="w-[190px]">
+            <Select label="Task" value={taskId} onChange={(v) => { setTaskId(v); if (phase !== "idle" && !busy) reset(); }} className="w-[190px] max-sm:w-[calc(50%-4px)]">
               <TaskOptions tasks={tasks} />
             </Select>
-            <Select label="Guardrail" value={guardrail} onChange={(v) => setGuardrail(v as GuardrailMode)} className="w-[176px]">
+            <Select label="Guardrail" value={guardrail} onChange={(v) => setGuardrail(v as GuardrailMode)} className="w-[176px] max-sm:min-w-0 max-sm:flex-1">
               <option value="observe">Guardrail: observe</option>
               <option value="enforce">Guardrail: enforce</option>
               <option value="off">Guardrail: off</option>
@@ -221,7 +223,7 @@ export default function LiveView({ replayId, initialModel, initialTask }: { repl
       </div>
 
       {err && phase === "error" && !replayId && (
-        <div className="mb-3 shrink-0 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-700">{err}</div>
+        <div className="mb-3 shrink-0 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-700">{isAuthError(err) ? <AuthError message={err} /> : err}</div>
       )}
 
       <Theater key={`${replayId ?? "live"}-${nonce}`} mode={replayId ? "replay" : "live"} data={data} entries={entries} speed={speed} paused={paused}
@@ -265,13 +267,13 @@ function Intro({ task, modelName, modelProfile, simulated, phase, err, onRun, di
   const constraints = Object.entries(task.constraints ?? {});
   const tags = task.tags.map((t) => t.startsWith("redteam:") ? [`Red team: ${t.slice(8).replace(/_/g, " ")}`, "bad"] as [string, "bad"] : TAG_LABEL[t]).filter(Boolean);
   return (
-    <div className="flex h-full items-center justify-center p-8">
+    <div className="flex h-full items-center justify-center p-8 max-sm:p-4">
       <div key={task.id + modelName} className="lv-fade-up w-full max-w-[580px]">
         <div className="flex items-center gap-2 text-[12px] text-zinc-500">
           {task.adversarial ? <Badge tone="bad">Red-team task</Badge> : <span>Task</span>}
           <span className="font-mono text-[11.5px] text-zinc-700">{task.id}</span>
         </div>
-        <h2 className="mt-2.5 text-[24px] font-semibold leading-snug tracking-[-0.02em] text-zinc-900">“{task.instruction}”</h2>
+        <h2 className="mt-2.5 text-[24px] max-sm:text-[19px] font-semibold leading-snug tracking-[-0.02em] text-zinc-900">“{task.instruction}”</h2>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px]">
           <span className="rounded-md border border-zinc-200 px-2 py-0.5 text-zinc-700">Budget <span className="font-mono font-medium text-zinc-900">{usd(task.budget)}</span></span>
           {constraints.map(([k, v]) => (
@@ -285,7 +287,7 @@ function Intro({ task, modelName, modelProfile, simulated, phase, err, onRun, di
           </div>
         )}
 
-        <div className="mt-6 flex items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 max-sm:px-3">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent text-[13px] font-semibold text-white">{modelName.replace(/^Sim-/, "").slice(0, 1)}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[13.5px] font-semibold text-zinc-900">{modelName} {simulated != null && <ProviderBadge simulated={simulated} provider="OpenRouter" />}</div>
@@ -299,7 +301,7 @@ function Intro({ task, modelName, modelProfile, simulated, phase, err, onRun, di
           {phase === "starting" ? "Spawning the agent harness and opening a session in the Arena…"
             : disabledReason ?? "One paced session, about 20 seconds. It is graded like any eval and lands on the leaderboard."}
         </p>
-        {err && <p className="mt-2 text-[12.5px] text-rose-700">{err}</p>}
+        <AuthError message={err} className="mt-2" />
       </div>
     </div>
   );
@@ -311,19 +313,19 @@ function ReplayControls({ pos, speed, setSpeed, paused, setPaused, onSeek, onRes
 }) {
   const [shown, total] = pos;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button onClick={() => setPaused(!paused)} className={buttonClass("secondary")} title={paused ? "Play" : "Pause"}>
         {paused ? <Play size={13} fill="currentColor" /> : <Pause size={13} fill="currentColor" />}
       </button>
       <button onClick={onRestart} className={buttonClass("secondary")} title="Restart"><RotateCcw size={13} /></button>
-      <div className="relative h-8 w-[260px] cursor-pointer" title="Seek"
+      <div className="relative h-8 max-lg:h-10 w-[260px] cursor-pointer max-sm:w-auto max-sm:min-w-[120px] max-sm:flex-1" title="Seek"
         onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.round(((e.clientX - r.left) / r.width) * total)); }}>
         <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-zinc-100">
           <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${total ? (shown / total) * 100 : 0}%` }} />
         </div>
       </div>
       <span className="w-[54px] font-mono text-[11.5px] text-zinc-500 tnum">{shown}/{total}</span>
-      <div className="flex h-8 items-center rounded-md border border-zinc-200 p-0.5">
+      <div className="flex h-8 max-lg:h-10 items-center rounded-md border border-zinc-200 p-0.5">
         {[1, 2, 4].map((s) => (
           <button key={s} onClick={() => setSpeed(s)}
             className={cx("h-full rounded px-2.5 font-mono text-[12px] transition-colors", speed === s ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100")}>{s}×</button>

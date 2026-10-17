@@ -4,6 +4,7 @@
 //   GET    405: this server does not open server-initiated SSE streams
 // Add to Claude Code:  claude mcp add --transport http bonded http://localhost:3000/api/mcp
 import { NextResponse } from "next/server";
+import { agentKeyFrom, KeyError, type PublicAgentKey } from "@/lib/auth-node";
 import { closeClient, handleMessage, hasSession, SUPPORTED_VERSIONS, type RpcReply } from "@/lib/mcp/server";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,14 @@ export async function POST(req: Request) {
   const pv = req.headers.get("mcp-protocol-version");
   if (pv && !SUPPORTED_VERSIONS.includes(pv)) return rpcError(req, 400, -32000, `Unsupported MCP-Protocol-Version: ${pv}`);
 
+  // Optional agent key: a valid one fixes the agent's identity for sessions this request initializes.
+  let key: PublicAgentKey | null;
+  try { key = agentKeyFrom(req); } catch (e) {
+    if (e instanceof KeyError) return rpcError(req, e.status, -32001, e.message);
+    throw e;
+  }
+  const agentKey = key ? { id: key.id, name: key.name, agentId: key.agentId, ...(key.model ? { model: key.model } : {}) } : undefined;
+
   let body: unknown;
   try { body = JSON.parse(await req.text()); } catch { return rpcError(req, 400, -32700, "Parse error"); }
   const batch = Array.isArray(body);
@@ -66,7 +75,7 @@ export async function POST(req: Request) {
   if (sessionId && !initializing && !hasSession(sessionId)) return rpcError(req, 404, -32001, "Session not found; re-initialize");
   const replies: RpcReply[] = [];
   for (const m of msgs) {
-    const out = await handleMessage(m, { sessionId, origin: publicOrigin(req) });
+    const out = await handleMessage(m, { sessionId, origin: publicOrigin(req), agentKey });
     if (out.newSessionId) sessionId = out.newSessionId;
     if (out.reply) replies.push(out.reply);
   }

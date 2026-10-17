@@ -43,7 +43,8 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
   const k = Math.min(data.models.length, limit ?? data.models.length);
   const models = data.models.slice(0, k);
   if (models.length < 2) return <div className={cx("rounded-lg border border-dashed border-zinc-300 p-6 text-center text-[13px] text-zinc-500", className)}>Need at least two models with results.</div>;
-  const cell = compact ? "h-9 min-w-[60px]" : "h-11 w-[96px] min-w-[84px]";
+  // Phones: numbered columns (matching the numbered rows) and narrow cells so five models fit in ~360px.
+  const cell = cx(compact ? "h-9 min-w-[60px]" : "h-11 w-[96px] min-w-[84px]", "max-sm:h-10 max-sm:w-auto max-sm:min-w-[40px]");
 
   return (
     <div className={className}>
@@ -51,12 +52,13 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
         <table className="border-separate" style={{ borderSpacing: 3 }}>
           <thead>
             <tr>
-              <th className="pr-3 text-left align-bottom text-[11.5px] font-normal text-zinc-400">
-                <span className="whitespace-nowrap">row beats column</span>
+              <th className="pr-3 text-left align-bottom text-[11.5px] font-normal text-zinc-400 max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-white max-sm:pr-2">
+                <span className="whitespace-nowrap">row beats column<span className="sm:hidden"> (%)</span></span>
               </th>
               {models.map((m, j) => (
                 <th key={m.model} className={cx("px-1 pb-1.5 text-center align-bottom text-[11.5px] font-medium leading-tight", hover?.[1] === j ? "text-zinc-900" : "text-zinc-500")}>
-                  <span className="mx-auto block max-w-[96px] truncate" title={m.displayName}>{shortName(m.displayName)}</span>
+                  <span className="mx-auto block max-w-[96px] truncate max-sm:hidden" title={m.displayName}>{shortName(m.displayName)}</span>
+                  <span className="sm:hidden" title={m.displayName}>#{j + 1}</span>
                 </th>
               ))}
             </tr>
@@ -64,9 +66,10 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
           <tbody>
             {models.map((A, i) => (
               <tr key={A.model}>
-                <td className={cx("whitespace-nowrap pr-3 text-[13px]", hover?.[0] === i ? "text-zinc-900" : "text-zinc-700")}>
-                  <Link href={modelHref(A.model)} className="hover:text-accent">{shortName(A.displayName)}</Link>
-                  <span className="ml-2 text-[11.5px] text-zinc-400 tnum">{Math.round(A.mean * 100)}%</span>
+                <td className={cx("whitespace-nowrap pr-3 text-[13px] max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-white max-sm:pr-2", hover?.[0] === i ? "text-zinc-900" : "text-zinc-700")}>
+                  <span className="mr-1.5 inline-block w-5 text-[12px] text-zinc-400 tnum sm:hidden">#{i + 1}</span>
+                  <Link href={modelHref(A.model)} className="tap hover:text-accent max-sm:inline-block max-sm:max-w-[104px] max-sm:truncate max-sm:align-bottom">{shortName(A.displayName)}</Link>
+                  <span className="ml-2 text-[11.5px] text-zinc-400 tnum max-sm:hidden">{Math.round(A.mean * 100)}%</span>
                 </td>
                 {models.map((B, j) => {
                   const c = data.cells[i]?.[j];
@@ -80,7 +83,7 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
                   const inner = (
                     <span className="flex h-full flex-col items-center justify-center leading-none">
                       <span className={cx("tnum", compact ? "text-[12px]" : "text-[13px]", dist ? "font-semibold text-white" : c.p > 0.5 ? "font-medium text-zinc-900" : "text-zinc-400")}>
-                        {fmtP(c.p)}<span className={cx("text-[10px]", dist ? "text-white/70" : "text-zinc-400")}>%</span>
+                        {fmtP(c.p)}<span className={cx("text-[10px] max-sm:hidden", dist ? "text-white/70" : "text-zinc-400")}>%</span>
                       </span>
                     </span>
                   );

@@ -140,9 +140,13 @@ over the remaining tags.
 ```bash
 export OPENROUTER_API_KEY=sk-or-...   # export before starting the server so spawned runs inherit it
 cd web && npm run dev
-curl -X POST localhost:3000/api/runs -H 'content-type: application/json' \
-  -d '{"models":["openai/gpt-4o-mini","anthropic/claude-3.5-haiku","sim/careful"],"taskCount":30}'
+scripts/real_models.sh            # estimates cost, asks to confirm, runs 6 models × 30 tasks, prints the leaderboard
+scripts/real_models.sh -n         # estimate only
 ```
+
+Defaults (`agents/harness/models.py`): GPT-5 mini, Claude Haiku 4.5, Gemini 2.5 Flash, Llama 4 Maverick, DeepSeek V3.2,
+Qwen3 235B. `scripts/mock_openrouter.py` is an OpenAI-compatible mock (scripted shoppers, judges, fault injection)
+for testing this path without a key: `OPENROUTER_API_KEY=mock OPENROUTER_BASE_URL=http://127.0.0.1:8787`.
 
 When the key is set, the same variable also enables the LLM guardrail judge and the LLM failure-attribution
 judge (`JUDGE_MODEL`, default `openai/gpt-4o-mini`). Real-model runs are rejected with HTTP 400 when the server
@@ -157,21 +161,94 @@ has no key.
 | `SPENDBENCH_DEMO` | on in dev, off in `next start` | Enables admin + process-spawning routes (`1` force on, `0` force off) |
 | `SPENDBENCH_WORKERS` | `8` | Runner threads per run |
 | `SPENDBENCH_ALLOWED_HOSTS` | (localhost only) | Extra hostnames `/api/mcp` answers for (comma-separated). DNS-rebinding protection rejects any other Host/Origin |
+| `DATABASE_URL` | – | Postgres/Supabase store instead of the JSON file (see [docs/DEPLOY.md](docs/DEPLOY.md)) |
+| `BONDED_PG_SSL`, `BONDED_PG_CA` | – | Postgres TLS mode / CA certificate |
+| `BONDED_AUTO_SEED` | on | Seed the Arena in-process when the store is empty |
+| `BONDED_SEED_ON_BOOT` | – | `1` = also run a baseline eval after boot |
+| `BONDED_ROOT` | repo root | Where `agents/` lives (set in the Docker image) |
 | `OPENROUTER_API_KEY` | – | Real models + LLM judges |
+| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint (e.g. the mock) |
 | `NEXT_DIST_DIR` | `.next` | Lets several dev servers coexist |
 
 ## Security
 
-There is **no authentication**. SpendBench is a local or sandbox tool. Do not expose it to the internet as is.
+Access is enforced in `web/src/middleware.ts` (edge runtime, Web Crypto) for every `/api` route. Writes are deny-by-default.
 
-- **Demo-gated routes.** `middleware.ts` gates `/api/admin/*` (seed, wipe, inject and delete products, read
-  trap ground truth), `POST /api/runs` and `POST /api/redteam` (which spawn Python processes). They are on
-  under `next dev` and return 403 under `next start` unless `SPENDBENCH_DEMO=1`.
-- **Spawned processes.** Runs use `spawn` without a shell, use repo-root cwd, and receive a minimal
-  environment containing only `PATH`, `HOME`, `ARENA_URL` and the OpenRouter key. Model ids are validated
-  against a strict pattern, and task ids must exist in the task files.
+**Modes**
+
+| Mode | When | Effect |
+| --- | --- | --- |
+| open | `next dev` with no `BONDED_ADMIN_TOKEN`, or `SPENDBENCH_DEMO=1` | Everything is open, as before. The local demo needs no setup. |
+| token | `BONDED_ADMIN_TOKEN` is set (dev or prod) | The policy below is enforced. |
+| closed | production (or `SPENDBENCH_DEMO=0`) with no `BONDED_ADMIN_TOKEN` | Admin, run and service writes return 403. Reads and the agent APIs still work. |
+
+**Policy (token mode)**
+
+| Route | Who |
+| --- | --- |
+| All `GET`s (except below), `/api/arena/*`, `/api/mcp`, `/api/auth/login\|logout\|session` | Public |
+| `/api/admin/*` (any method, including `GET`, which exposes trap ground truth) | Admin cookie or service token |
+| `POST /api/bench/*`, `POST /api/redteam/progress` | Service token or admin cookie |
+| `POST /api/runs`, `/api/redteam`, `/api/live`, `/api/auth/agent-keys` (all methods), any other write | Admin cookie |
+
+- **Admin session.** Sign in at `/login` with the admin token. `POST /api/auth/login` compares it in constant
+  time and sets `bonded_admin` (HttpOnly, SameSite=Lax, Secure in production, 12 h). The cookie holds
+  `<expiry>.<HMAC-SHA256(secret, "admin:" + expiry)>`, never the token. The secret is `BONDED_SESSION_SECRET`,
+  or else it is derived from the admin token, so rotating the token signs everyone out. Sessions are stateless:
+  logout clears the cookie, but a copied cookie stays valid until it expires. Cookie-authenticated writes
+  with a foreign `Origin` are refused.
+- **Service token.** The server passes `BONDED_INTERNAL_TOKEN` to the Python processes it spawns, and they
+  send it back as `x-bonded-internal`. If the variable is unset, the token is derived from the session secret.
+- **Agent identity.** `POST /api/auth/agent-keys {name, model?}` (admin) mints a key `bk_...`. The key is shown
+  once, and only its SHA-256 is stored (`agentKeys` in the db). With `Authorization: Bearer <key>`,
+  `POST /api/arena/sessions` takes `agentId` (`key-<name>`) and, when the key has one, `model` from the key
+  instead of the body. On `/api/mcp`, a key sent at `initialize` sets the agent's name, id and model for that
+  MCP session. Without a key, the request works as before, but `session_start` is logged with `unverified: true`.
+  The server's own runner is the exception, since it sends the service token. An invalid key gets a 401.
+  Python agents can send a key via `BONDED_AGENT_KEY`.
+- **Rate limits.** In-memory token buckets per client IP: `/api/mcp` 60/min, `POST /api/arena/sessions`
+  20/min (requests with the service token are exempt), `POST /api/auth/login` 10/min. Over the limit, the
+  server returns 429 with `Retry-After`. The IP is read from `X-Forwarded-For`, counting `BONDED_PROXY_HOPS`
+  (default 1) entries from the right. Run behind a proxy that sets this header: without one, clients can spoof it.
+  The buckets are per process.
+- **Spawned processes.** Runs use `spawn` without a shell, with the repo root as cwd. Their environment holds
+  only `PATH`, `HOME`, `ARENA_URL`, the service token and the OpenRouter key. Model ids are validated against a
+  strict pattern, and task ids must exist in the task files.
 - **Agent-facing APIs.** These never expose `trap`, `marketPrice` or `source`.
 - **LLM judges.** Listing text and traces are treated as untrusted data. They are wrapped in delimiters,
   injection-like content is described but never followed, and judge output is validated before use.
-- **Unauthenticated writes.** `POST /api/bench/results` and the arena routes are unauthenticated by design,
-  because the local Python runner uses them. Anyone who can reach the server can add results.
+
+Env: `BONDED_ADMIN_TOKEN` (enables sign-in; use 32+ random chars), `BONDED_SESSION_SECRET` (optional),
+`BONDED_INTERNAL_TOKEN` (optional), `BONDED_PROXY_HOPS` (optional), `SPENDBENCH_DEMO=1|0` (force open / closed).
+
+## Testing
+
+```bash
+cd web && npm test                          # vitest unit tests (web/tests/**), no server or network needed
+cd web && npm run typecheck
+python3 -m unittest discover agents/tests   # Python grader + harness parsing tests (run from the repo root)
+scripts/smoke.sh http://127.0.0.1:3000      # API smoke test against a running server
+```
+
+- **Unit tests (`web/tests/`).** Cover the recorder hash chain (canonical JSON, tamper detection), the Beta and
+  McNemar math (`lib/stats.ts`, `components/rigor/beta.ts`) against known values, the guardrail (`checkCart`), the
+  grader, heuristic failure attribution, the analytics modules (findings, guardrail-as-classifier, pairwise
+  compare) on a synthetic DB, the MCP JSON-RPC handler, and admin-cookie / service-token auth. Each test file gets
+  its own temporary `SPENDBENCH_DATA_DIR`. `tests/setup.ts` also clears `OPENROUTER_API_KEY` and `DATABASE_URL`,
+  so tests always use the heuristic judges and the file store.
+- **Grader parity.** `agents/tests/fixtures/grade_cases.json` holds hand-built run results (pass, knockoff,
+  obeyed injection, over budget, no purchase, wrong size, …). Both test suites grade them, and
+  `web/tests/grade-parity.test.ts` runs `python3 -m agents.tests.grade_fixtures` and checks that `grade.ts` and
+  `grader.py` agree on every field. To regenerate the fixtures, run `python3 agents/tests/fixtures/make_grade_cases.py`.
+- **Persistence.** `npx vitest run -c src/lib/persist/vitest.config.ts` runs the persistence tests. Set
+  `BONDED_TEST_DATABASE_URL` to also run the Postgres tests.
+- **Smoke test.** `scripts/smoke.sh <base_url>` seeds the store and runs a 2-model × 3-task eval. It then checks
+  every GET endpoint in `CONTRACTS.md`, drives one MCP session (initialize → start_task → search → add_to_cart →
+  checkout) and verifies trace integrity. When `BONDED_ADMIN_TOKEN` is set, it first checks that anonymous writes
+  get a 401, then signs in. If `BONDED_INTERNAL_TOKEN` is set, it is sent as `x-bonded-internal`. Run it against a
+  scratch server so it doesn't touch your data:
+  `cd web && NEXT_DIST_DIR=.next-t SPENDBENCH_DATA_DIR=.data-t SPENDBENCH_SELF_URL=http://127.0.0.1:3034 npx next dev -p 3034`.
+- **CI (`.github/workflows/ci.yml`).** Runs on every push and PR to `main`: typecheck, vitest, the persistence
+  tests (against a Postgres service), the Python tests and `next build`. It then runs the smoke test against
+  `next start`, once in open mode and once in token mode. Server logs are uploaded when a step fails. Lint is not
+  gated yet.

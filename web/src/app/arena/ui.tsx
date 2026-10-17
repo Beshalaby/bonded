@@ -66,7 +66,7 @@ export function StoreHeader({ q = "", category = "", listings, sellers }: { q?: 
       </div>
       <form action="/arena" className="flex max-w-2xl overflow-hidden rounded-md border border-zinc-200 shadow-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
         {category && <input type="hidden" name="category" value={category} />}
-        <input name="q" defaultValue={q} placeholder="Search products, brands and more" className="h-9 w-full px-3 text-[13.5px] text-zinc-900 outline-none placeholder:text-zinc-400" />
+        <input name="q" defaultValue={q} placeholder="Search products, brands and more" className="h-9 max-lg:h-11 max-md:text-[16px] w-full min-w-0 px-3 text-[13.5px] text-zinc-900 outline-none placeholder:text-zinc-400" />
         <button className="border-l border-zinc-200 bg-zinc-50 px-4 text-[13px] font-medium text-zinc-700 hover:bg-zinc-100">Search</button>
       </form>
     </div>

@@ -23,6 +23,8 @@ export default function PosteriorChart({ series, height = 260, domain }: { serie
   const [hx, setHx] = useState<number | null>(null);
   const M = { l: 12, r: 12, t: 26, b: 30 + series.length * 12 };
   const iw = Math.max(10, width - M.l - M.r), ih = height - M.t - M.b;
+  // Phones: 12px axis labels on every other tick so they never collide.
+  const narrow = width > 0 && width < 480;
 
   const [x0, x1] = useMemo(() => {
     if (domain) return domain;
@@ -54,10 +56,10 @@ export default function PosteriorChart({ series, height = 260, domain }: { serie
           onMouseMove={(e) => { const r = (e.currentTarget as SVGSVGElement).getBoundingClientRect(); const x = x0 + ((e.clientX - r.left - M.l) / iw) * (x1 - x0); setHx(x >= x0 && x <= x1 ? x : null); }}
           onMouseLeave={() => setHx(null)}>
           {/* grid + axis */}
-          {ticks.map((t) => (
+          {ticks.map((t, i) => (
             <g key={t}>
               <line x1={sx(t)} x2={sx(t)} y1={M.t} y2={M.t + ih} stroke="#f0f0f2" />
-              <text x={sx(t)} y={M.t + ih + 15} textAnchor="middle" fontSize={10.5} fill="#a1a1aa" className="tnum">{Math.round(t * 1000) / 10}%</text>
+              {(!narrow || i % 2 === 0) && <text x={sx(t)} y={M.t + ih + 15} textAnchor="middle" fontSize={narrow || (typeof window !== "undefined" && window.innerWidth < 1024) ? 12 : 10.5} fill="#a1a1aa" className="tnum">{Math.round(t * 1000) / 10}%</text>}
             </g>
           ))}
           <line x1={M.l} x2={M.l + iw} y1={M.t + ih} y2={M.t + ih} stroke="#d4d4d8" />
@@ -81,8 +83,13 @@ export default function PosteriorChart({ series, height = 260, domain }: { serie
               const sc = sy(other) - sy(pt[1]);
               if (sc > score) { score = sc; best = pt; }
             });
-            const side = Math.abs(best[0] - c.peak[0]) < (x1 - x0) * 0.01 ? "middle" : best[0] > c.peak[0] ? "start" : "end";
-            const px = sx(best[0]) + (side === "start" ? 6 : side === "end" ? -6 : 0);
+            let side: "middle" | "start" | "end" = Math.abs(best[0] - c.peak[0]) < (x1 - x0) * 0.01 ? "middle" : best[0] > c.peak[0] ? "start" : "end";
+            // keep the label inside the plot (matters on narrow screens): flip or clamp using an estimated text width
+            const est = c.label.length * 6.8, bx = sx(best[0]);
+            if (side === "start" && bx + 6 + est > width - 2) side = "end";
+            else if (side === "end" && bx - 6 - est < 2) side = "start";
+            let px = bx + (side === "start" ? 6 : side === "end" ? -6 : 0);
+            if (side === "middle") px = Math.min(Math.max(px, est / 2 + 2), width - est / 2 - 2);
             return (
               <text key={c.key} x={px} y={Math.max(12, sy(best[1]) - (side === "middle" ? 8 : 4))} textAnchor={side} fontSize={12} fontWeight={500} fill="#18181b"
                 stroke="#fff" strokeWidth={3} paintOrder="stroke">{c.label}</text>

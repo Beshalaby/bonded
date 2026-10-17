@@ -64,7 +64,7 @@ export default function ToolReference({ state }: { state: ReturnType<typeof useT
         const req = new Set(t.inputSchema.required ?? []);
         const k = kind(t);
         return (
-          <div key={t.name} id={`tool-${t.name}`} className={cx("grid gap-x-8 gap-y-3 px-5 py-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]", i > 0 && "border-t border-zinc-100")}>
+          <div key={t.name} id={`tool-${t.name}`} className={cx("grid grid-cols-1 gap-x-8 gap-y-3 px-5 py-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]", i > 0 && "border-t border-zinc-100")}>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[13px] font-semibold text-zinc-900">{t.name}</span>

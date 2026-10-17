@@ -46,14 +46,14 @@ export function ProductCard({ p, merchant, compact, qty }: { p: Product; merchan
       <div className="flex items-start gap-3 px-3 py-2.5">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Link href={`/arena/p/${p.id}`} className="truncate text-[13px] font-medium text-zinc-900 hover:text-accent" title={p.title}>{p.title}</Link>
+            <Link href={`/arena/p/${p.id}`} className="tap truncate text-[13px] font-medium text-zinc-900 hover:text-accent" title={p.title}>{p.title}</Link>
             {compact && p.trap && <TrapBadge type={p.trap.type} />}
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-zinc-500">
             <span>{p.brand}</span>
             {merchant && <span>{merchant.name}{merchant.verified ? " · verified" : ""}{merchant.ageDays < 30 ? ` · ${merchant.ageDays}d old` : ""}</span>}
             <span className="tnum">★ {p.rating.toFixed(1)} ({p.reviewCount.toLocaleString()})</span>
-            <span className="font-mono text-[11px] text-zinc-400">{p.id}</span>
+            <span className="break-anywhere font-mono text-[11px] text-zinc-400">{p.id}</span>
           </div>
         </div>
         <div className="shrink-0 text-right">
@@ -70,7 +70,7 @@ export function ProductCard({ p, merchant, compact, qty }: { p: Product; merchan
         <div className="border-t border-rose-100 bg-rose-50/60 px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <TrapBadge type={p.trap.type} />
-            <span className="text-[12px] text-rose-800">{p.trap.note}</span>
+            <span className="min-w-0 break-anywhere text-[12px] text-rose-800">{p.trap.note}</span>
             {p.trap.type === "price_gouge" && overMarket > 0 && <span className="text-[12px] text-rose-700 tnum">{Math.round(overMarket * 100)}% above market</span>}
           </div>
           {hidden.length > 0 && (
@@ -216,7 +216,7 @@ function SearchResults({ results, products }: { results: P[]; products: Record<s
         );
       })}
       {results.length > 5 && (
-        <button onClick={() => setAll((a) => !a)} className="w-full bg-zinc-50 px-3 py-1 text-left text-[12px] text-zinc-500 hover:text-zinc-900">
+        <button onClick={() => setAll((a) => !a)} className="w-full bg-zinc-50 px-3 py-1 max-lg:py-2.5 text-left text-[12px] text-zinc-500 hover:text-zinc-900">
           {all ? "Show fewer" : `Show all ${results.length}`}
         </button>
       )}
@@ -237,7 +237,7 @@ export default function StepTimeline({
         const broken = brokenAt != null && e.seq === brokenAt;
         const dt = (new Date(e.ts).getTime() - t0) / 1000;
         return (
-          <li key={e.seq} id={`seq-${e.seq}`} className="relative grid scroll-mt-24 grid-cols-[28px_1fr] gap-x-3">
+          <li key={e.seq} id={`seq-${e.seq}`} className="relative grid scroll-mt-24 grid-cols-[28px_minmax(0,1fr)] gap-x-3 max-sm:gap-x-2">
             {/* rail */}
             <div className="relative flex justify-center">
               {i < entries.length - 1 && <span className="absolute bottom-0 top-7 w-px bg-zinc-200" />}
@@ -257,10 +257,10 @@ export default function StepTimeline({
 function Step({ e, r, cited, broken, dt }: { e: LogEntry; r: Rendered; cited: boolean; broken: boolean; dt: number }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className={cx("mb-1.5 min-w-0 rounded-md px-3 py-2.5",
+    <div className={cx("mb-1.5 min-w-0 rounded-md px-3 py-2.5 max-sm:px-2",
       cited && "bg-amber-50/70 ring-1 ring-amber-200", broken && "bg-rose-50 ring-1 ring-rose-300")}>
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1 text-[13.5px] leading-6 text-zinc-700">
+      <div className="flex items-start gap-3 max-sm:flex-col max-sm:gap-0.5">
+        <div className="min-w-0 flex-1 break-anywhere text-[13.5px] leading-6 text-zinc-700">
           {r.title}
           {cited && <Badge tone="warn" className="ml-2 align-[1px]">Cited as evidence</Badge>}
           {broken && <Badge tone="bad" className="ml-2 align-[1px]">Chain broken here</Badge>}
@@ -269,7 +269,7 @@ function Step({ e, r, cited, broken, dt }: { e: LogEntry; r: Rendered; cited: bo
           <span title={new Date(e.ts).toLocaleString()}>+{dt.toFixed(1)}s</span>
           <span className="text-zinc-500">#{e.seq}</span>
           <button onClick={() => setOpen((o) => !o)} title={`hash ${e.hash}\nprev ${e.prevHash}`}
-            className="inline-flex items-center gap-0.5 rounded px-1 hover:bg-zinc-100 hover:text-zinc-700">
+            className="inline-flex items-center gap-0.5 rounded px-1 hover:bg-zinc-100 hover:text-zinc-700 max-lg:-my-2.5 max-lg:min-h-10 max-lg:px-2">
             <ChevronRight size={12} className={cx("transition-transform", open && "rotate-90")} />{shortHash(e.hash)}
           </button>
         </div>

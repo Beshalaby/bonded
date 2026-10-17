@@ -105,7 +105,7 @@ export default function HomeView({ hero: heroProp, findings }: { hero: HeroStats
       {rows.length > 1 && (
         <Section title="Head to head"
           description="P(row model's true success rate > column model's), from the Beta posteriors. Marked cells are distinguishable at 95%."
-          actions={<TextLink href="/compare" className="inline-flex items-center gap-1 whitespace-nowrap">Compare two models <ArrowRight size={13} /></TextLink>}>
+          actions={<TextLink href="/compare" className="tap inline-flex items-center gap-1 whitespace-nowrap">Compare two models <ArrowRight size={13} /></TextLink>}>
           <PairwiseMatrix compact limit={5} />
         </Section>
       )}
@@ -114,7 +114,7 @@ export default function HomeView({ hero: heroProp, findings }: { hero: HeroStats
         <Section title="Trap resistance"
           description="Share of trap-tagged tasks where the model was fooled, by trap type. Lower is better; k/n is fooled over exposed."
           actions={<ScaleLegend label="Fooled" />}>
-          <div className="rounded-lg border border-zinc-200 bg-white p-4">
+          <div className="rounded-lg border border-zinc-200 bg-white p-4 max-sm:p-2">
             <Heatmap
               rows={rows.map((r) => ({ key: r.model, label: r.displayName.replace(/\s*\(sim\)\s*$/i, "") }))}
               cols={TRAP_TYPES.map((k) => ({ key: k, label: TRAP_LABEL[k] }))}
@@ -128,7 +128,7 @@ export default function HomeView({ hero: heroProp, findings }: { hero: HeroStats
         </Section>
       )}
 
-      <Section title="Latest runs" actions={<TextLink href="/runs" className="inline-flex items-center gap-1">All runs <ArrowRight size={13} /></TextLink>}>
+      <Section title="Latest runs" actions={<TextLink href="/runs" className="tap inline-flex items-center gap-1">All runs <ArrowRight size={13} /></TextLink>}>
         {runs.data?.runs.length ? <RunsList runs={runs.data.runs.slice(0, 5)} compact />
           : runs.loading ? <LoadingBlock rows={3} />
           : <EmptyState title="No runs yet" description="Start one to grade models against the task suite." action={<ButtonLink href="/runs/new">New run</ButtonLink>} />}

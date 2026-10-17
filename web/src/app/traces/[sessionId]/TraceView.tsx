@@ -30,13 +30,13 @@ export default function TraceView({ sessionId }: { sessionId: string }) {
       {/* Task */}
       <header className="mb-6">
         <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-zinc-500">
-          <Link href={modelHref(session.model)} className="font-mono text-[12.5px] text-zinc-700 hover:text-accent">{session.model}</Link>
-          {taskId && <span>Task <Link href={taskHref(taskId)} className="font-mono text-[12.5px] text-zinc-700 hover:text-accent">{taskId}</Link></span>}
-          {runId && <span>Run <Link href={runHref(runId)} className="font-mono text-[12.5px] text-zinc-700 hover:text-accent">{runId}</Link></span>}
+          <Link href={modelHref(session.model)} className="tap font-mono text-[12.5px] text-zinc-700 hover:text-accent">{session.model}</Link>
+          {taskId && <span className="min-w-0 break-anywhere">Task <Link href={taskHref(taskId)} className="tap font-mono text-[12.5px] text-zinc-700 hover:text-accent">{taskId}</Link></span>}
+          {runId && <span className="min-w-0 break-anywhere">Run <Link href={runHref(runId)} className="tap font-mono text-[12.5px] text-zinc-700 hover:text-accent">{runId}</Link></span>}
           <span>{dateTime(session.createdAt)}</span>
         </div>
-        <div className="flex items-start justify-between gap-6">
-          <h1 className="max-w-4xl text-[22px] font-semibold leading-snug tracking-[-0.015em] text-zinc-900">“{task.instruction}”</h1>
+        <div className="flex items-start justify-between gap-6 max-sm:flex-col max-sm:gap-3">
+          <h1 className="max-w-4xl text-[22px] max-sm:text-[19px] font-semibold leading-snug tracking-[-0.015em] text-zinc-900">“{task.instruction}”</h1>
           <Link href={`/live?replay=${encodeURIComponent(session.id)}`} className={cx(buttonClass("secondary"), "mt-0.5 shrink-0")} title="Replay this trace in the live agent theater">
             <Clapperboard size={13} /> Replay
           </Link>
@@ -50,7 +50,7 @@ export default function TraceView({ sessionId }: { sessionId: string }) {
       </header>
 
       {/* Outcome + integrity */}
-      <div className="mb-8 grid gap-3 lg:grid-cols-[1fr_300px]">
+      <div className="mb-8 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_300px]">
         <OutcomeBanner data={data} />
         <Card className={cx("flex flex-col justify-center", !integrity.valid && "border-rose-300 bg-rose-50/50")}>
           <div className={cx("flex items-center gap-2 text-[13.5px] font-medium", integrity.valid ? "text-emerald-700" : "text-rose-700")}>
@@ -128,14 +128,14 @@ function OutcomeBanner({ data }: { data: TraceResponse }) {
           {r.overBudget && <Badge tone="bad">Over budget</Badge>}
           {r.wrongItem && <Badge tone="warn">Wrong item</Badge>}
         </div>
-        <p className={cx("mt-1.5 text-[13.5px] leading-relaxed", neutral ? "text-zinc-700" : "text-rose-950/80")}>
+        <p className={cx("mt-1.5 break-anywhere text-[13.5px] leading-relaxed", neutral ? "text-zinc-700" : "text-rose-950/80")}>
           {a?.explanation ?? r.error ?? "No attribution recorded."}
         </p>
         {a && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12px] text-zinc-500">
             <span>Attributed by the {a.judge === "llm" ? "LLM judge" : "heuristic judge"}{a.evidenceSeqs.length ? ", citing" : ""}</span>
             {a.evidenceSeqs.map((s) => (
-              <a key={s} href={`#seq-${s}`} className="rounded bg-white px-1.5 py-0.5 font-mono text-[11.5px] text-zinc-700 ring-1 ring-zinc-200 hover:text-accent hover:ring-accent">#{s}</a>
+              <a key={s} href={`#seq-${s}`} className="tap rounded bg-white px-1.5 py-0.5 font-mono text-[11.5px] text-zinc-700 ring-1 ring-zinc-200 hover:text-accent hover:ring-accent max-lg:px-2">#{s}</a>
             ))}
           </div>
         )}

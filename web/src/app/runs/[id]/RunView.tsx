@@ -108,10 +108,10 @@ export default function RunView({ id }: { id: string }) {
             <table className="w-full border-collapse text-[13px]">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-10 h-auto border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-left text-[12px] font-medium text-zinc-500">Task</th>
+                  <th className="sticky left-0 z-10 h-auto border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-left text-[12px] font-medium text-zinc-500 max-lg:shadow-[inset_-1px_0_0_#e4e4e7] max-sm:px-3">Task</th>
                   {run.models.map((m) => (
-                    <th key={m} className="h-auto min-w-[112px] border-b border-l border-zinc-200 bg-zinc-50 px-2 py-2 text-center text-[12px] font-medium text-zinc-500">
-                      <Link href={modelHref(m)} className="font-mono text-[11.5px] hover:text-accent">{m.replace(/^sim\//, "")}</Link>
+                    <th key={m} className="h-auto min-w-[112px] max-sm:min-w-[96px] border-b border-l border-zinc-200 bg-zinc-50 px-2 py-2 text-center text-[12px] font-medium text-zinc-500">
+                      <Link href={modelHref(m)} className="tap font-mono text-[11.5px] hover:text-accent">{m.replace(/^sim\//, "")}</Link>
                     </th>
                   ))}
                 </tr>
@@ -121,9 +121,9 @@ export default function RunView({ id }: { id: string }) {
                   const task = instr.get(tid);
                   return (
                     <tr key={tid} className="hover:bg-zinc-50/60">
-                      <td className="sticky left-0 z-10 max-w-[420px] border-b border-zinc-100 bg-white px-4 py-2">
-                        <div className="flex items-center gap-2">
-                          <Link href={taskHref(tid)} className="font-mono text-[12px] text-zinc-500 hover:text-accent">{tid}</Link>
+                      <td className="sticky left-0 z-10 max-w-[420px] border-b border-zinc-100 bg-white px-4 py-2 max-lg:max-w-[240px] max-lg:shadow-[inset_-1px_0_0_#e4e4e7] max-sm:min-w-[132px] max-sm:max-w-[148px] max-sm:px-3">
+                        <div className="flex min-w-0 items-center gap-2 max-sm:flex-wrap max-sm:gap-1">
+                          <Link href={taskHref(tid)} className="tap min-w-0 truncate font-mono text-[12px] text-zinc-500 hover:text-accent">{tid}</Link>
                           {task?.adversarial && <Badge tone="warn">Adversarial</Badge>}
                         </div>
                         {task && <div className="truncate text-[12.5px] text-zinc-700" title={task.instruction}>{task.instruction}</div>}
@@ -139,7 +139,7 @@ export default function RunView({ id }: { id: string }) {
                         const o = outcomeOf(r);
                         const c = CELL[o];
                         const tip = r.attribution ? `${failureLabel(r.attribution.mode)}: ${r.attribution.explanation}` : o === "success" ? "Passed" : c.label;
-                        const content = <span className={cx("flex h-7 items-center justify-center gap-1 rounded text-[12px] font-medium transition-colors", c.cls)}>{o === "success" && <Check size={12} strokeWidth={2.5} />}{c.label}</span>;
+                        const content = <span className={cx("flex h-7 max-lg:h-10 items-center justify-center gap-1 rounded text-[12px] font-medium transition-colors", c.cls)}>{o === "success" && <Check size={12} strokeWidth={2.5} />}{c.label}</span>;
                         return (
                           <td key={m} title={tip} className={cx("border-b border-l border-zinc-100 px-1.5 py-1.5", fresh.has(key) && "row-in")}>
                             {r.sessionId ? <Link href={traceHref(r.sessionId)}>{content}</Link> : content}
@@ -161,8 +161,8 @@ export default function RunView({ id }: { id: string }) {
 
 function Crumb({ id }: { id: string }) {
   return (
-    <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-zinc-500">
-      <Link href="/runs" className="hover:text-zinc-900">Runs</Link><span className="text-zinc-300">/</span><span className="font-mono text-[12.5px]">{id}</span>
+    <nav className="mb-3 flex min-w-0 items-center gap-1.5 text-[13px] text-zinc-500">
+      <Link href="/runs" className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Runs</Link><span className="text-zinc-300">/</span><span className="min-w-0 truncate font-mono text-[12.5px]">{id}</span>
     </nav>
   );
 }

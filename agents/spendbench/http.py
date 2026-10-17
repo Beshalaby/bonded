@@ -18,6 +18,9 @@ def request(method, path, body=None, headers=None, timeout=30, base=None):
     url = (base or ARENA_URL) + path
     data = json.dumps(body).encode() if body is not None else None
     h = {"Content-Type": "application/json", "Accept": "application/json"}
+    tok = os.environ.get("BONDED_INTERNAL_TOKEN", "").strip()
+    if tok:
+        h["x-bonded-internal"] = tok  # service token from the spawning server (bench/admin/progress routes)
     h.update(headers or {})
     req = urllib.request.Request(url, data=data, method=method, headers=h)
     try:

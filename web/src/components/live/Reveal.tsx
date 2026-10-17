@@ -28,10 +28,10 @@ export default function Reveal({
   const a = result.attribution;
   const caught = result.guardrailDecision && result.guardrailDecision !== "approve";
   return (
-    <div className="lv-fade-in absolute inset-0 z-40 flex items-center justify-center bg-white/70 p-6 backdrop-blur-[3px]">
+    <div className="lv-fade-in absolute inset-0 z-40 flex items-center justify-center bg-white/70 p-6 backdrop-blur-[3px] max-sm:items-start max-sm:overflow-y-auto max-sm:p-2">
       <div className="lv-pop relative w-full max-w-[560px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_24px_60px_-20px_rgba(24,24,27,0.25)]">
-        <button onClick={onClose} title="Hide (keep watching the store)" className="absolute right-3 top-3 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"><X size={15} /></button>
-        <div className="px-6 pt-6">
+        <button onClick={onClose} title="Hide (keep watching the store)" className="absolute right-3 top-3 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 max-lg:right-1.5 max-lg:top-1.5 max-lg:p-3"><X size={15} /></button>
+        <div className="px-6 pt-6 max-sm:px-4 max-sm:pt-4">
           <div className="text-[12px] text-zinc-500">{agentName}{taskId ? <> on <span className="font-mono text-[11.5px] text-zinc-700">{taskId}</span></> : null} · graded</div>
           <div className="mt-3 flex items-center gap-3.5">
             <span className={cx("lv-stamp flex size-12 items-center justify-center rounded-full ring-1", L.ring)} style={{ animationDelay: "120ms" }}><Icon size={24} strokeWidth={1.75} /></span>
@@ -50,7 +50,7 @@ export default function Reveal({
         </div>
 
         {o === "success" && dodged.length > 0 && (
-          <div className="lv-fade-up mx-6 mt-4 rounded-md border border-emerald-200 bg-emerald-50/50 px-3.5 py-3" style={{ animationDelay: "420ms" }}>
+          <div className="lv-fade-up mx-6 max-sm:mx-4 mt-4 rounded-md border border-emerald-200 bg-emerald-50/50 px-3.5 py-3" style={{ animationDelay: "420ms" }}>
             <div className="text-[12.5px] font-semibold text-emerald-900">Inspected and avoided {dodged.length} trap listing{dodged.length === 1 ? "" : "s"}</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {dodged.map((t) => (
@@ -63,7 +63,7 @@ export default function Reveal({
         )}
 
         {a && (
-          <div className="lv-fade-up mx-6 mt-4 rounded-md border border-zinc-200 bg-zinc-50/60 px-3.5 py-3" style={{ animationDelay: "420ms" }}>
+          <div className="lv-fade-up mx-6 max-sm:mx-4 mt-4 rounded-md border border-zinc-200 bg-zinc-50/60 px-3.5 py-3" style={{ animationDelay: "420ms" }}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[12.5px] font-semibold text-zinc-900">Failure attribution</span>
               <Badge tone="bad">{failureLabel(a.mode)}</Badge>
@@ -81,7 +81,7 @@ export default function Reveal({
           </div>
         )}
 
-        <div className="lv-fade-up mx-6 mt-4 grid grid-cols-4 gap-px overflow-hidden rounded-md border border-zinc-200 bg-zinc-200 text-[12px]" style={{ animationDelay: "520ms" }}>
+        <div className="lv-fade-up mx-6 max-sm:mx-4 mt-4 grid grid-cols-4 max-sm:grid-cols-2 gap-px overflow-hidden rounded-md border border-zinc-200 bg-zinc-200 text-[12px]" style={{ animationDelay: "520ms" }}>
           <Cell k="Spent" v={result.bought === false ? "—" : usd(result.amount ?? 0)} sub={budget != null ? `of ${usd(budget, 0)}` : undefined} bad={result.overBudget} />
           <Cell k="Steps" v={String(result.steps)} sub="tool calls" />
           <Cell k="Guardrail" v={verdict?.decision ? ({ approve: "Approve", ask: "Flag", block: "Block" } as const)[verdict.decision] : "—"}
@@ -89,7 +89,7 @@ export default function Reveal({
           <Cell k="Trace" v={chain.valid ? "Verified" : "Broken"} sub={`${chain.length} blocks`} good={chain.valid} icon={<Link2 size={11} />} />
         </div>
 
-        <div className="lv-fade-up mt-5 flex items-center justify-end gap-2 border-t border-zinc-100 bg-zinc-50/50 px-6 py-3" style={{ animationDelay: "600ms" }}>
+        <div className="lv-fade-up mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-zinc-100 bg-zinc-50/50 px-6 py-3 max-sm:px-4" style={{ animationDelay: "600ms" }}>
           <Link href={traceHref(sessionId)} className={buttonClass("secondary")}>Open full trace</Link>
           <button onClick={onAgain} className={buttonClass("primary")}><RotateCcw size={13} /> {againLabel}</button>
         </div>

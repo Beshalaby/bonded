@@ -47,7 +47,7 @@ function FindingCard({ f, i, size }: { f: Finding; i: number; size: "md" | "lg" 
       <div className="mt-4 mb-4"><Visual v={f.visual} delay={0.06 * i + 0.2} /></div>
       <p className="text-[12.5px] leading-relaxed text-zinc-500">{f.detail}</p>
       <div className="mt-auto pt-3">
-        <Link href={f.href} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-accent underline-offset-2 hover:underline">
+        <Link href={f.href} className="tap inline-flex items-center gap-1 text-[12.5px] font-medium text-accent underline-offset-2 hover:underline">
           {f.hrefLabel} <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
@@ -162,7 +162,7 @@ function StepSpark({ points, base, delay }: { points: number[]; base: number; de
         initial={{ pathLength: reduce ? 1 : 0 }} animate={{ pathLength: 1 }}
         transition={{ duration: reduce ? 0 : 1.1, delay, ease: EASE }} />
       <circle cx={x(last)} cy={y(points[last])} r={3.5} fill={ACCENT} stroke="#fff" strokeWidth={1.5} />
-      <text x={x(last) + 7} y={y(points[last])} dy="0.35em" fontSize={11} fontWeight={600} fill="#18181b" className="tnum">{points[last]}</text>
+      <text x={x(last) + 7} y={y(points[last])} dy="0.35em" fontSize={11} fontWeight={600} fill="#18181b" className="tnum max-sm:text-[12px]">{points[last]}</text>
     </svg>
   );
 }

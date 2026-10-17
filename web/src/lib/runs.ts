@@ -1,6 +1,7 @@
 // Eval runs: create an EvalRun, spawn the Python runner in the background, track progress as results arrive.
 import { spawn, type ChildProcess } from "node:child_process";
 import { mutate, read, uid } from "./db";
+import { internalToken } from "./auth-node";
 import { publish } from "./events";
 import { listTasks, repoRoot, sampleTasks, type Task } from "./tasks";
 import type { EvalRun, GuardrailMode } from "./types";
@@ -18,13 +19,14 @@ export function selfUrl() {
   return (process.env.SPENDBENCH_SELF_URL || `http://127.0.0.1:${process.env.PORT || 3000}`).replace(/\/$/, "");
 }
 
-/** Minimal env for child processes: no server secrets except the OpenRouter key the agents need. */
+/** Minimal env for child processes: no server secrets except the OpenRouter key the agents need and the
+ *  service token (`x-bonded-internal`) they send back to this server's bench/admin routes. */
 export function childEnv(): NodeJS.ProcessEnv {
   const env: Record<string, string | undefined> = {
     PATH: process.env.PATH, HOME: process.env.HOME, LANG: process.env.LANG || "en_US.UTF-8",
-    PYTHONUNBUFFERED: "1", PYTHONDONTWRITEBYTECODE: "1", ARENA_URL: selfUrl(),
+    PYTHONUNBUFFERED: "1", PYTHONDONTWRITEBYTECODE: "1", ARENA_URL: selfUrl(), BONDED_INTERNAL_TOKEN: internalToken(),
   };
-  for (const k of ["OPENROUTER_API_KEY", "JUDGE_MODEL", "REDTEAM_MODEL", "BENCH_DEBUG"]) if (process.env[k]) env[k] = process.env[k];
+  for (const k of ["OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "OPENROUTER_TIMEOUT", "OPENROUTER_RETRIES", "JUDGE_MODEL", "REDTEAM_MODEL", "BENCH_DEBUG"]) if (process.env[k]) env[k] = process.env[k];
   return env as NodeJS.ProcessEnv;
 }
 

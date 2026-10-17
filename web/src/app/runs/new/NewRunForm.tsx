@@ -5,7 +5,9 @@ import { useMemo, useState } from "react";
 import { Check, Loader2, Plus } from "lucide-react";
 import { Card, Chip, PageHeader, ProviderBadge, buttonClass, cx } from "@/components/ui";
 import type { EvalRun, GuardrailMode } from "@/lib/types";
-import { postJSON, useApi, type LeaderboardResponse, type TasksResponse } from "@/lib/ui/api";
+import { useApi, type LeaderboardResponse, type TasksResponse } from "@/lib/ui/api";
+import { postJSON } from "@/lib/auth-client";
+import AuthError from "@/components/auth/AuthError";
 
 const KNOWN: { model: string; displayName: string; provider: string; simulated: boolean; note?: string }[] = [
   { model: "sim/careful", displayName: "Atlas Careful", provider: "Simulated", simulated: true, note: "Checks brand, merchant, price and budget. Baseline." },
@@ -83,17 +85,17 @@ export default function NewRunForm() {
   return (
     <>
       <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-zinc-500">
-        <Link href="/runs" className="hover:text-zinc-900">Runs</Link><span className="text-zinc-300">/</span><span>New</span>
+        <Link href="/runs" className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Runs</Link><span className="text-zinc-300">/</span><span>New</span>
       </nav>
       <PageHeader title="New run" description="Pick models and tasks. The run starts immediately; results stream in as each task is graded." />
 
-      <div className="grid items-start gap-8 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_300px]">
         <div className="space-y-10">
           <FormSection n={1} title="Models" description="Models from the leaderboard plus the built-in simulated agents. Simulated agents run instantly and cost nothing."
-            action={<button type="button" className="text-[13px] text-accent hover:underline"
+            action={<button type="button" className="shrink-0 text-[13px] text-accent hover:underline max-lg:min-h-10"
               onClick={() => setSelected((s) => (s.length === models.length ? [] : models.map((m) => m.model)))}>
               {selected.length === models.length && models.length ? "Clear" : "Select all"}</button>}>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {models.map((m) => {
                 const on = selected.includes(m.model);
                 return (
@@ -120,7 +122,7 @@ export default function NewRunForm() {
             <div className="mt-3 flex gap-2">
               <input value={custom} onChange={(e) => setCustom(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())}
                 placeholder="Add a model id, e.g. openai/gpt-4o-mini"
-                className="h-8 w-full max-w-sm rounded-md border border-zinc-200 px-2.5 font-mono text-[12.5px] shadow-sm outline-none placeholder:font-sans placeholder:text-zinc-400 focus:border-accent focus:ring-2 focus:ring-accent/15" />
+                className="h-8 max-lg:h-10 max-md:text-[16px] w-full min-w-0 max-w-sm rounded-md border border-zinc-200 px-2.5 font-mono text-[12.5px] shadow-sm outline-none placeholder:font-sans placeholder:text-zinc-400 focus:border-accent focus:ring-2 focus:ring-accent/15" />
               <button type="button" onClick={addCustom} className={buttonClass("secondary")}><Plus size={14} /> Add</button>
             </div>
           </FormSection>
@@ -129,17 +131,17 @@ export default function NewRunForm() {
             <div className="flex gap-1 rounded-md bg-zinc-100 p-0.5 text-[13px] w-fit">
               {(["sample", "tags"] as const).map((m) => (
                 <button key={m} type="button" onClick={() => setTaskMode(m)}
-                  className={cx("rounded px-3 py-1", taskMode === m ? "bg-white font-medium text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")}>
+                  className={cx("rounded px-3 py-1 max-lg:min-h-10", taskMode === m ? "bg-white font-medium text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900")}>
                   {m === "sample" ? "Random sample" : "Filter by tag"}
                 </button>
               ))}
             </div>
             {taskMode === "sample" ? (
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
                 <input type="range" min={5} max={Math.max(5, Math.min(200, allTasks.length || 100))} step={5} value={taskCount}
-                  onChange={(e) => setTaskCount(Number(e.target.value))} className="w-64 accent-[var(--color-accent)]" />
+                  onChange={(e) => setTaskCount(Number(e.target.value))} className="w-64 max-w-full accent-[var(--color-accent)] max-lg:h-10" />
                 <input type="number" min={1} value={taskCount} onChange={(e) => setTaskCount(Math.max(1, Number(e.target.value) || 1))}
-                  className="h-8 w-20 rounded-md border border-zinc-200 px-2 text-right text-[13px] tnum shadow-sm outline-none focus:border-accent" />
+                  className="h-8 max-lg:h-10 max-md:text-[16px] w-20 rounded-md border border-zinc-200 px-2 text-right text-[13px] tnum shadow-sm outline-none focus:border-accent" />
                 <span className="text-[13px] text-zinc-500">tasks, sampled</span>
               </div>
             ) : (
@@ -161,7 +163,7 @@ export default function NewRunForm() {
           </FormSection>
 
           <FormSection n={3} title="Guardrail" description="A pre-checkout checker that reviews the cart. It is evaluated alongside the agents.">
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {GUARDRAIL.map((g) => {
                 const on = guardrail === g.mode;
                 return (
@@ -202,7 +204,7 @@ export default function NewRunForm() {
               {submitting ? <><Loader2 size={14} className="animate-spin" /> Starting…</> : "Start run"}
             </button>
             {!selected.length && <p className="mt-2 text-center text-[12px] text-zinc-500">Select at least one model.</p>}
-            {err && <p className="mt-2 text-[12.5px] text-rose-700">{err}</p>}
+            <AuthError message={err} className="mt-2" />
           </Card>
         </div>
       </div>
@@ -225,7 +227,7 @@ function FormSection({ n, title, description, children, action }: { n: number; t
         </div>
         {action}
       </div>
-      <div className="pl-[22px]">{children}</div>
+      <div className="pl-[22px] max-sm:pl-0">{children}</div>
     </section>
   );
 }

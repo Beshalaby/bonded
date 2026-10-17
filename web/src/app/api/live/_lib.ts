@@ -21,11 +21,12 @@ export const SIM_MODELS: { id: string; displayName: string; profile: string }[] 
   { id: "sim/brand-blind", displayName: "Sim-BrandBlind", profile: "Buys the cheapest title match, whatever the brand." },
 ];
 export const REAL_MODELS: { id: string; displayName: string }[] = [
-  { id: "openai/gpt-4o-mini", displayName: "GPT-4o mini" },
-  { id: "anthropic/claude-3.5-haiku", displayName: "Claude 3.5 Haiku" },
-  { id: "google/gemini-2.0-flash-001", displayName: "Gemini 2.0 Flash" },
-  { id: "meta-llama/llama-3.3-70b-instruct", displayName: "Llama 3.3 70B" },
-  { id: "mistralai/mistral-small-3.1-24b-instruct", displayName: "Mistral Small 3.1" },
+  { id: "openai/gpt-5-mini", displayName: "GPT-5 mini" },
+  { id: "anthropic/claude-haiku-4.5", displayName: "Claude Haiku 4.5" },
+  { id: "google/gemini-2.5-flash", displayName: "Gemini 2.5 Flash" },
+  { id: "meta-llama/llama-4-maverick", displayName: "Llama 4 Maverick" },
+  { id: "deepseek/deepseek-v3.2", displayName: "DeepSeek V3.2" },
+  { id: "qwen/qwen3-235b-a22b-2507", displayName: "Qwen3 235B" },
 ];
 
 export interface Preset { key: string; label: string; hint: string; taskId: string; model: string }

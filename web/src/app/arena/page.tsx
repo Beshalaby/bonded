@@ -26,12 +26,12 @@ export default async function ArenaPage({ searchParams }: { searchParams: Promis
     return `/arena${u.toString() ? `?${u}` : ""}`;
   };
   const tab = (active: boolean) =>
-    `whitespace-nowrap rounded-full border px-2.5 py-1 text-[12.5px] transition-colors ${active ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"}`;
+    `shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 max-lg:py-2.5 text-[12.5px] transition-colors ${active ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"}`;
 
   return (
     <>
       <StoreHeader q={q} category={category} listings={db.products.length} sellers={db.merchants.length} />
-      <nav className="mb-6 flex flex-wrap gap-1.5">
+      <nav className="mb-6 flex flex-wrap gap-1.5 max-sm:-mx-4 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 max-sm:[scrollbar-width:none]">
         <Link href={href("")} className={tab(!category)}>All</Link>
         {CATEGORIES.map((c) => <Link key={c} href={href(c)} className={tab(category === c)}>{CATEGORY_LABELS[c]}</Link>)}
       </nav>
@@ -55,10 +55,10 @@ export default async function ArenaPage({ searchParams }: { searchParams: Promis
                   <ProductArt p={p} className="h-full w-full" />
                   {off >= 5 && <span className="absolute left-2 top-2 rounded bg-white px-1.5 py-0.5 text-[11px] font-semibold text-rose-600 ring-1 ring-rose-200 tnum">−{off}%</span>}
                 </div>
-                <div className="flex flex-1 flex-col gap-1 p-3">
+                <div className="flex min-w-0 flex-1 flex-col gap-1 p-3 max-sm:p-2.5">
                   <p className="line-clamp-2 text-[13px] leading-snug text-zinc-900 group-hover:text-accent">{p.title}</p>
                   <Stars rating={p.rating} count={p.reviewCount} />
-                  <div className="mt-auto flex items-baseline gap-2 pt-1">
+                  <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-1">
                     <span className="font-mono text-[14px] font-semibold text-zinc-900">{usd(p.price)}</span>
                     {p.listPrice > p.price && <span className="font-mono text-[11.5px] text-zinc-400 line-through">{usd(p.listPrice)}</span>}
                   </div>

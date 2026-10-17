@@ -1,0 +1,45 @@
+# Fly.io alternative to render.yaml. See docs/DEPLOY.md ("Fly.io").
+#   fly launch --no-deploy --copy-config --ha=false   (then change `app` below if you picked another name)
+#   fly volumes create bonded_data --size 1 --region iad
+#   fly secrets set BONDED_ADMIN_TOKEN=$(openssl rand -hex 32) BONDED_INTERNAL_TOKEN=$(openssl rand -hex 32)
+#   fly deploy
+# Bonded is single-writer: run exactly one machine (`fly scale count 1`).
+app = "bonded"
+primary_region = "iad"
+kill_signal = "SIGTERM"
+kill_timeout = "15s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  SPENDBENCH_DATA_DIR = "/app/data"
+  SPENDBENCH_DEMO = "0"
+  BONDED_PROXY_HOPS = "1"
+  BONDED_SEED_ON_BOOT = "1"
+  # SPENDBENCH_ALLOWED_HOSTS defaults to <app>.fly.dev in start-prod.sh; set it for custom domains.
+
+[[mounts]]
+  source = "bonded_data"
+  destination = "/app/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # Stopping the machine kills in-flight eval runs and SSE streams; keep one running.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "40s"
+    interval = "15s"
+    timeout = "5s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

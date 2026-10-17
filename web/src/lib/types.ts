@@ -206,4 +206,17 @@ export interface DB {
   runs: EvalRun[];
   meta: { seq: number; seededAt?: string };
   scams?: RedTeamScam[];        // red-team registry (Team 2, optional/additive)
+  agentKeys?: AgentKey[];       // per-agent API keys (only SHA-256 hashes stored; optional/additive)
+}
+
+/** Per-agent API key record. The plaintext key is shown once at mint time and never stored. */
+export interface AgentKey {
+  id: string;
+  name: string;
+  agentId: string;              // server-derived agentId for sessions created with this key
+  model?: string;               // when set, sessions created with this key use this model id
+  hash: string;                 // sha256 hex of the key
+  prefix: string;               // first chars of the key, for display
+  createdAt: string;
+  revokedAt?: string;
 }

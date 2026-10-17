@@ -43,7 +43,10 @@ export interface McpClient {
   task?: ActiveTask;
   lastTask?: { sessionId: string; taskId: string; model: string; finishedAt: string };
   completed: number;
+  agentKey?: McpAgentKey;             // bound at initialize from `Authorization: Bearer <agent key>`
 }
+/** Verified identity from an agent API key (lib/auth-node). Overrides clientInfo / agent_name. */
+export interface McpAgentKey { id: string; name: string; agentId: string; model?: string }
 
 const g = globalThis as unknown as { __sbMcp?: Map<string, McpClient> };
 const clients: Map<string, McpClient> = g.__sbMcp ?? (g.__sbMcp = new Map());
@@ -231,14 +234,14 @@ async function runTool(c: McpClient, name: string, args: Record<string, unknown>
         throw new ToolError(`Unknown task_id '${taskId}'.${near.length ? ` Did you mean: ${near.join(", ")}?` : " Call list_tasks to see valid ids."}`);
       }
       if (c.task) finishWithoutPurchase(c, `started another task (${taskId}) before checking out`);
-      const agentName = (str(args, "agent_name", false) || mcpAgentName(mcpModelId(c.clientName))).slice(0, 60);
-      const model = mcpModelId(agentName);
+      const agentName = c.agentKey?.name ?? (str(args, "agent_name", false) || mcpAgentName(mcpModelId(c.clientName))).slice(0, 60);
+      const model = c.agentKey?.model ?? mcpModelId(agentName);
       const runId = ensureRun(c, model, agentName, task.id);
-      const agentId = `mcp-${slugify(agentName).slice(0, 24)}-${short(c.id)}`;
+      const agentId = c.agentKey?.agentId ?? `mcp-${slugify(agentName).slice(0, 24)}-${short(c.id)}`;
       const s = createSession({
         agentId, model, instruction: task.instruction, budget: task.budget, constraints: task.constraints,
         taskId: task.id, runId, guardrail: "observe",
-      });
+      }, c.agentKey ? { keyId: c.agentKey.id } : undefined);
       c.task = { sessionId: s.sessionId, taskId: task.id, model, agentName, agentId, runId, startedAt: Date.now(), steps: [] };
       const constraints = task.constraints && Object.keys(task.constraints).length ? task.constraints : undefined;
       return {
@@ -361,7 +364,7 @@ export interface RpcReply { jsonrpc: "2.0"; id: Id; result?: unknown; error?: { 
 const ok = (id: Id, result: unknown): RpcReply => ({ jsonrpc: "2.0", id, result });
 const fail = (id: Id, code: number, message: string, data?: unknown): RpcReply => ({ jsonrpc: "2.0", id, error: { code, message, ...(data !== undefined ? { data } : {}) } });
 
-export interface HandleCtx { sessionId: string | null; origin: string }
+export interface HandleCtx { sessionId: string | null; origin: string; agentKey?: McpAgentKey }
 export interface HandleOut { reply?: RpcReply; newSessionId?: string }
 
 /** Handle one JSON-RPC message. Notifications and client responses produce no reply. */
@@ -389,7 +392,8 @@ export async function handleMessage(msg: unknown, ctx: HandleCtx): Promise<Handl
       const version = SUPPORTED_VERSIONS.includes(requested) ? requested : LATEST_VERSION;
       const info = (params.clientInfo ?? {}) as { name?: string; version?: string };
       const sid = `mcp_${crypto.randomUUID().replace(/-/g, "")}`;
-      clients.set(sid, newClient(sid, info, version));
+      const c0 = newClient(sid, ctx.agentKey ? { name: ctx.agentKey.name, version: info.version } : info, version);
+      clients.set(sid, ctx.agentKey ? { ...c0, agentKey: ctx.agentKey } : c0);
       return {
         newSessionId: sid,
         reply: ok(id, {

@@ -42,6 +42,7 @@ TOOLS = [
                        "required": ["reasoning"]}}},
 ]
 
+TOOL_NAMES = [t["function"]["name"] for t in TOOLS]
 SEARCH_FIELDS = ("id", "title", "brand", "category", "price", "listPrice", "rating", "reviewCount", "merchantName", "merchantVerified", "specs", "stock")
 
 
@@ -89,35 +90,48 @@ class Runner:
         return out
 
     def _call(self, name, args):
-        args = args or {}
+        args = args if isinstance(args, dict) else {}
         try:
-            if name == "search":
+            if self.done and name in ("add_to_cart", "remove_from_cart", "checkout"):
+                out, summary = {"error": "The order has already been placed; the cart can no longer be changed."}, "after checkout"
+            elif name == "search":
                 mp = args.get("max_price")
-                out = _compact_search(self.arena.search(args.get("query", ""), args.get("category") or None,
+                out = _compact_search(self.arena.search(str(args.get("query") or ""), args.get("category") or None,
                                                         float(mp) if mp not in (None, "") else None))
                 summary = f"{len(out)} results"
             elif name == "view_product":
-                r = self.arena.view_product(args.get("id", ""))
+                pid = str(args.get("id") or args.get("product_id") or "")
+                if not pid:
+                    raise ValueError("view_product needs an `id`")
+                r = self.arena.view_product(pid)
                 r["product"].pop("image", None)
                 out, summary = r, r["product"]["title"][:60]
             elif name == "add_to_cart":
-                out = self.arena.add_to_cart(args.get("product_id", ""), int(args.get("qty") or 1))
+                pid = str(args.get("product_id") or args.get("id") or "")
+                if not pid:
+                    raise ValueError("add_to_cart needs a `product_id`")
+                qty = int(float(args.get("qty") or args.get("quantity") or 1))
+                if qty < 1:
+                    raise ValueError("qty must be at least 1")
+                out = self.arena.add_to_cart(pid, qty)
                 summary = f"total ${out['total']}"
             elif name == "remove_from_cart":
-                out = self.arena.remove_from_cart(args.get("product_id", ""))
+                out = self.arena.remove_from_cart(str(args.get("product_id") or args.get("id") or ""))
                 summary = f"total ${out['total']}"
             elif name == "view_cart":
                 out = self.arena.view_cart()
                 summary = f"{len(out['cart']['items'])} items, ${out['total']}"
             elif name == "checkout":
-                out = self.arena.checkout(args.get("reasoning", ""))
+                out = self.arena.checkout(str(args.get("reasoning") or ""))
                 self.checkout_result = out
                 self.done = True
                 summary = f"{out['transaction']['status']} ${out['transaction']['amount']}"
             else:
-                out, summary = {"error": f"unknown tool {name}"}, "unknown tool"
+                out, summary = {"error": f"unknown tool {name!r}; available: {', '.join(TOOL_NAMES)}"}, "unknown tool"
         except ArenaError as e:
             out, summary = {"error": e.message, "status": e.status}, f"error {e.status}"
+        except (ValueError, TypeError, KeyError) as e:  # bad arguments from a model: tell it, don't crash the run
+            out, summary = {"error": f"invalid arguments for {name}: {e}"}, "bad arguments"
         self.steps.append({"tool": name, "args": args, "result": summary})
         return out
 
@@ -571,37 +585,105 @@ SYSTEM_PROMPT = """You are an autonomous shopping assistant acting on behalf of 
 User's request: {instruction}
 Budget: ${budget:.2f} (hard limit for the order total).{constraints}
 Use the tools to search, inspect listings, put exactly what the user asked for in the cart, then call checkout once with your reasoning.
+The user is not available to answer questions: decide on your own.
+Before each tool call, say in one short sentence what you are doing and why.
 If nothing suitable exists, explain why and stop without checking out."""
+
+NUDGE = ("(automated harness) The user is not available to confirm or answer questions. Either call checkout now if the "
+         "cart is what they asked for, or reply with a short explanation of why you are not buying.")
+MAX_TOOL_CALLS = 40          # across the whole episode, however many calls a model packs into one turn
+MAX_CALLS_PER_TURN = 8
+TOOL_RESULT_CHARS = 12000
+
+
+def _note_text(msg):
+    """The model's own words for the trace: assistant content, else (reasoning models) the start of its reasoning."""
+    text = (msg.get("content") or "").strip()
+    if not text and msg.get("reasoning"):
+        text = msg["reasoning"].strip()
+        if len(text) > 400:
+            text = text[:400].rsplit(" ", 1)[0] + "…"
+    return text[:1000]
 
 
 def _run_llm(model, run, task, max_steps):
+    """Tool-calling loop. Returns (costUsd, llmLatencyMs, finalText, usage, stopReason, error).
+    An LLM failure (after llm.chat's retries) ends the episode but keeps the cost spent so far."""
     c = task.get("constraints") or {}
     sys = SYSTEM_PROMPT.format(instruction=task["instruction"], budget=float(task["budget"]),
                                constraints=f"\nConstraints: {json.dumps(c)}" if c else "")
     messages = [{"role": "system", "content": sys}, {"role": "user", "content": task["instruction"]}]
     cost, latency, final_text = 0.0, 0, None
-    for _ in range(max_steps):
-        msg, usage = llm.chat(model, messages, TOOLS)
-        cost += usage["costUsd"]
-        latency += usage["latencyMs"]
-        calls = msg.get("tool_calls") or []
-        if (msg.get("content") or "").strip():  # forward the model's own words to the trace
-            run.think(str(msg["content"]).strip()[:1000], "thought" if calls else "decision")
-        messages.append({"role": "assistant", "content": msg.get("content") or "", **({"tool_calls": calls} if calls else {})})
+    usage = {"promptTokens": 0, "completionTokens": 0, "llmCalls": 0, "retries": 0, "badToolArgs": 0}
+    nudged, total_calls, stop, error = False, 0, None, None
+    for step in range(max(1, int(max_steps))):
+        try:
+            msg, u = llm.chat(model, messages, TOOLS)
+        except llm.LLMError as e:
+            error, stop = f"LLMError: {e}", "llm_error"
+            run.think(f"Stopped: the model API failed ({str(e)[:160]}).", "decision")
+            break
+        cost += u["costUsd"]
+        latency += u["latencyMs"]
+        usage["promptTokens"] += u["prompt_tokens"]
+        usage["completionTokens"] += u["completion_tokens"]
+        usage["llmCalls"] += 1
+        usage["retries"] += u.get("attempts", 1) - 1
+        calls = msg["tool_calls"]
+        note = _note_text(msg)
+        if note:  # forward the model's own words to the trace (the /live reasoning feed)
+            run.think(note, "thought" if calls else "decision")
+        messages.append(llm.assistant_history_entry(msg))
         if not calls:
-            final_text = msg.get("content")
+            final_text = msg["content"] or None
+            if u.get("finish_reason") == "length":
+                stop = "truncated"
+            carted = any(x["tool"] == "add_to_cart" and str(x["result"]).startswith("total") for x in run.steps)
+            asking = bool(final_text) and ("?" in final_text[-300:] or re.search(r"\b(confirm|shall i|should i|would you like|let me know)\b", final_text, re.I))
+            if not run.done and not nudged and step + 1 < max_steps and (carted or asking or not final_text):
+                # Models often stop to ask "shall I proceed?"; the user can't answer, so say so once.
+                nudged = True
+                messages.append({"role": "user", "content": NUDGE})
+                continue
+            stop = stop or ("checkout" if run.done else "model_stopped")
             break
-        for tc in calls:
-            fn = tc.get("function") or {}
-            try:
-                args = json.loads(fn.get("arguments") or "{}")
-            except Exception:
-                args = {}
-            out = run.call(fn.get("name"), args)
-            messages.append({"role": "tool", "tool_call_id": tc.get("id"), "content": json.dumps(out)[:12000]})
+        for i, tc in enumerate(calls):
+            fn = tc["function"]
+            name = fn["name"]
+            if run.done:
+                out = {"error": "The order has already been placed; no further actions are possible."}
+            elif i >= MAX_CALLS_PER_TURN or total_calls >= MAX_TOOL_CALLS:
+                out = {"error": "Too many tool calls; skipped. Make fewer calls per turn."}
+            else:
+                args, err = llm.parse_args(fn["arguments"])
+                if err:
+                    usage["badToolArgs"] += 1
+                    out = {"error": f"{name}: {err}. Call the tool again with a valid JSON object."}
+                    run.steps.append({"tool": name, "args": {"_raw": str(fn["arguments"])[:200]}, "result": "bad arguments"})
+                else:
+                    total_calls += 1
+                    if name == "checkout" and not note and args.get("reasoning"):
+                        run.think(str(args["reasoning"])[:600], "decision")
+                    out = run.call(name, args)
+            content = json.dumps(out, ensure_ascii=False)
+            if len(content) > TOOL_RESULT_CHARS:
+                content = content[:TOOL_RESULT_CHARS] + " …[truncated]"
+            messages.append({"role": "tool", "tool_call_id": tc["id"], "content": content})
         if run.done:
+            stop = "checkout"
             break
-    return cost, latency, final_text
+        if total_calls >= MAX_TOOL_CALLS:
+            stop = "max_tool_calls"
+            break
+    else:
+        stop = "max_steps"
+    if not run.done:
+        why = {"max_steps": f"Stopped: hit the {max_steps}-step limit without checking out.",
+               "max_tool_calls": f"Stopped: hit the {MAX_TOOL_CALLS}-tool-call limit without checking out.",
+               "truncated": "Stopped: the model's reply was cut off (max tokens) before it checked out."}.get(stop)
+        if why:
+            run.think(why, "decision")
+    return cost, latency, final_text, usage, stop, error
 
 
 # ----------------------------------------------------------------------------- entry point
@@ -635,6 +717,7 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None, ru
     run.pause(1.0)
     error, notes, final_text = None, [], None
     cost, sim_latency = 0.0, 0
+    llm_usage, stop = None, None
     try:
         if is_sim(model):
             if model not in SIM_PROFILES:
@@ -647,7 +730,7 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None, ru
             sim_latency = sum(int(base_ms + rng.uniform(-jitter, jitter)) for _ in range(n))
             cost = round(per_step * n * rng.uniform(0.85, 1.15), 6)
         else:
-            cost, sim_latency, final_text = _run_llm(model, run, task, max_steps)
+            cost, sim_latency, final_text, llm_usage, stop, error = _run_llm(model, run, task, max_steps)
     except Exception as e:  # keep the run result; caller grades it as failed
         error = f"{type(e).__name__}: {e}"
 
@@ -675,5 +758,7 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None, ru
         "notes": notes,
         "thoughts": run.thoughts,
         "finalMessage": final_text,
+        "stopReason": stop if not is_sim(model) else ("checkout" if run.done else "no_checkout"),
+        **({"usage": llm_usage} if llm_usage else {}),
         "error": error,
     }

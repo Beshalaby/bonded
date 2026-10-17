@@ -1,0 +1,42 @@
+# Keep the build context small and never ship local state or secrets.
+.git
+.github
+.playwright-mcp
+.env
+.env.*
+!.env.example
+*.pem
+
+# node / next build output (rebuilt in the image)
+**/node_modules
+**/.next
+**/.next-*
+web/out
+web/coverage
+web/*.tsbuildinfo
+web/next-env.d.ts
+web/.dev-server*.log
+**/npm-debug.log*
+
+# local stores
+**/.data
+**/.data-*
+data
+
+# tests (not needed to build or run; keeps `next build`'s typecheck to app code)
+web/tests
+web/src/**/__tests__
+agents/tests
+
+# python junk + local run outputs
+**/__pycache__
+**/*.pyc
+agents/results/*
+
+# deploy/docs files that don't belong in the image
+supabase
+docs
+fly.toml
+render.yaml
+Dockerfile
+.dockerignore

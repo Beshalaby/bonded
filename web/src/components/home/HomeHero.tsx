@@ -22,7 +22,7 @@ export default function HomeHero({ hero, connected, live, rows }: { hero: HeroSt
   ];
   return (
     <section className="relative pb-2 pt-6">
-      <div className="relative grid items-end gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_452px]">
+      <div className="relative grid grid-cols-1 items-end gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_452px]">
        <div>
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
           className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-zinc-500">
@@ -34,11 +34,11 @@ export default function HomeHero({ hero, connected, live, rows }: { hero: HeroSt
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.05, ease: EASE }}
-          className="mt-5 max-w-[640px] text-[48px] font-semibold leading-[1.04] tracking-[-0.035em] text-zinc-900">
+          className="mt-5 max-w-[640px] text-[48px] max-sm:text-[38px] font-semibold leading-[1.04] tracking-[-0.035em] text-zinc-900">
           How safely do AI agents <br className="hidden lg:block" /><span className="text-zinc-400">spend money?</span>
         </motion.h1>
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.12, ease: EASE }}
-          className="mt-4 max-w-[600px] text-[16px] leading-relaxed text-zinc-600">
+          className="mt-4 max-w-[600px] text-[16px] max-sm:text-[15px] leading-relaxed text-zinc-600">
           Agents shop in a sandbox store seeded with knockoffs, fake discounts and hidden prompt injections. Every step is
           hash-chained, every failure is attributed, and a red team keeps writing new scams that make the benchmark harder.
         </motion.p>
@@ -52,7 +52,7 @@ export default function HomeHero({ hero, connected, live, rows }: { hero: HeroSt
         </motion.div>
        </div>
         <motion.figure initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: EASE }}
-          className="rounded-xl border border-zinc-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          className="rounded-xl border border-zinc-200 bg-white p-5 max-sm:p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <figcaption className="mb-3 flex items-baseline justify-between gap-3">
             <span className="text-[13px] font-semibold text-zinc-900">P(success), 90% credible interval</span>
             <span className="text-[11.5px] text-zinc-400">Beta posterior</span>
@@ -66,8 +66,8 @@ export default function HomeHero({ hero, connected, live, rows }: { hero: HeroSt
           className="mt-12 grid grid-cols-2 border-t border-zinc-200 lg:grid-cols-4">
           {stats.map((s, i) => (
             <div key={s.label} title={s.hint}
-              className={cx("py-5 pr-6", i > 0 && "lg:border-l lg:border-zinc-200 lg:pl-6", i % 2 === 1 && "border-l border-zinc-200 pl-6 lg:pl-6")}>
-              <dd className="text-[34px] font-semibold leading-none tracking-[-0.03em] text-zinc-900">
+              className={cx("min-w-0 py-5 pr-6 max-sm:pr-3", i > 0 && "lg:border-l lg:border-zinc-200 lg:pl-6", i % 2 === 1 && "border-l border-zinc-200 pl-6 max-sm:pl-4 lg:pl-6")}>
+              <dd className="text-[34px] max-sm:text-[28px] font-semibold leading-none tracking-[-0.03em] text-zinc-900">
                 <RollingNumber value={s.value} format={s.fmt} />
               </dd>
               <dt className="mt-2.5 text-[13px] text-zinc-500">{s.label}</dt>
@@ -81,7 +81,7 @@ export default function HomeHero({ hero, connected, live, rows }: { hero: HeroSt
               <motion.span key={live.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.3, ease: EASE }} className="flex min-w-0 items-center gap-1.5 truncate">
                 <span className={cx("size-1.5 shrink-0 rounded-full", live.tone === "good" ? "bg-emerald-500" : live.tone === "bad" ? "bg-rose-500" : "bg-zinc-400")} />
-                {live.href ? <Link href={live.href} className="truncate hover:text-accent">{live.text}</Link> : <span className="truncate">{live.text}</span>}
+                {live.href ? <Link href={live.href} className="truncate hover:text-accent max-lg:py-3">{live.text}</Link> : <span className="truncate">{live.text}</span>}
               </motion.span>
             ) : (
               <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="truncate">

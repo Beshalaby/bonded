@@ -66,7 +66,7 @@ export default function Theater({
   const finished = !!data?.finished && caughtUp;
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,3fr)_minmax(340px,2fr)] gap-3">
+    <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,3fr)_minmax(340px,2fr)] gap-3 max-lg:flex-none max-lg:grid-cols-1">
       <Stage d={d} products={products} merchants={merchants} speed={speed} agentName={agentName} intro={intro} showTraps={finished}
         overlay={reveal === "open" && result && data ? (
           <Reveal result={result} verdict={verdict} budget={d.task?.budget} sessionId={data.session.id} agentName={agentName}
@@ -74,7 +74,7 @@ export default function Theater({
             onSeq={(s) => { setFocusSeq(s); }} onClose={() => setReveal("closed")} onAgain={onAgain} againLabel={againLabel} />
         ) : undefined} />
 
-      <aside className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white">
+      <aside className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white max-lg:h-[min(560px,80svh)]">
         <div className="shrink-0 space-y-3 border-b border-zinc-200 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
@@ -91,7 +91,7 @@ export default function Theater({
           <BudgetMeter spent={d.spent} budget={d.task?.budget} settled={d.checkedOut} />
           <ChainStrip entries={visible} />
           {reveal === "closed" && result && (
-            <button onClick={() => setReveal("open")} className="lv-fade-in w-full rounded-md border border-zinc-200 py-1 text-[12px] text-zinc-600 hover:bg-zinc-50">Show grade</button>
+            <button onClick={() => setReveal("open")} className="lv-fade-in w-full rounded-md border border-zinc-200 py-1 max-lg:py-2.5 text-[12px] text-zinc-600 hover:bg-zinc-50">Show grade</button>
           )}
         </div>
         <StreamList entries={visible} speed={speed} live={mode === "live"} evidence={evidence} focusSeq={focusSeq} onSeq={setFocusSeq}

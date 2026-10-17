@@ -98,7 +98,7 @@ export function rampColor(t: number) {
 
 export function ScaleLegend({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 text-[11.5px] text-zinc-500 tnum">
+    <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-zinc-500 tnum">
       <span>{label}</span>
       <span>0%</span>
       <span className="h-2 w-28 rounded-sm" style={{ background: `linear-gradient(to right, ${RAMP.join(",")})` }} />
@@ -113,12 +113,17 @@ export function ScaleLegend({ label }: { label: string }) {
 
 /* --------------------------------------------------------------- heatmap */
 
+// Short column labels for phones, where five full trap names cannot share 360px.
+const SHORT_LABEL: Record<string, string> = {
+  "Prompt injection": "Inject.", "Fake discount": "Fake disc.", "New merchant": "New merch.", "Price gouging": "Gouging", "Knockoff": "Knock-off",
+};
+
 export interface HeatCell { rate: number | null; fooled: number; exposed: number; lower?: number; upper?: number }
 export function Heatmap({
   rows, cols, cell, rowHref,
 }: {
   rows: { key: string; label: ReactNode }[];
-  cols: { key: string; label: string }[];
+  cols: { key: string; label: string; short?: string }[];
   cell: (row: string, col: string) => HeatCell | undefined;
   rowHref?: (row: string) => string;
 }) {
@@ -127,24 +132,29 @@ export function Heatmap({
       <table className="w-full border-separate" style={{ borderSpacing: 2 }}>
         <thead>
           <tr>
-            <th className="w-[220px]" />
+            <th className="w-[220px] max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:w-[84px] max-sm:bg-white" />
             {cols.map((c) => (
-              <th key={c.key} className="px-2 pb-1.5 text-center text-[12px] font-medium text-zinc-500">{c.label}</th>
+              <th key={c.key} title={c.label} className="px-2 pb-1.5 text-center text-[12px] font-medium text-zinc-500 max-sm:px-0.5 max-sm:leading-tight">
+                <span className="max-sm:hidden">{c.label}</span>
+                <span className="sm:hidden">{c.short ?? SHORT_LABEL[c.label] ?? c.label}</span>
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.key}>
-              <td className="truncate pr-4 text-[13px] text-zinc-800">
-                {rowHref ? <Link href={rowHref(r.key)} className="hover:text-accent">{r.label}</Link> : r.label}
+              <td className="truncate pr-4 text-[13px] text-zinc-800 max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-white max-sm:pr-2">
+                <span className="block truncate max-sm:max-w-[80px]">
+                  {rowHref ? <Link href={rowHref(r.key)} className="tap hover:text-accent">{r.label}</Link> : r.label}
+                </span>
               </td>
               {cols.map((c) => {
                 const v = cell(r.key, c.key);
                 if (!v || !v.exposed || v.rate == null) {
                   return (
                     <td key={c.key} title="Not tested"
-                      className="h-10 rounded-[3px] bg-[repeating-linear-gradient(135deg,#f4f4f5_0,#f4f4f5_2px,#fff_2px,#fff_5px)] text-center text-[12px] text-zinc-400">
+                      className="h-10 max-sm:h-12 max-sm:min-w-[44px] rounded-[3px] bg-[repeating-linear-gradient(135deg,#f4f4f5_0,#f4f4f5_2px,#fff_2px,#fff_5px)] text-center text-[12px] text-zinc-400">
                       –
                     </td>
                   );
@@ -154,10 +164,10 @@ export function Heatmap({
                   (v.lower != null && v.upper != null ? ` · 90% CI ${Math.round(v.lower * 100)}–${Math.round(v.upper * 100)}%` : "");
                 return (
                   <td key={c.key} title={tip}
-                    className="group h-10 min-w-[96px] rounded-[3px] text-center tnum outline-offset-[-1px] hover:outline hover:outline-2 hover:outline-zinc-900/70"
+                    className="group h-10 min-w-[96px] rounded-[3px] text-center tnum outline-offset-[-1px] hover:outline hover:outline-2 hover:outline-zinc-900/70 max-sm:h-12 max-sm:min-w-[44px] max-sm:leading-tight"
                     style={{ background: rampColor(v.rate) }}>
                     <span className={cx("text-[13px] font-medium", dark ? "text-white" : "text-zinc-900")}>{Math.round(v.rate * 100)}%</span>
-                    <span className={cx("ml-1.5 text-[11px]", dark ? "text-white/75" : "text-zinc-500")}>{v.fooled}/{v.exposed}</span>
+                    <span className={cx("ml-1.5 text-[11px] max-sm:ml-0 max-sm:block", dark ? "text-white/75" : "text-zinc-500")}>{v.fooled}/{v.exposed}</span>
                   </td>
                 );
               })}
@@ -186,7 +196,7 @@ export function RateBars({
           const raw = tested ? r.k / r.n : 0;
           return (
             <div key={r.key} onMouseEnter={() => setHover(r.key)} onMouseLeave={() => setHover(null)}
-              className={cx("grid grid-cols-[132px_1fr_92px] items-center gap-3 rounded px-1 py-1.5", hover === r.key && "bg-zinc-50")}
+              className={cx("grid grid-cols-[132px_1fr_92px] items-center gap-3 rounded px-1 py-1.5 max-sm:grid-cols-[96px_minmax(0,1fr)_78px] max-sm:gap-2", hover === r.key && "bg-zinc-50")}
               title={tested ? `${valueLabel} ${r.k} of ${r.n} · ${Math.round(raw * 100)}% (90% CI ${Math.round(r.rate.lower * 100)}–${Math.round(r.rate.upper * 100)}%)` : "Not tested"}>
               <div className="truncate text-[13px] text-zinc-700">{r.label}</div>
               <div className="relative h-4">
@@ -210,14 +220,14 @@ export function RateBars({
           );
         })}
       </div>
-      <div className="mt-1 grid grid-cols-[132px_1fr_92px] gap-3 px-1 text-[10.5px] text-zinc-400 tnum">
+      <div className="mt-1 grid grid-cols-[132px_1fr_92px] gap-3 px-1 text-[10.5px] text-zinc-400 tnum max-sm:grid-cols-[96px_minmax(0,1fr)_78px] max-sm:gap-2">
         <span />
         <div className="relative h-3">
           {[0, 0.25, 0.5, 0.75, 1].map((t) => (
-            <span key={t} className={cx("absolute", t === 0 ? "" : t === 1 ? "-translate-x-full" : "-translate-x-1/2")} style={{ left: `${t * 100}%` }}>{t * 100}%</span>
+            <span key={t} className={cx("absolute", t === 0 ? "" : t === 1 ? "-translate-x-full" : "-translate-x-1/2", (t === 0.25 || t === 0.75) && "max-sm:hidden")} style={{ left: `${t * 100}%` }}>{t * 100}%</span>
           ))}
         </div>
-        <span className="text-right">observed · k/n</span>
+        <span className="text-right max-sm:leading-tight">observed · k/n</span>
       </div>
     </div>
   );
@@ -231,7 +241,7 @@ export function CountBars({ rows, total, color = SERIES }: { rows: { key: string
   return (
     <div className="space-y-1">
       {rows.map((r) => (
-        <div key={r.key} className="grid grid-cols-[150px_1fr_72px] items-center gap-3 rounded px-1 py-1.5 hover:bg-zinc-50"
+        <div key={r.key} className="grid grid-cols-[150px_1fr_72px] items-center gap-3 rounded px-1 py-1.5 hover:bg-zinc-50 max-sm:grid-cols-[112px_minmax(0,1fr)_64px] max-sm:gap-2"
           title={`${typeof r.label === "string" ? r.label : r.key}: ${r.value} (${Math.round((r.value / Math.max(1, sum)) * 100)}%)`}>
           <div className="truncate text-[13px] text-zinc-700">{r.label}</div>
           <div className="relative h-[10px]">
@@ -263,6 +273,8 @@ export function LineChart({
   const [hi, setHi] = useState<number | null>(null);
   const m = { l: 40, r: 44, t: 14, b: 26 };
   const W = Math.max(200, width), H = height;
+  // phones and tablets (viewport < 1024px): keep axis text at a readable 12px. The SVG only renders after mount.
+  const fs = W < 600 || (typeof window !== "undefined" && window.innerWidth < 1024) ? 12 : 11;
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
 
   const { xs, ys, ticks, top } = useMemo(() => {
@@ -306,12 +318,12 @@ export function LineChart({
           {ticks.map((t) => (
             <g key={t.v}>
               <line x1={m.l} x2={m.l + iw} y1={t.y} y2={t.y} stroke={t.v === yMin ? INK.axis : INK.grid} strokeWidth={1} />
-              <text x={m.l - 8} y={t.y} dy="0.32em" textAnchor="end" fontSize={11} fill={INK.muted} className="tnum">{yFormat(t.v)}</text>
+              <text x={m.l - 8} y={t.y} dy="0.32em" textAnchor="end" fontSize={fs} fill={INK.muted} className="tnum">{yFormat(t.v)}</text>
             </g>
           ))}
-          {yLabel && <text x={m.l} y={8} fontSize={11} fill={INK.muted} dx={-32}>{yLabel}</text>}
+          {yLabel && <text x={m.l} y={8} fontSize={fs} fill={INK.muted} dx={-32}>{yLabel}</text>}
           {xLabelIdx.map((i) => (
-            <text key={i} x={xs[i]} y={H - 6} fontSize={11} fill={INK.muted} className="tnum"
+            <text key={i} x={xs[i]} y={H - 6} fontSize={fs} fill={INK.muted} className="tnum"
               textAnchor={i === 0 && xs.length > 1 ? "start" : i === last ? "end" : "middle"}>{fmtX(data[i], i)}</text>
           ))}
           <path d={area} fill={SERIES} opacity={0.07} />

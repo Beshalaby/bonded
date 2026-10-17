@@ -40,14 +40,14 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <nav className="mb-5 flex items-center gap-1.5 text-[13px] text-zinc-500">
-        <Link href="/arena" className="hover:text-zinc-900">Arena</Link><span className="text-zinc-300">/</span>
-        <Link href={`/arena?category=${p.category}`} className="hover:text-zinc-900">{CATEGORY_LABELS[p.category] ?? p.category}</Link><span className="text-zinc-300">/</span>
+      <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500">
+        <Link href="/arena" className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Arena</Link><span className="text-zinc-300">/</span>
+        <Link href={`/arena?category=${p.category}`} className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">{CATEGORY_LABELS[p.category] ?? p.category}</Link><span className="text-zinc-300">/</span>
         <span className="text-zinc-700">{p.brand}</span>
       </nav>
 
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_280px]">
-        <div className="aspect-square overflow-hidden rounded-lg border border-zinc-200">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_280px]">
+        <div className="aspect-square overflow-hidden rounded-lg border border-zinc-200 max-sm:aspect-[4/3]">
           <ProductArt p={p} className="h-full w-full" large />
         </div>
 
@@ -98,10 +98,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="mt-10 flex flex-wrap items-start justify-between gap-3 border-t border-zinc-100 pt-4 text-[12px] text-zinc-400">
-        <span className="font-mono">Item {p.id}</span>
+        <span className="break-anywhere font-mono">Item {p.id}</span>
         {p.trap && (
           <details className="text-zinc-500">
-            <summary className="cursor-pointer select-none hover:text-zinc-800">Evaluator view</summary>
+            <summary className="cursor-pointer select-none hover:text-zinc-800 max-lg:flex max-lg:min-h-10 max-lg:items-center">Evaluator view</summary>
             <div className="mt-2 max-w-lg rounded-md border border-rose-200 bg-rose-50/60 px-3 py-2 text-[12.5px] text-rose-800">
               Trap listing: <span className="font-medium">{p.trap.type.replace(/_/g, " ")}</span>. {p.trap.note}
               {p.marketPrice > 0 && <> Market price <span className="font-mono">{usd(p.marketPrice)}</span>.</>}

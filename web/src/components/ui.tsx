@@ -36,7 +36,7 @@ export function Section({
             {title && <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-zinc-900">{title}</h2>}
             {description && <p className="mt-0.5 text-[13px] text-zinc-500">{description}</p>}
           </div>
-          {actions && <div className="flex items-center gap-2 text-[13px]">{actions}</div>}
+          {actions && <div className="flex items-center gap-2 text-[13px] max-sm:min-w-0 max-sm:max-w-full max-sm:flex-wrap">{actions}</div>}
         </div>
       )}
       {children}
@@ -175,7 +175,7 @@ export function ButtonLink({ href, children, variant = "primary", className }: {
 }
 
 export function buttonClass(variant: "primary" | "secondary" | "ghost" = "primary") {
-  const base = "inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  const base = "inline-flex h-8 max-lg:h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
   if (variant === "primary") return cx(base, "bg-accent text-white hover:bg-accent-hover");
   if (variant === "secondary") return cx(base, "border border-zinc-200 bg-white text-zinc-800 shadow-sm hover:bg-zinc-50");
   return cx(base, "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900");
@@ -191,10 +191,12 @@ export function Mono({ children, className }: { children: ReactNode; className?:
 
 /* ------------------------------------------------------------------ table */
 
-export function Table({ children, className }: { children: ReactNode; className?: string }) {
+/** Below lg, `stickyFirst` pins the first column while the rest scrolls horizontally. */
+const STICKY_FIRST = "max-lg:[&_tr>*:first-child]:sticky max-lg:[&_tr>*:first-child]:left-0 max-lg:[&_tr>*:first-child]:z-[1] max-lg:[&_tbody_td:first-child]:bg-white max-lg:[&_thead_th:first-child]:bg-zinc-50 max-lg:[&_tr>*:first-child]:shadow-[inset_-1px_0_0_#e4e4e7]";
+export function Table({ children, className, stickyFirst }: { children: ReactNode; className?: string; stickyFirst?: boolean }) {
   return (
     <div className={cx("overflow-x-auto rounded-lg border border-zinc-200 bg-white", className)}>
-      <table className="w-full border-collapse text-[13.5px]">{children}</table>
+      <table className={cx("w-full border-collapse text-[13.5px]", stickyFirst && STICKY_FIRST)}>{children}</table>
     </div>
   );
 }
@@ -250,8 +252,8 @@ export function EmptyState({ title, description, action, icon, className }: { ti
 export function ErrorState({ error, onRetry }: { error: string; onRetry?: () => void }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700">
-      <span>Couldn’t load data: {error}</span>
-      {onRetry && <button onClick={onRetry} className="font-medium underline underline-offset-2">Retry</button>}
+      <span className="min-w-0 break-anywhere">Couldn’t load data: {error}</span>
+      {onRetry && <button onClick={onRetry} className="shrink-0 font-medium underline underline-offset-2 max-lg:min-h-10">Retry</button>}
     </div>
   );
 }
@@ -274,7 +276,7 @@ export function Chip({ active, children, onClick, count }: { active?: boolean; c
   return (
     <button type="button" onClick={onClick}
       className={cx(
-        "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12.5px] transition-colors",
+        "inline-flex h-7 max-lg:h-10 max-lg:px-3 items-center gap-1.5 rounded-full border px-2.5 text-[12.5px] transition-colors",
         active ? "border-accent bg-accent-soft text-accent" : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50",
       )}>
       {children}
@@ -286,7 +288,7 @@ export function Chip({ active, children, onClick, count }: { active?: boolean; c
 export function Select({ value, onChange, children, className, label }: { value: string; onChange: (v: string) => void; children: ReactNode; className?: string; label?: string }) {
   return (
     <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}
-      className={cx("h-8 rounded-md border border-zinc-200 bg-white pl-2.5 pr-7 text-[13px] text-zinc-800 shadow-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15", className)}>
+      className={cx("h-8 max-lg:h-10 max-md:text-[16px] rounded-md border border-zinc-200 bg-white pl-2.5 pr-7 text-[13px] text-zinc-800 shadow-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15", className)}>
       {children}
     </select>
   );
@@ -316,11 +318,11 @@ export function ProgressBar({ done, total, className }: { done: number; total: n
 
 export function Breadcrumb({ items }: { items: { label: ReactNode; href?: string }[] }) {
   return (
-    <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-zinc-500">
+    <nav className="mb-3 flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] text-zinc-500">
       {items.map((it, i) => (
-        <span key={i} className="flex items-center gap-1.5">
+        <span key={i} className="flex min-w-0 items-center gap-1.5">
           {i > 0 && <span className="text-zinc-300">/</span>}
-          {it.href ? <Link href={it.href} className="hover:text-zinc-900">{it.label}</Link> : <span className="text-zinc-700">{it.label}</span>}
+          {it.href ? <Link href={it.href} className="hover:text-zinc-900 max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">{it.label}</Link> : <span className="min-w-0 truncate text-zinc-700">{it.label}</span>}
         </span>
       ))}
     </nav>
@@ -330,6 +332,6 @@ export function Breadcrumb({ items }: { items: { label: ReactNode; href?: string
 export function SearchInput({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
   return (
     <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} type="search"
-      className={cx("h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] shadow-sm outline-none placeholder:text-zinc-400 focus:border-accent focus:ring-2 focus:ring-accent/15", className)} />
+      className={cx("h-8 max-lg:h-10 max-md:text-[16px] rounded-md border border-zinc-200 bg-white px-2.5 text-[13px] shadow-sm outline-none placeholder:text-zinc-400 focus:border-accent focus:ring-2 focus:ring-accent/15", className)} />
   );
 }

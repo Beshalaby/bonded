@@ -143,7 +143,8 @@ export function parseGuardrail(v: unknown, fallback: GuardrailMode = "observe"):
   return v as GuardrailMode;
 }
 
-export function createSession(b: { agentId?: string; model?: string; instruction?: string; budget?: number; constraints?: TaskSpec["constraints"]; taskId?: string; runId?: string; guardrail?: GuardrailMode }) {
+export function createSession(b: { agentId?: string; model?: string; instruction?: string; budget?: number; constraints?: TaskSpec["constraints"]; taskId?: string; runId?: string; guardrail?: GuardrailMode },
+  auth?: { keyId?: string; internal?: boolean }) {
   ensureSeeded();
   const model = b.model || "unknown";
   if (!b.instruction) throw new ArenaError(400, "instruction required");
@@ -159,7 +160,9 @@ export function createSession(b: { agentId?: string; model?: string; instruction
     db.sessions.push(session);
     db.carts.push({ sessionId: session.id, items: [] });
   });
-  append(session.id, "system", "session_start", { agentId, model, task, runId: runId ?? null, guardrail });
+  // Identity: an agent key (server-derived agentId/model) or the server's own runner; anything else is self-asserted.
+  const ident = auth?.keyId ? { agentKeyId: auth.keyId } : auth?.internal ? {} : { unverified: true };
+  append(session.id, "system", "session_start", { agentId, model, task, runId: runId ?? null, guardrail, ...ident });
   return { sessionId: session.id, agentId, runId: runId ?? null, guardrail };
 }
 
@@ -293,7 +296,7 @@ export function injectProducts(list: Partial<Product>[], merchants: Partial<Merc
       let id = raw.id && !db.products.find((p) => p.id === raw.id) ? raw.id : uid("p_rt");
       if (!/^[A-Za-z0-9_\-]+$/.test(id)) id = uid("p_rt");
       const price = Number(raw.price ?? 0);
-      let merchantId = raw.merchantId || "m_shopzilla88";
+      const merchantId = raw.merchantId || "m_shopzilla88";
       if (!db.merchants.find((m) => m.id === merchantId)) {
         db.merchants.push({ id: merchantId, name: merchantId.replace(/^m_/, ""), ageDays: 2, verified: false, rating: 4.8 });
       }
