@@ -7,7 +7,7 @@ describe("safeNext (post-login redirect)", () => {
     expect(safeNext("/traces?model=sim%2Fcareful#s3")).toBe("/traces?model=sim%2Fcareful#s3");
   });
   it.each([
-    ["//evil.example"], ["/\\evil.example"], ["/\\/evil.example"], ["/\t/evil.example"], ["/%0a/evil"],
+    ["//evil.example"], ["/\\evil.example"], ["/\\/evil.example"], ["/\t/evil.example"], ["/%0a/evil"], ["/.//evil.example"], ["/x/..//evil.example"], ["/./\\evil"],
     ["https://evil.example"], ["javascript:alert(1)"], ["evil"], [""], [null], [undefined],
   ])("rejects %j", (n) => {
     const out = safeNext(n as string | null | undefined);

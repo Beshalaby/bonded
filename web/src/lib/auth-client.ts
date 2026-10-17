@@ -26,6 +26,8 @@ export function safeNext(n: string | null | undefined) {
   try {
     const base = typeof window !== "undefined" ? window.location.origin : "http://local.invalid";
     const u = new URL(n, base);
-    return u.origin === base ? u.pathname + u.search + u.hash : "/";
+    // check what we actually return: normalization can turn "/.//evil" into "//evil" (protocol-relative)
+    if (u.origin !== base || /^\/[\/\\]/.test(u.pathname)) return "/";
+    return u.pathname + u.search + u.hash;
   } catch { return "/"; }
 }
