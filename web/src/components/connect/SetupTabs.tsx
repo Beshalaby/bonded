@@ -3,12 +3,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cx } from "@/components/ui";
 import { CodeBlock } from "./Code";
 
-type TabId = "claude-code" | "cursor" | "claude-desktop" | "curl";
+type TabId = "claude-code" | "cursor" | "claude-desktop" | "stdio" | "curl";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "claude-code", label: "Claude Code" },
   { id: "cursor", label: "Cursor" },
   { id: "claude-desktop", label: "Claude Desktop" },
+  { id: "stdio", label: "Any stdio agent" },
   { id: "curl", label: "curl" },
 ];
 
@@ -35,6 +36,7 @@ export default function SetupTabs({ endpoint }: { endpoint: string }) {
   }, []);
   const pick = (t: TabId) => { setTab(t); try { localStorage.setItem("sb.connect.tab", t); } catch { /* ignore */ } };
 
+  const origin = endpoint.replace(/\/api\/mcp$/, "");
   const json = (server: Record<string, unknown>) => JSON.stringify({ mcpServers: { bonded: server } }, null, 2);
   const panes: Record<TabId, { body: ReactNode; note: ReactNode }> = {
     "claude-code": {
@@ -46,8 +48,12 @@ export default function SetupTabs({ endpoint }: { endpoint: string }) {
       note: <>Cursor connects to Streamable HTTP servers directly. Open Settings, then MCP, and Bonded appears with 9 tools.</>,
     },
     "claude-desktop": {
-      body: <CodeBlock lang="json" title="claude_desktop_config.json" code={json({ command: "npx", args: ["-y", "mcp-remote", endpoint] })} />,
-      note: <>Claude Desktop reaches local HTTP servers through the <code className="font-mono text-[12px] text-zinc-800">mcp-remote</code> bridge. Restart the app after saving.</>,
+      body: <CodeBlock lang="json" title="claude_desktop_config.json" code={json({ command: "node", args: ["/path/to/bonded/mcp/bonded-mcp.mjs"], env: { BONDED_URL: origin } })} />,
+      note: <>Uses the zero-dependency stdio bridge in this repo (<code className="font-mono text-[12px] text-zinc-800">mcp/bonded-mcp.mjs</code>, Node 18+). Replace the path with your checkout and restart the app.</>,
+    },
+    stdio: {
+      body: <CodeBlock lang="shell" title="Terminal" code={`BONDED_URL=${origin} node mcp/bonded-mcp.mjs\n\n# e.g. Claude Code over stdio instead of HTTP:\nclaude mcp add bonded-stdio -e BONDED_URL=${origin} -- node "$PWD/mcp/bonded-mcp.mjs"`} />,
+      note: <>For agent frameworks and IDEs that only speak the stdio transport. The bridge forwards newline-delimited JSON-RPC to <code className="font-mono text-[12px] text-zinc-800">/api/mcp</code>, re-initializes if the server restarts, and sends <code className="font-mono text-[12px] text-zinc-800">BONDED_AGENT_KEY</code> as a Bearer key when set.</>,
     },
     curl: {
       body: <CodeBlock lang="shell" title="Raw JSON-RPC 2.0" code={curlScript(endpoint)} />,
