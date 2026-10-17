@@ -290,11 +290,12 @@ export async function onCheckout(o: {
   const work = (async (): Promise<CheckoutBank> => {
     try {
       const funded: NessieWallet | null = await withTimeout<NessieWallet | null>(funding.get(o.session.id) ?? Promise.resolve(null), 12_000).catch(() => null);
-      // idempotent per session: never charge or decline twice
-      const prior = getChain(o.session.id).find((e) => e.action === "bank_charge" || e.action === "bank_declined");
+      // Never charge a session twice. Only a prior *charge* short-circuits: a blocked (declined) attempt can be
+      // followed by an edited cart and a completed checkout, which must still be charged.
+      const prior = getChain(o.session.id).find((e) => e.action === "bank_charge");
       if (prior) {
         const pl = prior.payload as { accountLast4?: string };
-        return { ...base, status: prior.action === "bank_charge" ? "charged" : "declined", accountLast4: pl.accountLast4 } as CheckoutBank;
+        return { ...base, status: "charged", accountLast4: pl.accountLast4 } as CheckoutBank;
       }
       const wallet = funded ?? await ensureAgentWallet(walletKey(o.session), o.session.model);
       if (o.status === "blocked") {
