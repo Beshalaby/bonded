@@ -4,6 +4,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
+from agents.common.tls import ssl_context
 
 ARENA_URL = os.environ.get("ARENA_URL", "http://localhost:3000").rstrip("/")
 
@@ -38,7 +39,7 @@ def request(method, path, body=None, headers=None, base=None, timeout=60):
     h.update(headers or {})
     req = urllib.request.Request(url, data=data, method=method, headers=h)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as r:
             raw = r.read().decode() or "null"
             return json.loads(raw)
     except urllib.error.HTTPError as e:

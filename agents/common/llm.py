@@ -18,6 +18,7 @@ import re
 import time
 import urllib.error
 import urllib.request
+from agents.common.tls import ssl_context
 
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 BASE_URL = (os.environ.get("OPENROUTER_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
@@ -224,7 +225,7 @@ def _post(body, timeout):
         "HTTP-Referer": "https://bonded.local", "X-Title": "Bonded SpendBench",
     })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as r:
             raw = r.read().decode(errors="replace")
     except urllib.error.HTTPError as e:
         text = e.read().decode(errors="replace")[:400]
