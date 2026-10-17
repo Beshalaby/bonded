@@ -2,7 +2,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { Menu, Plus, X } from "lucide-react";
+import { Mark, SPRING } from "@/design";
 import { cx } from "./ui";
 import AdminBadge from "./auth/AdminBadge";
 
@@ -19,15 +21,13 @@ const LINKS = [
   { href: "/methodology", label: "Methodology", match: (p: string) => p.startsWith("/methodology") },
 ];
 
+// The full pill needs ~1130px; below that the drawer takes over. Keep DRAWER_MQ and the max-[1179px]/min-[1180px] classes in sync.
+const DRAWER_MQ = "(min-width: 1180px)";
+
 export function Logo() {
   return (
-    <Link href="/" className="flex shrink-0 items-center gap-2 max-lg:min-h-10 text-[15px] font-semibold tracking-[-0.02em] text-zinc-900">
-      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
-        <rect width="20" height="20" rx="5" fill="var(--color-accent)" />
-        <rect x="5" y="10" width="2.4" height="5" rx="1" fill="white" />
-        <rect x="8.8" y="7" width="2.4" height="8" rx="1" fill="white" />
-        <rect x="12.6" y="4.5" width="2.4" height="10.5" rx="1" fill="white" opacity="0.6" />
-      </svg>
+    <Link href="/" className="flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-2 text-[15px] font-[600] tracking-[-0.025em] text-ink max-[1179px]:min-h-10">
+      <Mark size={26} />
       Bonded
     </Link>
   );
@@ -58,43 +58,44 @@ function NavDrawer({ open, onClose, path, returnFocus }: { open: boolean; onClos
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 min-[900px]:hidden">
-      <div className="absolute inset-0 bg-zinc-900/20 backdrop-blur-[1px]" onClick={onClose} aria-hidden />
-      <div ref={panel} id="site-nav-drawer" role="dialog" aria-modal="true" aria-label="Site navigation"
-        className="absolute inset-y-0 right-0 flex w-[min(320px,calc(100vw-128px))] flex-col border-l border-zinc-200 bg-white shadow-xl">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 px-4">
-          <span className="text-[13px] font-medium text-zinc-500">Menu</span>
+    <div className="fixed inset-0 z-50 min-[1180px]:hidden">
+      <motion.div className="absolute inset-0 bg-[oklch(19%_0.006_275/0.12)] backdrop-blur-[2px]" onClick={onClose} aria-hidden
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} />
+      <motion.div ref={panel} id="site-nav-drawer" role="dialog" aria-modal="true" aria-label="Site navigation"
+        initial={{ opacity: 0, x: 24, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={SPRING.soft}
+        className="absolute bottom-2 right-2 top-2 flex w-[min(340px,calc(100vw-72px))] flex-col overflow-hidden rounded-tile bg-surface shadow-float">
+        <div className="flex h-16 shrink-0 items-center justify-between pl-5 pr-3">
+          <span className="micro">Menu</span>
           <button type="button" onClick={onClose} aria-label="Close menu"
-            className="-mr-2 inline-flex size-10 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900">
-            <X size={18} />
+            className="inline-flex size-10 items-center justify-center rounded-full text-ink-2 shadow-key transition-shadow hover:shadow-raised hover:text-ink">
+            <X size={17} />
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto px-2 py-2" aria-label="Primary">
+        <nav className="flex-1 overflow-y-auto px-3 pb-2" aria-label="Primary">
           {LINKS.map((l) => {
             const active = l.match(path);
             return (
               <Link key={l.href} href={l.href} onClick={onClose} aria-current={active ? "page" : undefined}
-                className={cx("flex h-11 items-center rounded-md px-3 text-[15px] transition-colors",
-                  active ? "bg-zinc-100 font-medium text-zinc-900" : "text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900")}>
-                {active && <span className="-ml-1 mr-2 h-4 w-0.5 rounded-full bg-accent" aria-hidden />}
+                className={cx("flex h-12 items-center rounded-[16px] px-4 text-[16px] tracking-[-0.01em] transition-colors",
+                  active ? "bg-canvas font-medium text-ink" : "text-ink-2 hover:bg-canvas/70 hover:text-ink")}>
+                {active && <span className="mr-2.5 size-1.5 rounded-full bg-accent" aria-hidden />}
                 {l.label}
               </Link>
             );
           })}
         </nav>
-        <div className="grid shrink-0 gap-2 border-t border-zinc-200 p-4">
+        <div className="grid shrink-0 gap-2 p-3">
           <AdminBadge className="justify-center" />
           <Link href="/connect" onClick={onClose} aria-current={path.startsWith("/connect") ? "page" : undefined}
-            className={cx("inline-flex h-11 items-center justify-center rounded-md border border-zinc-200 px-3 text-[14px] font-medium transition-colors hover:bg-zinc-50",
-              path.startsWith("/connect") ? "bg-zinc-50 text-zinc-900" : "text-zinc-700")}>
+            className="inline-flex h-12 items-center justify-center rounded-full bg-surface px-4 text-[14.5px] font-medium text-ink shadow-key transition-shadow hover:shadow-raised">
             Connect agent
           </Link>
           <Link href="/runs/new" onClick={onClose} aria-current={path === "/runs/new" ? "page" : undefined}
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-md bg-accent px-3 text-[14px] font-medium text-white transition-colors hover:bg-accent-hover">
+            className="inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-ink px-4 text-[14.5px] font-medium text-white shadow-ink">
             <Plus size={15} strokeWidth={2.25} /> New run
           </Link>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -107,46 +108,47 @@ export default function Nav() {
   // close on navigation and when the viewport grows past the drawer breakpoint
   useEffect(() => { setOpen(false); }, [path]);
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 900px)");
+    const mq = window.matchMedia(DRAWER_MQ);
     const on = () => { if (mq.matches) setOpen(false); };
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
+  const activeLabel = (LINKS.find((l) => l.match(path))?.label) ?? (path.startsWith("/connect") ? "Connect agent" : path === "/runs/new" ? "New run" : "");
   return (
     <>
-    <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/90 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80">
-      <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:px-8">
+    <header className="sticky top-3 z-30 px-3 sm:top-4 sm:px-6">
+      <div className="mx-auto flex h-[52px] w-full max-w-[1200px] items-center gap-1 rounded-full bg-glass pl-2 pr-2 shadow-float backdrop-blur-xl backdrop-saturate-150 min-[1180px]:w-fit min-[1180px]:max-w-none">
         <Logo />
-        <nav className="-mx-1 hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto min-[900px]:flex">
+        <nav className="hidden items-center min-[1180px]:flex" aria-label="Primary">
           {LINKS.map((l) => {
             const active = l.match(path);
             return (
-              <Link key={l.href} href={l.href}
-                className={cx(
-                  "whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13.5px] transition-colors",
-                  active ? "font-medium text-zinc-900 bg-zinc-100" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50",
-                )}>
+              <Link key={l.href} href={l.href} aria-current={active ? "page" : undefined}
+                className={cx("relative isolate whitespace-nowrap rounded-full px-3 py-[7px] text-[13.5px] tracking-[-0.005em] transition-colors",
+                  active ? "font-medium text-ink" : "text-ink-3 hover:text-ink")}>
+                {active && <motion.span layoutId="nav-active" transition={SPRING.snappy} aria-hidden className="absolute inset-0 -z-10 rounded-full bg-surface shadow-key" />}
                 {l.label}
               </Link>
             );
           })}
         </nav>
-        <AdminBadge className="max-[899px]:hidden" />
+        <span className="mx-1.5 hidden h-5 w-px bg-divider min-[1180px]:block" aria-hidden />
+        <AdminBadge className="max-[1179px]:hidden" />
         <Link href="/connect"
-          className={cx("hidden h-8 shrink-0 items-center rounded-md border border-zinc-200 px-3 text-[13px] font-medium transition-colors hover:bg-zinc-50 min-[900px]:inline-flex",
-            path.startsWith("/connect") ? "text-zinc-900 bg-zinc-50" : "text-zinc-700")}>
+          className={cx("hidden h-9 shrink-0 items-center rounded-full px-3.5 text-[13px] font-medium transition-[box-shadow,color] min-[1180px]:inline-flex",
+            path.startsWith("/connect") ? "bg-surface text-ink shadow-key" : "text-ink-2 hover:text-ink")}>
           Connect agent
         </Link>
         <Link href="/runs/new"
-          className="hidden h-8 shrink-0 items-center gap-1.5 rounded-md bg-accent px-3 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover min-[900px]:inline-flex">
+          className="ml-0.5 hidden h-9 shrink-0 items-center gap-1.5 rounded-full bg-ink px-4 text-[13px] font-medium text-white shadow-ink transition-transform active:scale-[0.97] min-[1180px]:inline-flex">
           <Plus size={14} strokeWidth={2.25} /> New run
         </Link>
-        <div className="ml-auto flex items-center gap-1 min-[900px]:hidden">
-          <span className="truncate text-[13px] text-zinc-500 max-[379px]:hidden">{(LINKS.find((l) => l.match(path))?.label) ?? (path.startsWith("/connect") ? "Connect agent" : path === "/runs/new" ? "New run" : "")}</span>
+        <div className="ml-auto flex items-center gap-2 min-[1180px]:hidden">
+          <span className="truncate text-[13px] text-ink-3 max-[379px]:hidden">{activeLabel}</span>
           <button ref={toggle} type="button" onClick={() => setOpen((o) => !o)}
             aria-expanded={open} aria-controls="site-nav-drawer" aria-label={open ? "Close menu" : "Open menu"}
-            className="-mr-2 inline-flex size-10 items-center justify-center rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900">
-            <Menu size={20} />
+            className="inline-flex size-10 items-center justify-center rounded-full bg-surface text-ink shadow-key transition-shadow hover:shadow-raised">
+            <Menu size={18} />
           </button>
         </div>
       </div>

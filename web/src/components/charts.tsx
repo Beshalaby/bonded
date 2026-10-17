@@ -1,20 +1,20 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Interval } from "@/lib/types";
 import { cx } from "./ui";
+import { C, DotHeatmap, DotScaleLegend, ScrollFade } from "@/design";
 
-/* Chart chrome tokens (light only). Data is the only loud thing. */
-const INK = { primary: "#18181b", secondary: "#52525b", muted: "#a1a1aa", grid: "#f0f0f2", axis: "#d4d4d8", surface: "#ffffff" };
-const SERIES = "#2563eb"; // single-series charts use the accent hue
-const FOOLED = "#e11d48"; // "fooled" rate bars: rose (bad outcome)
+/* Chart chrome tokens (light only, OKLCH from the design system). Data is the only loud thing. */
+const INK = { primary: C.ink, secondary: C.ink2, muted: C.ink4, grid: "oklch(19% 0.006 275 / 0.06)", axis: C.ink5, surface: C.surface };
+const SERIES = C.accentDot; // single-series charts use the accent hue
+const FOOLED = C.coral;     // "fooled" rate bars: coral (risk role)
 
 /* --------------------------------------------------------------- tooltip */
 
 function Tooltip({ x, y, children, containerWidth }: { x: number; y: number; children: ReactNode; containerWidth: number }) {
   const flip = x > containerWidth - 180;
   return (
-    <div className="pointer-events-none absolute z-20 min-w-[120px] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-[12px] shadow-md"
+    <div className="pointer-events-none absolute z-20 min-w-[130px] rounded-[14px] bg-glass px-3 py-2.5 text-[12px] shadow-float backdrop-blur-xl backdrop-saturate-150"
       style={{ left: flip ? undefined : x + 12, right: flip ? containerWidth - x + 12 : undefined, top: Math.max(0, y - 10) }}>
       {children}
     </div>
@@ -49,20 +49,21 @@ export function CIBar({ interval, width = 108, label = true, n }: { interval: In
     <span className="inline-flex items-center gap-2.5" title={tip}>
       {label && (
         <span className="w-[64px] whitespace-nowrap text-right tnum">
-          <span className="font-medium text-zinc-900">{Math.round(interval.mean * 100)}%</span>
-          <span className="ml-1 text-[11.5px] text-zinc-400">±{Math.round(((interval.upper - interval.lower) / 2) * 100)}</span>
+          <span className="font-medium text-ink">{Math.round(interval.mean * 100)}%</span>
+          <span className="ml-1 text-[11.5px] text-ink-4">±{Math.round(((interval.upper - interval.lower) / 2) * 100)}</span>
         </span>
       )}
       <svg width={width} height={h} className="block shrink-0" aria-label={tip}>
-        {/* track with quarter ticks */}
-        <line x1={pad} x2={width - pad} y1={h / 2} y2={h / 2} stroke={INK.axis} strokeWidth={1} />
-        {[0, 0.5, 1].map((t) => <line key={t} x1={sx(t)} x2={sx(t)} y1={h / 2 - 3} y2={h / 2 + 3} stroke={INK.axis} strokeWidth={1} />)}
-        {/* interval */}
-        <rect x={lo} y={h / 2 - 3} width={Math.max(2, hi - lo)} height={6} rx={3} fill={SERIES} opacity={0.22} />
-        <line x1={lo} x2={hi} y1={h / 2} y2={h / 2} stroke={SERIES} strokeWidth={2} strokeLinecap="round" />
-        <line x1={lo} x2={lo} y1={h / 2 - 4} y2={h / 2 + 4} stroke={SERIES} strokeWidth={1.5} strokeLinecap="round" />
-        <line x1={hi} x2={hi} y1={h / 2 - 4} y2={h / 2 + 4} stroke={SERIES} strokeWidth={1.5} strokeLinecap="round" />
-        <circle cx={m} cy={h / 2} r={4} fill={SERIES} stroke={INK.surface} strokeWidth={2} />
+        {/* dot-matrix track: off dots, interval dots, mean */}
+        {Array.from({ length: Math.floor((width - pad * 2) / 4) + 1 }).map((_, k) => {
+          const x = pad + k * 4;
+          const v = (x - pad) / (width - pad * 2);
+          const inside = v >= interval.lower && v <= interval.upper;
+          return <circle key={k} cx={x} cy={h / 2} r={inside ? 1.55 : 0.9} fill={inside ? SERIES : INK.axis} opacity={inside ? 0.55 : 1} />;
+        })}
+        {[0, 0.5, 1].map((t) => <circle key={t} cx={sx(t)} cy={h / 2 - 5} r={0.9} fill={INK.muted} />)}
+        <line x1={lo} x2={hi} y1={h / 2} y2={h / 2} stroke={SERIES} strokeWidth={1} strokeLinecap="round" opacity={0.35} />
+        <circle cx={m} cy={h / 2} r={4} fill={INK.primary} stroke={INK.surface} strokeWidth={1.75} />
       </svg>
     </span>
   );
@@ -72,7 +73,7 @@ export function CIBar({ interval, width = 108, label = true, n }: { interval: In
 export function CIAxis({ width = 108, label = true }: { width?: number; label?: boolean }) {
   const pad = 5;
   return (
-    <span className="inline-flex items-center gap-2.5 text-[10.5px] text-zinc-400 tnum">
+    <span className="inline-flex items-center gap-2.5 text-[10.5px] text-ink-4 tnum">
       {label && <span className="w-[64px]" />}
       <span className="relative block h-3" style={{ width }}>
         <span className="absolute -translate-x-1/2" style={{ left: pad }}>0</span>
@@ -85,8 +86,8 @@ export function CIAxis({ width = 108, label = true }: { width?: number; label?: 
 
 /* --------------------------------------------------------------- sequential scale */
 
-// Single-hue (rose) sequential ramp, light -> dark. Lightest step = "near zero".
-const RAMP = ["#fff5f6", "#ffe4e6", "#fecdd3", "#fda4af", "#fb7185", "#f43f5e", "#e11d48", "#be123c", "#9f1239"];
+// Single-hue (coral, the risk role) sequential ramp, light -> dark. Lightest step = "near zero".
+const RAMP = ["#fff6f3", "#fde6de", "#fbcfc1", "#f7b19c", "#ef8f74", "#e2704f", "#c95638", "#a8432b", "#85341f"];
 function hexToRgb(h: string) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
 export function rampColor(t: number) {
   const v = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
@@ -96,29 +97,15 @@ export function rampColor(t: number) {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
+/** Legend for Heatmap: dot density 0 → 100% (the cells are dot fields). */
 export function ScaleLegend({ label }: { label: string }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-zinc-500 tnum">
-      <span>{label}</span>
-      <span>0%</span>
-      <span className="h-2 w-28 rounded-sm" style={{ background: `linear-gradient(to right, ${RAMP.join(",")})` }} />
-      <span>100%</span>
-      <span className="ml-2 inline-flex items-center gap-1.5">
-        <span className="inline-block h-2 w-3 rounded-sm border border-zinc-200 bg-[repeating-linear-gradient(135deg,#f4f4f5_0,#f4f4f5_2px,#fff_2px,#fff_4px)]" />
-        not tested
-      </span>
-    </div>
-  );
+  return <DotScaleLegend label={label} />;
 }
 
 /* --------------------------------------------------------------- heatmap */
 
-// Short column labels for phones, where five full trap names cannot share 360px.
-const SHORT_LABEL: Record<string, string> = {
-  "Prompt injection": "Inject.", "Fake discount": "Fake disc.", "New merchant": "New merch.", "Price gouging": "Gouging", "Knockoff": "Knock-off",
-};
-
 export interface HeatCell { rate: number | null; fooled: number; exposed: number; lower?: number; upper?: number }
+/** Rows × columns of rates. Each cell is an ordered-dither dot field (density = rate) plus the number and k/n. */
 export function Heatmap({
   rows, cols, cell, rowHref,
 }: {
@@ -128,54 +115,9 @@ export function Heatmap({
   rowHref?: (row: string) => string;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-separate" style={{ borderSpacing: 2 }}>
-        <thead>
-          <tr>
-            <th className="w-[220px] max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:w-[84px] max-sm:bg-white" />
-            {cols.map((c) => (
-              <th key={c.key} title={c.label} className="px-2 pb-1.5 text-center text-[12px] font-medium text-zinc-500 max-sm:px-0.5 max-sm:leading-tight">
-                <span className="max-sm:hidden">{c.label}</span>
-                <span className="sm:hidden">{c.short ?? SHORT_LABEL[c.label] ?? c.label}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.key}>
-              <td className="truncate pr-4 text-[13px] text-zinc-800 max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-white max-sm:pr-2">
-                <span className="block truncate max-sm:max-w-[80px]">
-                  {rowHref ? <Link href={rowHref(r.key)} className="tap hover:text-accent">{r.label}</Link> : r.label}
-                </span>
-              </td>
-              {cols.map((c) => {
-                const v = cell(r.key, c.key);
-                if (!v || !v.exposed || v.rate == null) {
-                  return (
-                    <td key={c.key} title="Not tested"
-                      className="h-10 max-sm:h-12 max-sm:min-w-[44px] rounded-[3px] bg-[repeating-linear-gradient(135deg,#f4f4f5_0,#f4f4f5_2px,#fff_2px,#fff_5px)] text-center text-[12px] text-zinc-400">
-                      –
-                    </td>
-                  );
-                }
-                const dark = v.rate >= 0.5;
-                const tip = `${c.label}: fooled ${v.fooled} of ${v.exposed} (${Math.round(v.rate * 100)}%)` +
-                  (v.lower != null && v.upper != null ? ` · 90% CI ${Math.round(v.lower * 100)}–${Math.round(v.upper * 100)}%` : "");
-                return (
-                  <td key={c.key} title={tip}
-                    className="group h-10 min-w-[96px] rounded-[3px] text-center tnum outline-offset-[-1px] hover:outline hover:outline-2 hover:outline-zinc-900/70 max-sm:h-12 max-sm:min-w-[44px] max-sm:leading-tight"
-                    style={{ background: rampColor(v.rate) }}>
-                    <span className={cx("text-[13px] font-medium", dark ? "text-white" : "text-zinc-900")}>{Math.round(v.rate * 100)}%</span>
-                    <span className={cx("ml-1.5 text-[11px] max-sm:ml-0 max-sm:block", dark ? "text-white/75" : "text-zinc-500")}>{v.fooled}/{v.exposed}</span>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ScrollFade fade={32}>
+      <DotHeatmap rows={rows} cols={cols} cell={cell} rowHref={rowHref} />
+    </ScrollFade>
   );
 }
 
@@ -196,31 +138,30 @@ export function RateBars({
           const raw = tested ? r.k / r.n : 0;
           return (
             <div key={r.key} onMouseEnter={() => setHover(r.key)} onMouseLeave={() => setHover(null)}
-              className={cx("grid grid-cols-[132px_1fr_92px] items-center gap-3 rounded px-1 py-1.5 max-sm:grid-cols-[96px_minmax(0,1fr)_78px] max-sm:gap-2", hover === r.key && "bg-zinc-50")}
+              className={cx("grid grid-cols-[132px_1fr_92px] items-center gap-3 rounded-[12px] px-2 py-1.5 transition-colors max-sm:grid-cols-[96px_minmax(0,1fr)_78px] max-sm:gap-2", hover === r.key && "bg-canvas")}
               title={tested ? `${valueLabel} ${r.k} of ${r.n} · ${Math.round(raw * 100)}% (90% CI ${Math.round(r.rate.lower * 100)}–${Math.round(r.rate.upper * 100)}%)` : "Not tested"}>
-              <div className="truncate text-[13px] text-zinc-700">{r.label}</div>
+              <div className="truncate text-[13px] text-ink-2">{r.label}</div>
               <div className="relative h-4">
-                <div className="absolute inset-x-0 top-1/2 h-px bg-zinc-100" />
-                {[0.25, 0.5, 0.75].map((t) => <div key={t} className="absolute top-0 h-4 w-px bg-zinc-100" style={{ left: `${t * 100}%` }} />)}
+                <div className="halftone absolute inset-x-0 top-[5px] h-[6px] opacity-80" style={{ ["--dot" as string]: INK.axis, ["--dot-size" as string]: "6px" }} />
                 {tested && (
                   <>
-                    <div className="absolute top-[3px] h-[10px] rounded-r-[4px]" style={{ width: `${raw * 100}%`, minWidth: raw > 0 ? 3 : 0, background: color, opacity: 0.85 }} />
-                    <div className="absolute top-1/2 h-[2px] -translate-y-1/2 bg-zinc-800" style={{ left: `${r.rate.lower * 100}%`, width: `${Math.max(0.3, (r.rate.upper - r.rate.lower) * 100)}%` }} />
-                    <div className="absolute top-[2px] h-3 w-[2px] bg-zinc-800" style={{ left: `calc(${r.rate.lower * 100}% - 1px)` }} />
-                    <div className="absolute top-[2px] h-3 w-[2px] bg-zinc-800" style={{ left: `calc(${r.rate.upper * 100}% - 1px)` }} />
+                    <div className="halftone absolute top-[1px] h-[14px]" style={{ width: `${raw * 100}%`, minWidth: raw > 0 ? 5 : 0, ["--dot" as string]: color, ["--dot-size" as string]: "4.5px" }} />
+                    <div className="absolute top-1/2 h-[1.5px] -translate-y-1/2 rounded-full bg-ink" style={{ left: `${r.rate.lower * 100}%`, width: `${Math.max(0.3, (r.rate.upper - r.rate.lower) * 100)}%` }} />
+                    <div className="absolute top-[3px] h-2.5 w-[1.5px] rounded-full bg-ink" style={{ left: `calc(${r.rate.lower * 100}% - 0.75px)` }} />
+                    <div className="absolute top-[3px] h-2.5 w-[1.5px] rounded-full bg-ink" style={{ left: `calc(${r.rate.upper * 100}% - 0.75px)` }} />
                   </>
                 )}
               </div>
               <div className="text-right text-[12.5px] tnum">
                 {tested ? (
-                  <><span className="font-medium text-zinc-900">{Math.round(raw * 100)}%</span><span className="ml-1.5 text-zinc-400">{r.k}/{r.n}</span></>
-                ) : <span className="text-zinc-400">not tested</span>}
+                  <><span className="font-medium text-ink">{Math.round(raw * 100)}%</span><span className="ml-1.5 text-ink-4">{r.k}/{r.n}</span></>
+                ) : <span className="text-ink-4">not tested</span>}
               </div>
             </div>
           );
         })}
       </div>
-      <div className="mt-1 grid grid-cols-[132px_1fr_92px] gap-3 px-1 text-[10.5px] text-zinc-400 tnum max-sm:grid-cols-[96px_minmax(0,1fr)_78px] max-sm:gap-2">
+      <div className="mt-1 grid grid-cols-[132px_1fr_92px] gap-3 px-2 text-[10.5px] text-ink-4 tnum max-sm:grid-cols-[96px_minmax(0,1fr)_78px] max-sm:gap-2">
         <span />
         <div className="relative h-3">
           {[0, 0.25, 0.5, 0.75, 1].map((t) => (
@@ -241,15 +182,15 @@ export function CountBars({ rows, total, color = SERIES }: { rows: { key: string
   return (
     <div className="space-y-1">
       {rows.map((r) => (
-        <div key={r.key} className="grid grid-cols-[150px_1fr_72px] items-center gap-3 rounded px-1 py-1.5 hover:bg-zinc-50 max-sm:grid-cols-[112px_minmax(0,1fr)_64px] max-sm:gap-2"
+        <div key={r.key} className="grid grid-cols-[150px_1fr_72px] items-center gap-3 rounded-[12px] px-2 py-1.5 transition-colors hover:bg-canvas max-sm:grid-cols-[112px_minmax(0,1fr)_64px] max-sm:gap-2"
           title={`${typeof r.label === "string" ? r.label : r.key}: ${r.value} (${Math.round((r.value / Math.max(1, sum)) * 100)}%)`}>
-          <div className="truncate text-[13px] text-zinc-700">{r.label}</div>
-          <div className="relative h-[10px]">
-            <div className="h-full rounded-r-[4px]" style={{ width: `${(r.value / max) * 100}%`, background: color, opacity: 0.85 }} />
+          <div className="truncate text-[13px] text-ink-2">{r.label}</div>
+          <div className="relative h-[14px]">
+            <div className="halftone h-full" style={{ width: `${(r.value / max) * 100}%`, minWidth: r.value > 0 ? 5 : 0, ["--dot" as string]: color, ["--dot-size" as string]: "4.5px" }} />
           </div>
           <div className="text-right text-[12.5px] tnum">
-            <span className="font-medium text-zinc-900">{r.value}</span>
-            <span className="ml-1.5 text-zinc-400">{Math.round((r.value / Math.max(1, sum)) * 100)}%</span>
+            <span className="font-medium text-ink">{r.value}</span>
+            <span className="ml-1.5 text-ink-4">{Math.round((r.value / Math.max(1, sum)) * 100)}%</span>
           </div>
         </div>
       ))}
@@ -271,6 +212,7 @@ export function LineChart({
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hi, setHi] = useState<number | null>(null);
+  const uid = useId().replace(/:/g, "");
   const m = { l: 40, r: 44, t: 14, b: 26 };
   const W = Math.max(200, width), H = height;
   // phones and tablets (viewport < 1024px): keep axis text at a readable 12px. The SVG only renders after mount.
@@ -326,7 +268,16 @@ export function LineChart({
             <text key={i} x={xs[i]} y={H - 6} fontSize={fs} fill={INK.muted} className="tnum"
               textAnchor={i === 0 && xs.length > 1 ? "start" : i === last ? "end" : "middle"}>{fmtX(data[i], i)}</text>
           ))}
-          <path d={area} fill={SERIES} opacity={0.07} />
+          <defs>
+            <pattern id={`${uid}d`} width={5} height={5} patternUnits="userSpaceOnUse">
+              <circle cx={2.5} cy={2.5} r={0.95} fill={SERIES} />
+            </pattern>
+            <linearGradient id={`${uid}f`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stopColor="white" stopOpacity={0.9} /><stop offset="1" stopColor="white" stopOpacity={0.15} />
+            </linearGradient>
+            <mask id={`${uid}m`}><rect x={0} y={0} width={W} height={H} fill={`url(#${uid}f)`} /></mask>
+          </defs>
+          <path d={area} fill={`url(#${uid}d)`} mask={`url(#${uid}m)`} />
           <path d={path} fill="none" stroke={SERIES} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
           {data.length <= 30 && !step && data.map((_, i) => (
             <circle key={i} cx={xs[i]} cy={ys[i]} r={2.5} fill={SERIES} />
@@ -347,8 +298,8 @@ export function LineChart({
         <Tooltip x={xs[hi]} y={ys[hi]} containerWidth={W}>
           {tooltip ? tooltip(data[hi], hi) : (
             <>
-              <div className="text-[13px] font-semibold text-zinc-900 tnum">{yFormat(data[hi].y)}</div>
-              <div className="text-zinc-500">{fmtX(data[hi], hi)}</div>
+              <div className="text-[13px] font-semibold text-ink tnum">{yFormat(data[hi].y)}</div>
+              <div className="text-ink-3">{fmtX(data[hi], hi)}</div>
             </>
           )}
         </Tooltip>
@@ -378,9 +329,9 @@ function niceTicks(min: number, max: number, count: number) {
 /* --------------------------------------------------------------- meter */
 
 export function Meter({ value, tone = "accent", className }: { value: number; tone?: "accent" | "bad" | "good" | "warn"; className?: string }) {
-  const c = { accent: "bg-accent", bad: "bg-rose-500", good: "bg-emerald-500", warn: "bg-amber-500" }[tone];
+  const c = { accent: "bg-accent", bad: "bg-coral", good: "bg-pass", warn: "bg-amber" }[tone];
   return (
-    <div className={cx("h-1 w-full overflow-hidden rounded-full bg-zinc-100", className)}>
+    <div className={cx("h-1 w-full overflow-hidden rounded-full bg-canvas-sunk", className)}>
       <div className={cx("h-full rounded-full", c)} style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
     </div>
   );

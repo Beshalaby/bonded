@@ -1,19 +1,23 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Heatmap, ScaleLegend } from "@/components/charts";
 import LeaderboardTable from "@/components/LeaderboardTable";
-import RunsList from "@/components/RunsList";
 import HomeHero, { type LiveLine } from "@/components/home/HomeHero";
 import KeyFindings from "@/components/home/KeyFindings";
+import LivePanel from "@/components/home/LivePanel";
+import Podium from "@/components/home/Podium";
 import PairwiseMatrix from "@/components/rigor/PairwiseMatrix";
-import { ButtonLink, EmptyState, ErrorState, LoadingBlock, Section, TextLink } from "@/components/ui";
+import { EmptyState, ErrorState, LoadingBlock } from "@/components/ui";
 import { useEvents } from "@/components/useEvents";
+import { DotBar, Pill, SectionHead, Tile, cx } from "@/design";
 import type { Finding, HeroStats } from "@/lib/findings";
-import type { BenchResult, FeedEvent } from "@/lib/types";
+import type { BenchResult, EvalRun, FeedEvent } from "@/lib/types";
 import { useApi, type LeaderboardResponse, type RunsResponse } from "@/lib/ui/api";
-import { TRAP_LABEL, TRAP_TYPES, ago, failureLabel, modelHref, traceHref } from "@/lib/ui/format";
+import { TRAP_LABEL, TRAP_TYPES, ago, failureLabel, modelHref, runHref, traceHref } from "@/lib/ui/format";
+import { runModelsLabel } from "@/components/RunsList";
 
 const shortName = (m: string) => m.replace(/^sim\//, "");
 
@@ -79,42 +83,55 @@ export default function HomeView({ hero: heroProp, findings }: { hero: HeroStats
   });
 
   const rows = lb.data?.rows ?? [];
+  const runList = runs.data?.runs ?? [];
 
   return (
     <>
-      <HomeHero hero={hero} connected={connected} live={live} rows={rows} />
+      <HomeHero hero={hero} connected={connected} rows={rows} />
+
+      {/* live instrument cluster */}
+      <section className="mt-6" aria-label="Live status">
+        <LivePanel hero={hero} connected={connected} live={live} runs={runList} />
+      </section>
+
+      {lb.error && <div className="mt-10"><ErrorState error={lb.error} onRetry={lb.reload} /></div>}
+
+      {/* podium */}
+      {rows.length > 0 && (
+        <section className="mt-28 max-sm:mt-20" aria-labelledby="podium-title">
+          <SectionHead id="podium-title" title={["The podium.", "Hover, swing, flip."]}
+            note="The top four agents by composite score, hanging on the same wire. Flip a card for the numbers a buyer would ask about."
+            label={`${Math.min(4, rows.length)} of ${rows.length} models`} />
+          <Podium rows={rows} />
+        </section>
+      )}
 
       {findings.length > 0 && (
-        <Section className="!mt-10" title="Key findings"
-          description={`Generated from the live results: ${hero.episodes.toLocaleString("en-US")} graded episodes. Each claim links to its evidence.`}>
+        <section className="mt-28 max-sm:mt-20" aria-labelledby="findings-title">
+          <SectionHead id="findings-title" title={["Key findings.", "Each one links to its evidence."]} dot="coral"
+            note={`Generated from the live results: ${hero.episodes.toLocaleString("en-US")} graded episodes. Nothing here is written by hand.`}
+            label="Auto-generated" />
           <KeyFindings findings={findings} />
-        </Section>
+        </section>
       )}
 
-      {lb.error && <div className="mt-8"><ErrorState error={lb.error} onRetry={lb.reload} /></div>}
-
-      <Section title="Leaderboard" className="!mt-14"
-        description="Ranked by composite score. Reliability is the posterior probability of success with a 90% credible interval; click a column to sort."
-        actions={lb.data && <span className="text-zinc-500">Updated {ago(lb.data.updatedAt)} · latest result per model × task</span>}>
+      <section className="mt-28 max-sm:mt-20" aria-labelledby="lb-title">
+        <SectionHead id="lb-title" title={["Leaderboard.", "Ranked, with uncertainty."]} dot="accent"
+          note="Ranked by composite score. Reliability is the posterior probability of success with a 90% credible interval. Click a column to sort."
+          label={lb.data ? `Updated ${ago(lb.data.updatedAt)}` : "Loading"} />
         {lb.loading && !lb.data ? <LoadingBlock rows={6} /> : rows.length ? <LeaderboardTable rows={rows} /> : !lb.error && (
           <EmptyState title="No results yet" description="Start a run to evaluate models in the Arena. Results appear here as each task is graded."
-            action={<ButtonLink href="/runs/new">New run</ButtonLink>} />
+            action={<Pill href="/runs/new">New run</Pill>} />
         )}
-      </Section>
-
-      {rows.length > 1 && (
-        <Section title="Head to head"
-          description="P(row model's true success rate > column model's), from the Beta posteriors. Marked cells are distinguishable at 95%."
-          actions={<TextLink href="/compare" className="tap inline-flex items-center gap-1 whitespace-nowrap">Compare two models <ArrowRight size={13} /></TextLink>}>
-          <PairwiseMatrix compact limit={5} />
-        </Section>
-      )}
+        {rows.length > 0 && <p className="mt-3 px-4 text-[12px] text-ink-4">Latest result per model × task.</p>}
+      </section>
 
       {rows.length > 0 && (
-        <Section title="Trap resistance"
-          description="Share of trap-tagged tasks where the model was fooled, by trap type. Lower is better; k/n is fooled over exposed."
-          actions={<ScaleLegend label="Fooled" />}>
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 max-sm:p-2">
+        <section className="mt-28 max-sm:mt-20" aria-labelledby="trap-title">
+          <SectionHead id="trap-title" title={["Trap resistance.", "Where agents get fooled."]} dot="coral"
+            note="Share of trap-tagged tasks where the model was fooled, by trap type. Denser dots, more often fooled; k/n is fooled over exposed."
+            actions={<ScaleLegend label="Fooled" />} />
+          <Tile pad={20} className="max-sm:!p-2">
             <Heatmap
               rows={rows.map((r) => ({ key: r.model, label: r.displayName.replace(/\s*\(sim\)\s*$/i, "") }))}
               cols={TRAP_TYPES.map((k) => ({ key: k, label: TRAP_LABEL[k] }))}
@@ -124,15 +141,68 @@ export default function HomeView({ hero: heroProp, findings }: { hero: HeroStats
                 return b ? { rate: b.exposed ? b.fooled / b.exposed : null, fooled: b.fooled, exposed: b.exposed, lower: b.rate.lower, upper: b.rate.upper } : undefined;
               }}
             />
-          </div>
-        </Section>
+          </Tile>
+        </section>
       )}
 
-      <Section title="Latest runs" actions={<TextLink href="/runs" className="tap inline-flex items-center gap-1">All runs <ArrowRight size={13} /></TextLink>}>
-        {runs.data?.runs.length ? <RunsList runs={runs.data.runs.slice(0, 5)} compact />
+      {rows.length > 1 && (
+        <section className="mt-28 max-sm:mt-20" aria-labelledby="h2h-title">
+          <SectionHead id="h2h-title" title={["Head to head.", "Who is actually better?"]} dot="violet"
+            note="P(row model's true success rate > column model's), from the Beta posteriors. Solid cells are distinguishable at 95%; dot density shows how far a pair leans."
+            actions={<Pill href="/compare" size="sm" variant="surface">Compare two models <ArrowRight size={13} /></Pill>} />
+          <Tile pad={24} className="max-sm:!p-3">
+            <PairwiseMatrix compact limit={5} />
+          </Tile>
+        </section>
+      )}
+
+      <section className="mt-28 max-sm:mt-20" aria-labelledby="runs-title">
+        <SectionHead id="runs-title" title={["Latest runs.", "Every one is replayable."]} dot="pass"
+          actions={<Pill href="/runs" size="sm" variant="surface">All runs <ArrowRight size={13} /></Pill>} />
+        {runList.length ? <LatestRuns runs={runList.slice(0, 5)} />
           : runs.loading ? <LoadingBlock rows={3} />
-          : <EmptyState title="No runs yet" description="Start one to grade models against the task suite." action={<ButtonLink href="/runs/new">New run</ButtonLink>} />}
-      </Section>
+          : <EmptyState title="No runs yet" description="Start one to grade models against the task suite." action={<Pill href="/runs/new">New run</Pill>} />}
+      </section>
     </>
   );
 }
+
+const STATUS = {
+  running: { dot: "bg-accent pulse-dot", label: "Running", text: "text-accent" },
+  completed: { dot: "bg-pass", label: "Completed", text: "text-pass-ink" },
+  failed: { dot: "bg-coral", label: "Failed", text: "text-coral-ink" },
+  queued: { dot: "bg-ink-4", label: "Queued", text: "text-ink-3" },
+} as const;
+
+function LatestRuns({ runs }: { runs: EvalRun[] }) {
+  return (
+    <ul className="grid gap-2">
+      {runs.map((r) => {
+        const p = r.progress.total ? r.progress.done / r.progress.total : 0;
+        const st = STATUS[r.status] ?? STATUS.queued;
+        return (
+          <li key={r.id}>
+            <Link href={runHref(r.id)}
+              className="group grid min-h-[68px] items-center gap-x-5 gap-y-2 rounded-capsule bg-surface px-5 py-3 shadow-key transition-shadow duration-200 hover:shadow-raised sm:grid-cols-[minmax(0,1fr)_110px_minmax(170px,auto)] lg:grid-cols-[minmax(0,1.4fr)_110px_minmax(0,1fr)_minmax(180px,auto)_72px]">
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-medium tracking-[-0.012em] text-ink group-hover:text-accent">{r.name}</div>
+                <div className="truncate font-mono text-[11.5px] text-ink-4">{r.id}</div>
+              </div>
+              <span className={cx("inline-flex items-center gap-2 text-[12.5px] font-medium", st.text)}>
+                <span className={cx("size-1.5 rounded-full", st.dot)} />{st.label}
+              </span>
+              <span className="truncate font-mono text-[12px] text-ink-3 max-lg:hidden" title={r.models.join(", ")}>{runModelsLabel(r.models, 2)} · {r.taskIds.length} tasks</span>
+              <span className="flex items-center gap-3">
+                <DotBar value={p} dots={24} pitch={5} tone={r.status === "failed" ? "coral" : r.status === "completed" ? "ink" : "accent"}
+                  label={`${r.progress.done} of ${r.progress.total} graded`} />
+                <span className="text-[12px] text-ink-3 tabular-nums">{r.progress.done}/{r.progress.total}</span>
+              </span>
+              <span className="text-right text-[12px] text-ink-3 max-lg:hidden">{ago(r.createdAt)}</span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+

@@ -1,35 +1,205 @@
 @import "tailwindcss";
 
+/* =====================================================================================================
+   Bonded design system: "soft instrument".  Spec: src/design/README.md
+   Light only. Every colour is OKLCH. Surfaces are lifted by layered shadows, not borders.
+   ===================================================================================================== */
+
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
 @theme {
-  /* The one accent. Interactive + brand only. */
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-accent-soft: #eff6ff;
+  /* ---------------------------------------------------------------- colour roles */
+  /* canvas & surfaces */
+  --color-canvas: oklch(97.2% 0.003 90);        /* page + <html> background: warm-neutral off-white */
+  --color-canvas-sunk: oklch(94.6% 0.004 90);   /* wells: inputs, tracks, empty cells */
+  --color-surface: oklch(100% 0 0);             /* tiles */
+  --color-glass: oklch(100% 0 0 / 0.72);        /* nav, tooltips (with backdrop blur) */
+
+  /* ink (text + chrome). ink-3 is the lightest that passes 4.5:1 on white */
+  --color-ink: oklch(19% 0.006 275);
+  --color-ink-2: oklch(42% 0.008 275);
+  --color-ink-3: oklch(54% 0.008 275);
+  --color-ink-4: oklch(72% 0.006 275);           /* decorative only: disabled, axis ticks, off-dots */
+  --color-ink-5: oklch(86% 0.005 275);           /* off-dots in dot-matrix charts */
+  --color-divider: oklch(19% 0.006 275 / 0.07);  /* the only hairline: rows inside tables/lists */
+
+  /* accents: used as atmosphere (blooms, orbs) and as the one interactive hue */
+  --color-accent: oklch(55% 0.215 262);          /* electric blue: links, focus, primary data series */
+  --color-accent-hover: oklch(49% 0.22 264);
+  --color-accent-soft: oklch(96% 0.025 262);
+  --color-accent-dot: oklch(62% 0.19 258);       /* data dots on white */
+  --color-sky: oklch(78% 0.13 230);              /* bloom highlight */
+  --color-violet: oklch(55% 0.24 295);
+  --color-violet-soft: oklch(95.5% 0.03 295);
+  --color-lavender: oklch(64% 0.1 288);          /* two-tone headline second line (>=3:1 at display size) */
+
+  /* outcome roles (reserved: never use for decoration) */
+  --color-coral: oklch(68% 0.15 35);             /* risk / scammed / fooled: dots and fills */
+  --color-coral-ink: oklch(53% 0.17 30);         /* risk text on white */
+  --color-coral-soft: oklch(95.5% 0.03 35);
+  --color-pass: oklch(66% 0.15 152);             /* pass: dots and fills */
+  --color-pass-ink: oklch(50% 0.13 152);         /* "✓ Passed" text */
+  --color-pass-soft: oklch(96% 0.035 152);
+  --color-amber: oklch(76% 0.14 75);
+  --color-amber-ink: oklch(52% 0.12 65);
+  --color-amber-soft: oklch(96.5% 0.035 85);
+
+  /* ---------------------------------------------------------------- radii (outer = inner + padding) */
+  --radius-tile: 28px;     /* top-level tiles */
+  --radius-card: 22px;     /* nested cards, hanging cards, popovers */
+  --radius-capsule: 20px;  /* list rows (capsule rows) */
+  --radius-key: 14px;      /* icon tiles, small square controls */
+  --radius-chip: 10px;     /* heatmap/matrix cells */
+
+  /* ---------------------------------------------------------------- shadows (3 levels + key + well) */
+  /* ring (a 1px shadow, never a border) + contact + ambient + top highlight */
+  --shadow-tile:
+    0 0 0 1px oklch(19% 0.006 275 / 0.045),
+    0 1px 2px oklch(19% 0.006 275 / 0.04),
+    0 6px 16px -4px oklch(19% 0.006 275 / 0.05),
+    0 24px 48px -24px oklch(19% 0.006 275 / 0.08),
+    inset 0 1px 0 oklch(100% 0 0 / 0.9);
+  --shadow-raised:
+    0 0 0 1px oklch(19% 0.006 275 / 0.05),
+    0 2px 4px oklch(19% 0.006 275 / 0.05),
+    0 12px 24px -6px oklch(19% 0.006 275 / 0.09),
+    0 36px 64px -28px oklch(19% 0.006 275 / 0.16),
+    inset 0 1px 0 oklch(100% 0 0 / 0.9);
+  --shadow-float:
+    0 0 0 1px oklch(19% 0.006 275 / 0.06),
+    0 4px 10px -2px oklch(19% 0.006 275 / 0.07),
+    0 18px 40px -12px oklch(19% 0.006 275 / 0.16),
+    inset 0 1px 0 oklch(100% 0 0 / 0.8);
+  --shadow-key:
+    0 0 0 1px oklch(19% 0.006 275 / 0.06),
+    0 1px 2px oklch(19% 0.006 275 / 0.06),
+    0 3px 8px -2px oklch(19% 0.006 275 / 0.07),
+    inset 0 1px 0 oklch(100% 0 0 / 0.9);
+  --shadow-well:
+    inset 0 0 0 1px oklch(19% 0.006 275 / 0.04),
+    inset 0 1px 2px oklch(19% 0.006 275 / 0.06);
+  --shadow-ink: /* black pill buttons */
+    0 0 0 1px oklch(19% 0.006 275),
+    0 1px 2px oklch(19% 0.006 275 / 0.2),
+    0 6px 14px -6px oklch(19% 0.006 275 / 0.45),
+    inset 0 1px 0 oklch(100% 0 0 / 0.16);
+
+  /* ---------------------------------------------------------------- motion */
+  --ease-out-soft: cubic-bezier(0.2, 0.75, 0.15, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ---------------------------------------------------------------- display type */
+  --text-display: clamp(40px, 6.2vw, 76px);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.045em;
+  --text-title: clamp(30px, 3.6vw, 44px);
+  --text-title--line-height: 1.04;
+  --text-title--letter-spacing: -0.035em;
 }
 
-html { color-scheme: light; background: #fff; }
+@layer base {
+/* ------------------------------------------------------------------ base */
+html {
+  color-scheme: light;
+  background: var(--color-canvas);       /* HTML background: overscroll + safe areas match the canvas */
+  -webkit-text-size-adjust: 100%;
+}
+html, body { overflow-x: clip; }          /* full-bleed blooms never create a horizontal scrollbar */
 body {
-  background: #fff;
-  color: #18181b;
+  background: var(--color-canvas);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
+  font-variant-numeric: tabular-nums;     /* tabular numbers everywhere: columns of figures never jitter */
+  font-feature-settings: "ss01" 0;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+h1, h2, h3, h4 { text-wrap: balance; }
+p, li, dd, figcaption { text-wrap: pretty; }
+
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
+::selection { background: oklch(88% 0.07 262); color: var(--color-ink); }
 
 .tnum { font-variant-numeric: tabular-nums; }
-::selection { background: #dbeafe; }
+.pnum { font-variant-numeric: proportional-nums; }
 
-@keyframes row-in { from { background-color: #eff6ff; } to { background-color: transparent; } }
+}
+
+@layer components {
+/* ------------------------------------------------------------------ craft utilities */
+
+/* Micro-label: 11px, tracked uppercase. */
+.micro {
+  font-size: 11px; line-height: 16px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-ink-3);
+}
+
+/* Optical alignment: big type carries side-bearing; pull it back to the text edge. */
+.optical-left { margin-left: -0.055em; }
+
+/* Nested radius: a child of <Tile pad> or any element with --r/--p set gets radius = r - p. */
+.r-nested { border-radius: max(6px, calc(var(--r, 28px) - var(--p, 8px))); }
+
+/* Noise grain: fixed-size SVG turbulence, multiplied over gradients so they never band. */
+.grain { position: relative; isolation: isolate; }
+.grain::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: 0.16; mix-blend-mode: soft-light;
+}
+
+/* Hit areas: grow the target to 44px without moving anything. */
+.hit { position: relative; }
+.hit::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+}
+
+/* Halftone fill: a dot screen for bars/areas. Set --dot (colour) and optionally --dot-size. */
+.halftone {
+  --dot-size: 5px;
+  background-image: radial-gradient(circle at center, var(--dot, var(--color-accent-dot)) 1.15px, transparent 1.6px);
+  background-size: var(--dot-size) var(--dot-size);
+  background-position: 0 50%;
+}
+
+/* Scroll fades: <ScrollFade> sets --fade-l/--fade-r from scroll position. */
+.scroll-fade {
+  --fade-l: 0px; --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  scrollbar-width: none;
+}
+.scroll-fade::-webkit-scrollbar { display: none; }
+
+}
+
+/* ------------------------------------------------------------------ ambient motion (CSS so it is cheap) */
+@keyframes orb-breathe { 0%, 100% { transform: scale(1); opacity: 0.92; } 50% { transform: scale(1.07); opacity: 1; } }
+@keyframes orb-spin { to { transform: rotate(360deg); } }
+@keyframes bloom-drift { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(2%, -3%, 0) scale(1.04); } }
+@keyframes card-sway { 0%, 100% { transform: rotate(var(--sway-a, -0.6deg)); } 50% { transform: rotate(var(--sway-b, 0.6deg)); } }
+@keyframes rise-in { from { clip-path: inset(0 0 100% 0); transform: translateY(0.25em); } to { clip-path: inset(0 0 -0.2em 0); transform: none; } }
+.rise-in { animation: rise-in 700ms var(--ease-out-soft) both; }
+.paused, .paused * { animation-play-state: paused !important; }
+
+@keyframes row-in { from { background-color: var(--color-accent-soft); } to { background-color: transparent; } }
 .row-in { animation: row-in 1.6s ease-out; }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-.pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+.pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
 
 /* ------------------------------------------------------------------ small screens
    Phones and tablets: lift the tiny caption sizes to a readable 12px floor. Scoped to <1024px so desktop is untouched.

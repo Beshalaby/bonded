@@ -80,6 +80,9 @@ export function betaInterval(k: number, n: number): Interval {
 
 // ------------------------------------------------------------------ result selection
 /** Latest result per model×task (optionally only results from one run). */
+/** Minimum graded tasks before a model is ranked among established models (and eligible for the podium). */
+export const MIN_RANKED_N = 10;
+
 export function latestResults(all: BenchResult[] = read().benchResults, runId?: string | null): BenchResult[] {
   const by = new Map<string, BenchResult>();
   for (const r of all) {
@@ -153,7 +156,9 @@ export function computeStats(opts: { runId?: string | null; results?: BenchResul
   const by = new Map<string, BenchResult[]>();
   for (const r of rs) by.set(r.model, [...(by.get(r.model) ?? []), r]);
   return [...by].map(([m, list]) => modelStats(m, list))
-    .sort((a, b) => b.score - a.score || b.reliability.mean - a.reliability.mean || b.n - a.n);
+    // Models with fewer than MIN_RANKED_N graded tasks are provisional: listed after established models,
+    // so one lucky episode can't top the board.
+    .sort((a, b) => Number(b.n >= MIN_RANKED_N) - Number(a.n >= MIN_RANKED_N) || b.score - a.score || b.reliability.mean - a.reliability.mean || b.n - a.n);
 }
 
 export function leaderboard(runId?: string | null) {

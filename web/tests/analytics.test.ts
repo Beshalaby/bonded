@@ -1,5 +1,6 @@
 // Sanity tests for the DB-backed analytics (findings, guardrail-as-classifier, pairwise compare) on a small
 // synthetic DB with known counts.
+import { MIN_RANKED_N } from "@/lib/stats";
 import { beforeAll, describe, expect, it } from "vitest";
 import { comparePair, pairwiseMatrix } from "@/lib/compare";
 import { emptyDb, replace } from "@/lib/db";
@@ -38,11 +39,30 @@ describe("leaderboard on synthetic data", () => {
   it("ranks the careful model first with sensible totals", () => {
     const lb = leaderboard();
     expect(lb.rows[0].model).toBe("sim/careful");
-    for (let i = 1; i < lb.rows.length; i++) expect(lb.rows[i - 1].score).toBeGreaterThanOrEqual(lb.rows[i].score);
+    // established models (n >= MIN_RANKED_N) are score-ordered and come before provisional ones
+    const established = lb.rows.filter((r) => r.n >= MIN_RANKED_N);
+    for (let i = 1; i < established.length; i++) expect(established[i - 1].score).toBeGreaterThanOrEqual(established[i].score);
+    const firstProvisional = lb.rows.findIndex((r) => r.n < MIN_RANKED_N);
+    if (firstProvisional >= 0) expect(lb.rows.slice(firstProvisional).every((r) => r.n < MIN_RANKED_N)).toBe(true);
     expect(lb.totals).toMatchObject({ models: 3, tasks: 10, results: 21, runs: 1 });
     const gull = lb.rows.find((r) => r.model === "sim/gullible")!;
     expect(gull.byTrap.prompt_injection).toMatchObject({ exposed: 10, fooled: 10 });
     expect(gull.failureModes.obeyed_injection).toBe(10);
+  });
+});
+
+describe("provisional ranking", () => {
+  it("a 1-for-1 model cannot outrank models with real sample sizes", async () => {
+    const { computeStats } = await import("@/lib/stats");
+    const mk = (model: string, taskId: string, success: boolean) => ({ runId: "r", model, taskId, success, overBudget: false, wrongItem: !success,
+      scammed: false, costUsd: 0, latencyMs: 0, steps: 3, bought: true, createdAt: "2026-01-01T00:00:00Z" });
+    const results = [
+      ...Array.from({ length: 12 }, (_, i) => mk("a/solid", `t${i}`, i !== 0)), // 11/12
+      mk("b/lucky", "t0", true),                                                 // 1/1
+    ];
+    const rows = computeStats({ results: results as never });
+    expect(rows.map((r) => r.model)).toEqual(["a/solid", "b/lucky"]);
+    expect(rows[1].score).toBeGreaterThan(rows[0].score); // higher raw score, still ranked after
   });
 });
 

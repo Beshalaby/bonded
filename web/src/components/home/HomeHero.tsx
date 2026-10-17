@@ -1,96 +1,99 @@
 "use client";
-import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+// Home hero: a two-tone editorial headline over a blue/violet bloom, then the reliability landscape
+// (HalftoneField: one dot-matrix ridge per model's Beta posterior) as the hero visual.
+import { useMemo } from "react";
+import { motion } from "motion/react";
 import { ArrowRight, Presentation } from "lucide-react";
 import type { HeroStats } from "@/lib/findings";
 import type { ModelStats } from "@/lib/types";
-import ReliabilityForest from "./ReliabilityForest";
-import { buttonClass, cx } from "@/components/ui";
-import { RollingNumber } from "./RollingNumber";
+import { modelHref } from "@/lib/ui/format";
+import { Bloom, DisplayTitle, EASE, HalftoneField, MicroLabel, Pill, Tile, betaFromMean, type Ridge } from "@/design";
 
 export interface LiveLine { id: string; text: string; tone: "good" | "bad" | "neutral"; href?: string }
 
-const EASE = [0.2, 0.75, 0.15, 1] as const;
+const clean = (s: string) => s.replace(/\s*\(sim\)\s*$/i, "");
 
-export default function HomeHero({ hero, connected, live, rows }: { hero: HeroStats; connected: boolean; live: LiveLine | null; rows: ModelStats[] }) {
-  const usd = (v: number) => `$${Math.round(v).toLocaleString("en-US")}`;
-  const stats = [
-    { label: "episodes evaluated", value: hero.episodes, fmt: undefined, hint: "Every graded model × task attempt, across all runs" },
-    { label: "agent spend audited", value: hero.spendUsd, fmt: usd, hint: "Sum of every checkout the agents made in the sandbox store" },
-    { label: "trace steps hash-chained", value: hero.traceEntries, fmt: undefined, hint: "SHA-256 chained trace entries; any edit breaks the chain" },
-    { label: "scams found by the red team", value: hero.scams, fmt: undefined, hint: "Generated listings that fooled at least one model and became tasks" },
-  ];
+export default function HomeHero({ hero, connected, rows }: { hero: HeroStats; connected: boolean; live?: LiveLine | null; rows: ModelStats[] }) {
+  const ridges = useMemo<Ridge[]>(() => [...rows]
+    .sort((a, b) => b.reliability.mean - a.reliability.mean)
+    .map((r) => ({
+      key: r.model,
+      label: clean(r.displayName),
+      sub: `${r.simulated ? "Simulated" : r.provider} · n=${r.n}`,
+      href: modelHref(r.model),
+      beta: betaFromMean(r.reliability.mean, r.n),
+      interval: r.reliability,
+      n: r.n,
+    })), [rows]);
+  // zoom the x-domain to the data (floored to 10%) so tight clusters still read; say so on the axis
+  const lo = ridges.length ? Math.max(0, Math.floor((Math.min(...ridges.map((r) => r.interval.lower)) - 0.03) * 10) / 10) : 0;
+  const span = 1 - lo;
+  const ticks = span >= 0.6 ? [lo, lo + span * 0.25, lo + span * 0.5, lo + span * 0.75, 1] : [lo, (lo + 1) / 2, 1];
+
   return (
-    <section className="relative pb-2 pt-6">
-      <div className="relative grid grid-cols-1 items-end gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_452px]">
-       <div>
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-zinc-500">
-          <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 font-medium text-zinc-700">
-            <span className={cx("size-1.5 rounded-full", connected ? "pulse-dot bg-emerald-500" : "bg-zinc-300")} />
-            {connected ? "Live" : "Connecting"}
-          </span>
-          <span className="tnum">Bonded · SpendBench leaderboard · {hero.models} models · {hero.tasks} tasks ({hero.tasks - hero.baseTasks} from the red team) · {hero.runs} runs</span>
-        </motion.div>
-
-        <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.05, ease: EASE }}
-          className="mt-5 max-w-[640px] text-[48px] max-sm:text-[38px] font-semibold leading-[1.04] tracking-[-0.035em] text-zinc-900">
-          How safely do AI agents <br className="hidden lg:block" /><span className="text-zinc-400">spend money?</span>
-        </motion.h1>
-        <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.12, ease: EASE }}
-          className="mt-4 max-w-[600px] text-[16px] max-sm:text-[15px] leading-relaxed text-zinc-600">
-          Agents shop in a sandbox store seeded with knockoffs, fake discounts and hidden prompt injections. Every step is
-          hash-chained, every failure is attributed, and a red team keeps writing new scams that make the benchmark harder.
-        </motion.p>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.18, ease: EASE }}
-          className="mt-6 flex flex-wrap items-center gap-2">
-          <Link href="/runs/new" className={cx(buttonClass("primary"), "h-9 px-4 text-[13.5px]")}>Run the benchmark <ArrowRight size={14} /></Link>
-          <Link href="/redteam" className={cx(buttonClass("secondary"), "h-9 px-4 text-[13.5px]")}>Watch the red team</Link>
-          <Link href="/present" className={cx(buttonClass("ghost"), "h-9 px-3 text-[13.5px]")} title="Full-screen walkthrough built from live data">
-            <Presentation size={14} /> Present
-          </Link>
-        </motion.div>
-       </div>
-        <motion.figure initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: EASE }}
-          className="rounded-xl border border-zinc-200 bg-white p-5 max-sm:p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <figcaption className="mb-3 flex items-baseline justify-between gap-3">
-            <span className="text-[13px] font-semibold text-zinc-900">P(success), 90% credible interval</span>
-            <span className="text-[11.5px] text-zinc-400">Beta posterior</span>
-          </figcaption>
-          {rows.length ? <ReliabilityForest rows={rows} /> : <div className="h-[180px] animate-pulse rounded-md bg-zinc-50" />}
-        </motion.figure>
+    <section className="relative isolate pt-6 sm:pt-12">
+      {/* full-bleed atmosphere */}
+      <div aria-hidden className="pointer-events-none absolute left-1/2 top-[-140px] -z-10 h-[820px] w-screen -translate-x-1/2">
+        <Bloom tone="blue-violet" placement="top-right" intensity={1.2} />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-canvas" />
       </div>
-      <div>
 
-        <motion.dl initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.25 }}
-          className="mt-12 grid grid-cols-2 border-t border-zinc-200 lg:grid-cols-4">
-          {stats.map((s, i) => (
-            <div key={s.label} title={s.hint}
-              className={cx("min-w-0 py-5 pr-6 max-sm:pr-3", i > 0 && "lg:border-l lg:border-zinc-200 lg:pl-6", i % 2 === 1 && "border-l border-zinc-200 pl-6 max-sm:pl-4 lg:pl-6")}>
-              <dd className="text-[34px] max-sm:text-[28px] font-semibold leading-none tracking-[-0.03em] text-zinc-900">
-                <RollingNumber value={s.value} format={s.fmt} />
-              </dd>
-              <dt className="mt-2.5 text-[13px] text-zinc-500">{s.label}</dt>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <MicroLabel dot={connected ? "pass" : "muted"} pulse={connected}>
+          SpendBench · {connected ? "Live" : "Connecting"}
+        </MicroLabel>
+        <MicroLabel className="tabular-nums max-sm:hidden" dot="accent">
+          {hero.models} models · {hero.tasks} tasks · {hero.runs} runs
+        </MicroLabel>
+      </div>
+      <DisplayTitle as="h1" size="display" animate className="mt-7 max-w-[980px]"
+        line1="How safely do AI agents" line2="spend money?" />
+      <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.16, ease: EASE }}
+        className="mt-7 max-w-[540px] text-[16px] leading-relaxed text-ink-3 max-sm:text-[15px]">
+        Agents shop in a sandbox store seeded with knockoffs, fake discounts and hidden prompt injections.
+        Every step is hash-chained, every failure attributed, and a red team keeps writing new scams.
+      </motion.p>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.24, ease: EASE }}
+        className="mt-8 flex flex-wrap items-center gap-2.5">
+        <Pill href="/runs/new" size="lg">Run the benchmark <ArrowRight size={15} className="-mr-0.5" /></Pill>
+        <Pill href="/redteam" size="lg" variant="surface">Watch the red team</Pill>
+        <Pill href="/present" size="lg" variant="ghost" title="Full-screen walkthrough built from live data"><Presentation size={15} /> Present</Pill>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.34, ease: EASE }}>
+        <Tile as="figure" pad={0} radius={32} level="raised" className="mt-12 overflow-hidden sm:mt-14">
+          <figcaption className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3 px-7 pt-7 max-sm:px-5 max-sm:pt-5">
+            <div>
+              <MicroLabel dot="accent">Reliability landscape</MicroLabel>
+              <div className="mt-2 text-[17px] font-[540] tracking-[-0.02em] text-ink">Posterior P(success) for every model</div>
             </div>
-          ))}
-        </motion.dl>
-        <div className="flex h-8 items-center border-t border-zinc-100 text-[12.5px] text-zinc-500">
-          <span className="mr-2 font-mono text-[11px] uppercase tracking-[0.06em] text-zinc-400">Latest</span>
-          <AnimatePresence mode="popLayout" initial={false}>
-            {live ? (
-              <motion.span key={live.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.3, ease: EASE }} className="flex min-w-0 items-center gap-1.5 truncate">
-                <span className={cx("size-1.5 shrink-0 rounded-full", live.tone === "good" ? "bg-emerald-500" : live.tone === "bad" ? "bg-rose-500" : "bg-zinc-400")} />
-                {live.href ? <Link href={live.href} className="truncate hover:text-accent max-lg:py-3">{live.text}</Link> : <span className="truncate">{live.text}</span>}
-              </motion.span>
-            ) : (
-              <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="truncate">
-                Waiting for results. Start a run and graded episodes stream in here.
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] text-ink-3">
+              <span className="inline-flex items-center gap-2"><Swatch dense /> 90% credible interval</span>
+              <span className="inline-flex items-center gap-2"><Swatch /> tails</span>
+              <span className="inline-flex items-center gap-2"><span className="inline-flex flex-col gap-[2px]">{[0, 1, 2].map((k) => <span key={k} className="size-[3px] rounded-full bg-ink" />)}</span> mean</span>
+            </div>
+          </figcaption>
+          <div className="px-7 pb-5 pt-2 max-sm:px-4">
+            {ridges.length
+              ? <HalftoneField ridges={ridges} domain={[lo, 1]} axisTicks={ticks} axisLabel={lo > 0 ? `P(success), axis from ${Math.round(lo * 100)}%` : "P(success)"} />
+              : <div className="h-[420px] animate-pulse rounded-[20px] bg-canvas" />}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-7 pb-6 text-[12px] text-ink-4 max-sm:px-5">
+            <span>Ridge height ∝ √density, shared scale · Beta(1+s, 1+f) · hover a ridge for values</span>
+            <span className="tabular-nums">{hero.episodes.toLocaleString("en-US")} graded episodes</span>
+          </div>
+        </Tile>
+      </motion.div>
     </section>
+  );
+}
+
+function Swatch({ dense }: { dense?: boolean }) {
+  return (
+    <span aria-hidden className="grid grid-cols-3 gap-[2px]">
+      {Array.from({ length: 6 }).map((_, k) => (
+        <span key={k} className="size-[4px] rounded-full" style={{ background: dense ? "var(--color-accent-dot)" : "oklch(80% 0.08 258)" }} />
+      ))}
+    </span>
   );
 }

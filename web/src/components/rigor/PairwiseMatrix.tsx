@@ -8,7 +8,16 @@ import type { PairwiseMatrixData } from "./types";
 import { modelHref } from "@/lib/ui/format";
 import { cx } from "@/components/ui";
 
-const ACCENT = [37, 99, 235];
+// Styling: design-system tokens. Distinguishable = solid accent; leaning = halftone dots whose size grows with P.
+const ACCENT = "oklch(55% 0.215 262)";
+const leanBg = (strength: number) => {
+  const r = (0.7 + strength * 1.5).toFixed(2);
+  return {
+    backgroundColor: `oklch(96% ${(0.012 + strength * 0.03).toFixed(3)} 262)`,
+    backgroundImage: `radial-gradient(circle at center, oklch(62% 0.19 258 / ${(0.45 + strength * 0.5).toFixed(2)}) ${r}px, transparent ${(+r + 0.6).toFixed(2)}px)`,
+    backgroundSize: "6px 6px",
+  };
+};
 
 export interface PairwiseMatrixProps {
   /** Matrix payload from GET /api/compare (`.matrix`). If omitted the component fetches it (optionally scoped to `runId`). */
@@ -39,24 +48,24 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
     return () => { live = false; };
   }, [given, runId]);
   const data = given ?? fetched;
-  if (!data) return <div className={cx("h-[240px] animate-pulse rounded-lg bg-zinc-50", className)} />;
+  if (!data) return <div className={cx("h-[240px] animate-pulse rounded-[20px] bg-canvas", className)} />;
   const k = Math.min(data.models.length, limit ?? data.models.length);
   const models = data.models.slice(0, k);
-  if (models.length < 2) return <div className={cx("rounded-lg border border-dashed border-zinc-300 p-6 text-center text-[13px] text-zinc-500", className)}>Need at least two models with results.</div>;
+  if (models.length < 2) return <div className={cx("rounded-[20px] bg-canvas p-6 text-center text-[13px] text-ink-3 shadow-well", className)}>Need at least two models with results.</div>;
   // Phones: numbered columns (matching the numbered rows) and narrow cells so five models fit in ~360px.
   const cell = cx(compact ? "h-9 min-w-[60px]" : "h-11 w-[96px] min-w-[84px]", "max-sm:h-10 max-sm:w-auto max-sm:min-w-[40px]");
 
   return (
     <div className={className}>
       <div className="overflow-x-auto">
-        <table className="border-separate" style={{ borderSpacing: 3 }}>
+        <table className="border-separate" style={{ borderSpacing: 4 }}>
           <thead>
             <tr>
-              <th className="pr-3 text-left align-bottom text-[11.5px] font-normal text-zinc-400 max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-white max-sm:pr-2">
+              <th className="pr-3 text-left align-bottom text-[11px] font-medium uppercase tracking-[0.1em] text-ink-4 max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-surface max-sm:pr-2 max-sm:normal-case max-sm:tracking-normal">
                 <span className="whitespace-nowrap">row beats column<span className="sm:hidden"> (%)</span></span>
               </th>
               {models.map((m, j) => (
-                <th key={m.model} className={cx("px-1 pb-1.5 text-center align-bottom text-[11.5px] font-medium leading-tight", hover?.[1] === j ? "text-zinc-900" : "text-zinc-500")}>
+                <th key={m.model} className={cx("px-1 pb-2 text-center align-bottom text-[12px] font-medium leading-tight", hover?.[1] === j ? "text-ink" : "text-ink-3")}>
                   <span className="mx-auto block max-w-[96px] truncate max-sm:hidden" title={m.displayName}>{shortName(m.displayName)}</span>
                   <span className="sm:hidden" title={m.displayName}>#{j + 1}</span>
                 </th>
@@ -66,31 +75,31 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
           <tbody>
             {models.map((A, i) => (
               <tr key={A.model}>
-                <td className={cx("whitespace-nowrap pr-3 text-[13px] max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-white max-sm:pr-2", hover?.[0] === i ? "text-zinc-900" : "text-zinc-700")}>
-                  <span className="mr-1.5 inline-block w-5 text-[12px] text-zinc-400 tnum sm:hidden">#{i + 1}</span>
+                <td className={cx("whitespace-nowrap pr-4 text-[13.5px] max-sm:sticky max-sm:left-0 max-sm:z-[1] max-sm:bg-surface max-sm:pr-2", hover?.[0] === i ? "text-ink" : "text-ink-2")}>
+                  <span className="mr-1.5 inline-block w-5 text-[12px] text-ink-4 tnum sm:hidden">#{i + 1}</span>
                   <Link href={modelHref(A.model)} className="tap hover:text-accent max-sm:inline-block max-sm:max-w-[104px] max-sm:truncate max-sm:align-bottom">{shortName(A.displayName)}</Link>
-                  <span className="ml-2 text-[11.5px] text-zinc-400 tnum max-sm:hidden">{Math.round(A.mean * 100)}%</span>
+                  <span className="ml-2 text-[11.5px] text-ink-4 tnum max-sm:hidden">{Math.round(A.mean * 100)}%</span>
                 </td>
                 {models.map((B, j) => {
                   const c = data.cells[i]?.[j];
-                  if (i === j || !c) return <td key={B.model} className={cx(cell, "rounded-[4px] bg-zinc-50 text-center text-[11px] text-zinc-300")}>—</td>;
+                  if (i === j || !c) return <td key={B.model} className={cx(cell, "rounded-chip bg-canvas text-center text-[11px] text-ink-5")}>—</td>;
                   const strength = Math.max(0, (c.p - 0.5) / 0.5);
                   const dist = c.p > data.threshold;
                   const isSel = selected && ((selected.a === A.model && selected.b === B.model));
-                  const bg = dist ? `rgb(${ACCENT.join(",")})` : c.p > 0.5 ? `rgba(${ACCENT.join(",")},${0.07 + strength * 0.38})` : "#fff";
+                  const bg: React.CSSProperties = dist ? { background: ACCENT, boxShadow: "inset 0 1px 0 oklch(100% 0 0 / 0.2), 0 4px 10px -4px oklch(55% 0.215 262 / 0.5)" } : c.p > 0.5 ? leanBg(strength) : { background: "var(--color-canvas)" };
                   const tip = `P(${shortName(A.displayName)} > ${shortName(B.displayName)}) = ${c.p.toFixed(4)} exact · ${c.mc.toFixed(4)} Monte Carlo (${(20000).toLocaleString()} draws)` +
                     (dist ? " · distinguishable at 95%" : c.p < 1 - data.threshold ? " · column is distinguishably better" : " · not distinguishable");
                   const inner = (
                     <span className="flex h-full flex-col items-center justify-center leading-none">
-                      <span className={cx("tnum", compact ? "text-[12px]" : "text-[13px]", dist ? "font-semibold text-white" : c.p > 0.5 ? "font-medium text-zinc-900" : "text-zinc-400")}>
-                        {fmtP(c.p)}<span className={cx("text-[10px] max-sm:hidden", dist ? "text-white/70" : "text-zinc-400")}>%</span>
+                      <span className={cx("tnum rounded-full px-1", compact ? "text-[12px]" : "text-[13px]", dist ? "font-semibold text-white" : c.p > 0.5 ? "bg-surface/85 font-medium text-ink" : "text-ink-4")}>
+                        {fmtP(c.p)}<span className={cx("text-[10px] max-sm:hidden", dist ? "text-white/70" : "text-ink-4")}>%</span>
                       </span>
                     </span>
                   );
-                  const cls = cx(cell, "rounded-[4px] p-0 text-center transition-shadow", c.p <= 0.5 && "ring-1 ring-inset ring-zinc-100",
-                    isSel && "outline outline-2 outline-offset-1 outline-zinc-900", "hover:outline hover:outline-2 hover:outline-offset-1 hover:outline-zinc-900/60");
+                  const cls = cx(cell, "rounded-chip p-0 text-center transition-[outline-color]",
+                    isSel && "outline outline-2 outline-offset-2 outline-ink", "hover:outline hover:outline-2 hover:outline-offset-2 hover:outline-ink/50");
                   return (
-                    <td key={B.model} className={cls} style={{ background: bg }} title={tip}
+                    <td key={B.model} className={cls} style={bg} title={tip}
                       onMouseEnter={() => setHover([i, j])} onMouseLeave={() => setHover(null)}>
                       {onSelect
                         ? <button type="button" onClick={() => onSelect(A.model, B.model)} className="block h-full w-full">{inner}</button>
@@ -104,15 +113,15 @@ export default function PairwiseMatrix({ data: given, runId, onSelect, selected,
         </table>
       </div>
       {!compact && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11.5px] text-zinc-500">
-          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-4 rounded-[3px] bg-accent" /> distinguishable, P &gt; {Math.round(data.threshold * 100)}%</span>
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-ink-3">
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3.5 w-5 rounded-[5px] bg-accent" /> distinguishable, P &gt; {Math.round(data.threshold * 100)}%</span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-3 w-4 rounded-[3px]" style={{ background: `rgba(${ACCENT.join(",")},0.12)` }} />
-            <span className="inline-block h-3 w-4 rounded-[3px]" style={{ background: `rgba(${ACCENT.join(",")},0.4)` }} />
+            <span className="inline-block h-3.5 w-5 rounded-[5px]" style={leanBg(0.15)} />
+            <span className="inline-block h-3.5 w-5 rounded-[5px]" style={leanBg(0.8)} />
             leaning, 50–{Math.round(data.threshold * 100)}%
           </span>
-          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-4 rounded-[3px] bg-white ring-1 ring-inset ring-zinc-200" /> row is worse (read the mirrored cell)</span>
-          <span className="text-zinc-400">Exact closed form · Monte Carlo check max |Δ| = {data.method.maxAbsMcError.toFixed(4)}</span>
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3.5 w-5 rounded-[5px] bg-canvas" /> row is worse (read the mirrored cell)</span>
+          <span className="text-ink-4">Exact closed form · Monte Carlo check max |Δ| = {data.method.maxAbsMcError.toFixed(4)}</span>
         </div>
       )}
     </div>
