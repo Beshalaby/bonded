@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Check, CreditCard, Lock, ScanLine, Search, ShieldAlert, ShieldCheck, ShoppingCart, Store, X } from "lucide-react";
 import type { GuardianVerdict, Merchant, Product } from "@/lib/types";
-import { ProductArt, SellerBadge, Stars } from "@/app/arena/ui";
+import { ProductArt, SellerBadge, Stars } from "@/app/(dashboard)/arena/ui";
 import { Badge, GuardrailBadge, TrapBadge, cx } from "@/components/ui";
 import { usd } from "@/lib/ui/format";
 import { useAfter } from "./hooks";

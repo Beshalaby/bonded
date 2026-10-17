@@ -10,6 +10,16 @@
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
   --color-accent-soft: #eff6ff;
+
+  /* SpendBench landing palette — warm "prosperity" greens + money gold, taken from the reference art. */
+  --color-ink: #1c1d15;
+  --color-forest: #2f4a33;
+  --color-leaf: #5f7f47;
+  --color-sage: #93a56b;
+  --color-gold: #d9a441;
+  --color-gold-deep: #b3801f;
+  --color-cream: #fdf9ec;
+  --color-mint: #eef2df;
 }
 
 html { color-scheme: light; background: #fff; }
