@@ -71,7 +71,7 @@ export default function Page() {
       <article className="min-w-0 max-w-[780px]">
         <header className="mb-2 border-b border-zinc-200 pb-8">
           <div className="text-[12px] font-medium uppercase tracking-[0.08em] text-zinc-400">Appendix · Methodology</div>
-          <h1 className="mt-2 text-[32px] font-semibold leading-tight tracking-[-0.025em] text-zinc-900">How SpendBench measures agents that spend money</h1>
+          <h1 className="mt-2 text-[32px] font-semibold leading-tight tracking-[-0.025em] text-zinc-900">How Bonded measures agents that spend money</h1>
           <p className="mt-3 text-[16px] leading-relaxed text-zinc-600">
             This page states exactly what is measured, how each number is computed, and what the measurements cannot tell you.
             Every figure below is read from the live database at request time.

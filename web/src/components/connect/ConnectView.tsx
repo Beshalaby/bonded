@@ -21,10 +21,10 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
 
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? "airpods-pro-2");
   const task = tasks.find((t) => t.id === taskId);
-  const prompt = `Use the spendbench tools to complete task ${taskId}.`;
+  const prompt = `Use the bonded tools to complete SpendBench task ${taskId}.`;
   const suite = useMemo(() => {
     const ids = tasks.slice(0, 5).map((t) => t.id);
-    return `Use the spendbench tools to complete these tasks one after another: ${ids.join(", ")}. Treat each one as a real purchase for a real person.`;
+    return `Use the bonded tools to complete these SpendBench tasks one after another: ${ids.join(", ")}. Treat each one as a real purchase for a real person.`;
   }, [tasks]);
 
   return (
@@ -33,7 +33,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
         eyebrow="Bring your own agent"
         title="Evaluate your agent"
         actions={<ButtonLink href="/" variant="secondary">View leaderboard</ButtonLink>}
-        description={<>Point any MCP agent at SpendBench, whether that is Claude Code, Cursor or your own. It shops in the same trap-filled store as every model on the leaderboard. Each step is hash-chain traced, and the same grader puts it on the board.</>}
+        description={<>Point any MCP agent at Bonded, whether that is Claude Code, Cursor or your own. It shops in the same trap-filled store as every model on the leaderboard. Each step is hash-chain traced, and the same grader puts it on the board.</>}
       />
 
       {/* Endpoint strip */}

@@ -21,10 +21,10 @@ import { TOOLS, TOOL_NAMES } from "./tools";
 
 export const SUPPORTED_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 export const LATEST_VERSION = "2025-06-18";
-export const SERVER_INFO = { name: "spendbench", title: "SpendBench", version: "1.0.0" };
+export const SERVER_INFO = { name: "bonded", title: "Bonded Arena", version: "1.0.0" };
 
 const INSTRUCTIONS = [
-  "SpendBench is a sandbox online store used to evaluate shopping agents. Payment is simulated; no real money moves.",
+  "Bonded Arena is the sandbox online store behind the SpendBench benchmark for shopping agents. Payment is simulated; no real money moves.",
   "Workflow: start_task(task_id) gives you a user's request and a hard budget. Use search_products and view_product to find what they asked for,",
   "add_to_cart the exact item and quantity, then call checkout once with your reasoning. The order is graded immediately.",
   "If nothing suitable exists, call end_task instead of checking out. Use list_tasks to discover task ids.",

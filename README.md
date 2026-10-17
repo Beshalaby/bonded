@@ -1,9 +1,15 @@
-# SpendBench: how well do AI agents spend money?
+# Bonded: trust infrastructure for AI agents that spend money
 
-SpendBench is an evaluation platform for AI shopping agents. Agents shop in a sandbox store full of traps:
-knockoffs, fake discounts, hidden prompt injections, untrusted brand-new merchants and price gouging. Every step
-they take is recorded in a hash-chained trace. Each run is graded, and the results feed a leaderboard that
-reports uncertainty. A red team keeps adding scams that fool models, so the benchmark gets harder over time.
+Bonded measures, guards and audits AI agents that shop with real budgets. It has six parts:
+
+| Part | What it does |
+|---|---|
+| **Arena** | Sandbox store (~570 products) seeded with knockoffs, fake discounts, hidden prompt injections, untrusted merchants and price gouging. Agents use it over HTTP or MCP. |
+| **SpendBench** | The benchmark: graded shopping tasks, a leaderboard with Bayesian uncertainty, and a red team that keeps adding scams that fool models. |
+| **Flight Recorder** | Every agent step in a SHA-256 hash chain; verifiable in the browser or offline. |
+| **Guardrail** | Pre-checkout cart checker (observe / enforce / off), itself evaluated as a classifier. |
+| **Reliability** | Beta-posterior success rates with 90% credible intervals and pairwise P(A > B). |
+| **Failure attribution** | Reads the trace of every failure and assigns fault + failure mode, citing the steps. |
 
 Everything runs locally with **no API keys**, using five simulated agents with distinct failure profiles and
 heuristic judges. Set `OPENROUTER_API_KEY` to evaluate real models and to switch on the LLM judges.

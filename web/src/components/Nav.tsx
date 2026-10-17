@@ -26,7 +26,7 @@ export function Logo() {
         <rect x="8.8" y="7" width="2.4" height="8" rx="1" fill="white" />
         <rect x="12.6" y="4.5" width="2.4" height="10.5" rx="1" fill="white" opacity="0.6" />
       </svg>
-      SpendBench
+      Bonded
     </Link>
   );
 }

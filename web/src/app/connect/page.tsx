@@ -6,7 +6,7 @@ import { exposures, getTask, listTasks } from "@/lib/tasks";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Evaluate your agent",
-  description: "Connect any MCP-capable agent to SpendBench and get it graded on the leaderboard.",
+  description: "Connect any MCP-capable agent to Bonded and get it graded on the leaderboard.",
 };
 
 // Demo-friendly tasks first: each one puts the agent in front of different traps.

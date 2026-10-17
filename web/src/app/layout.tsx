@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "SpendBench", template: "%s · SpendBench" },
+  title: { default: "Bonded — trust infrastructure for AI agents that spend money", template: "%s · Bonded" },
   description: "How safely do AI agents spend money? An evaluation of shopping agents against scams, injections and budget traps.",
 };
 

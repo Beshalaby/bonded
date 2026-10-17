@@ -35,15 +35,15 @@ export default function SetupTabs({ endpoint }: { endpoint: string }) {
   }, []);
   const pick = (t: TabId) => { setTab(t); try { localStorage.setItem("sb.connect.tab", t); } catch { /* ignore */ } };
 
-  const json = (server: Record<string, unknown>) => JSON.stringify({ mcpServers: { spendbench: server } }, null, 2);
+  const json = (server: Record<string, unknown>) => JSON.stringify({ mcpServers: { bonded: server } }, null, 2);
   const panes: Record<TabId, { body: ReactNode; note: ReactNode }> = {
     "claude-code": {
-      body: <CodeBlock lang="shell" title="Terminal" code={`claude mcp add --transport http spendbench ${endpoint}`} />,
+      body: <CodeBlock lang="shell" title="Terminal" code={`claude mcp add --transport http bonded ${endpoint}`} />,
       note: <>Then run <code className="font-mono text-[12px] text-zinc-800">claude</code> and give it the prompt below. Check the connection with <code className="font-mono text-[12px] text-zinc-800">claude mcp list</code>.</>,
     },
     cursor: {
       body: <CodeBlock lang="json" title="~/.cursor/mcp.json" code={json({ url: endpoint })} />,
-      note: <>Cursor connects to Streamable HTTP servers directly. Open Settings, then MCP, and SpendBench appears with 9 tools.</>,
+      note: <>Cursor connects to Streamable HTTP servers directly. Open Settings, then MCP, and Bonded appears with 9 tools.</>,
     },
     "claude-desktop": {
       body: <CodeBlock lang="json" title="claude_desktop_config.json" code={json({ command: "npx", args: ["-y", "mcp-remote", endpoint] })} />,

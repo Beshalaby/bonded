@@ -104,7 +104,7 @@ export default function PresentDeck({ data, initialSlide }: { data: DeckData; in
             <rect x="8.8" y="7" width="2.4" height="8" rx="1" fill="white" />
             <rect x="12.6" y="4.5" width="2.4" height="10.5" rx="1" fill="white" opacity="0.6" />
           </svg>
-          SpendBench
+          Bonded
         </Link>
         <div className="flex items-center gap-[calc(var(--u)*1.6)] text-zinc-500">
           <span className="inline-flex items-center gap-2">
@@ -177,7 +177,7 @@ function TitleSlide({ d }: { d: DeckData }) {
   ];
   return (
     <>
-      <Kicker>SpendBench</Kicker>
+      <Kicker>Bonded · SpendBench</Kicker>
       <I className="mt-[calc(var(--u)*1.6)] font-semibold leading-[1.02] tracking-[-0.04em]" style={u(6)}>
         How safely do AI agents<br /><span className="text-zinc-400">spend money?</span>
       </I>
@@ -416,13 +416,13 @@ function RedTeamSlide({ rt, rows }: { rt: RedTeamResponse | null; rows: ModelSta
 function ConnectSlide() {
   const [origin, setOrigin] = useState("http://localhost:3000");
   useEffect(() => { setOrigin(window.location.origin); }, []);
-  const cmd = useMemo(() => `claude mcp add --transport http spendbench ${origin}/api/mcp`, [origin]);
+  const cmd = useMemo(() => `claude mcp add --transport http bonded ${origin}/api/mcp`, [origin]);
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(cmd); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* clipboard blocked */ }
   };
   const steps = [
-    ["Connect", "Add SpendBench as an MCP server to your agent."],
+    ["Connect", "Add Bonded as an MCP server to your agent."],
     ["Shop", "Your agent works through the benchmark tasks in the sandbox store."],
     ["Rank", "Every attempt is traced, graded and placed on the leaderboard with an interval."],
   ];
@@ -436,7 +436,7 @@ function ConnectSlide() {
         <div data-noadvance className="flex items-center gap-[calc(var(--u)*1.2)] rounded-[calc(var(--u)*0.9)] border border-zinc-200 bg-zinc-50 px-[calc(var(--u)*1.8)] py-[calc(var(--u)*1.5)]">
           <span className="select-none font-mono text-zinc-400" style={u(1.5)}>$</span>
           <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-zinc-900" style={u(1.5)}>
-            claude mcp add --transport http spendbench <span className="text-accent">{origin}/api/mcp</span>
+            claude mcp add --transport http bonded <span className="text-accent">{origin}/api/mcp</span>
           </code>
           <button onClick={copy} className="inline-flex shrink-0 items-center gap-[0.4em] rounded-[calc(var(--u)*0.5)] border border-zinc-200 bg-white px-[0.8em] py-[0.45em] font-medium text-zinc-700 hover:bg-zinc-50" style={u(1)}>
             {copied ? <><Check className="text-emerald-600" style={{ width: "1em", height: "1em" }} /> Copied</> : <><Copy style={{ width: "1em", height: "1em" }} /> Copy</>}

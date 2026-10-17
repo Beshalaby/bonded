@@ -2,7 +2,7 @@
 //   POST   JSON-RPC message or batch -> application/json (202 when only notifications/responses were sent)
 //   DELETE end the MCP session (Mcp-Session-Id header)
 //   GET    405: this server does not open server-initiated SSE streams
-// Add to Claude Code:  claude mcp add --transport http spendbench http://localhost:3000/api/mcp
+// Add to Claude Code:  claude mcp add --transport http bonded http://localhost:3000/api/mcp
 import { NextResponse } from "next/server";
 import { closeClient, handleMessage, hasSession, SUPPORTED_VERSIONS, type RpcReply } from "@/lib/mcp/server";
 

@@ -30,7 +30,7 @@ export default function HomeHero({ hero, connected, live, rows }: { hero: HeroSt
             <span className={cx("size-1.5 rounded-full", connected ? "pulse-dot bg-emerald-500" : "bg-zinc-300")} />
             {connected ? "Live" : "Connecting"}
           </span>
-          <span className="tnum">SpendBench leaderboard · {hero.models} models · {hero.tasks} tasks ({hero.tasks - hero.baseTasks} from the red team) · {hero.runs} runs</span>
+          <span className="tnum">Bonded · SpendBench leaderboard · {hero.models} models · {hero.tasks} tasks ({hero.tasks - hero.baseTasks} from the red team) · {hero.runs} runs</span>
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.05, ease: EASE }}
