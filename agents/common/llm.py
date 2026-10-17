@@ -138,13 +138,22 @@ _FN_TAG = re.compile(r"<function=([A-Za-z_]\w*)>\s*(\{.*?\})\s*</function>", re.
 _JSON_CALL = re.compile(r"\{\s*\"(?:name|function)\"\s*:\s*\"([A-Za-z_]\w*)\"\s*,\s*\"(?:parameters|arguments)\"\s*:\s*(\{.*?\})\s*\}", re.S)
 
 
-def _text_tool_calls(content):
+def _text_tool_calls(content, allowed):
     """Some providers (e.g. Llama served without native tool support) write tool calls as text instead of
     `tool_calls`: Llama's pythonic `[search(query="x", max_price=260)]`, `<function=name>{...}</function>`, or a bare
     `{"name": ..., "parameters": {...}}`. Recover them so the episode isn't scored as a model that gave up.
+
+    Conservative on purpose (a model *quoting* an injected listing must not be executed as acting on it): only
+    names from the tools actually offered, and only a block that ends the message (after optional prose).
     Returns (calls as [(name, args_dict)], content_without_the_calls)."""
     import ast
-    for m in _PY_CALLS.finditer(content or ""):
+    content = (content or "").rstrip()
+    if not allowed:
+        return [], content
+    trailing = lambda m: m.end() == len(content)
+    for m in _PY_CALLS.finditer(content):
+        if not trailing(m):
+            continue
         try:
             node = ast.parse(m.group(0), mode="eval").body
         except SyntaxError:
@@ -159,16 +168,19 @@ def _text_tool_calls(content):
             except ValueError:
                 calls = []
                 break
+        if any(n not in allowed for n, _ in calls):
+            calls = []
         if calls:
             return calls, (content[:m.start()] + content[m.end():]).strip()
     for rx in (_FN_TAG, _JSON_CALL):
         found = []
-        for m in rx.finditer(content or ""):
+        for m in rx.finditer(content):
             try:
                 found.append((m.group(1), json.loads(m.group(2)), m.span()))
             except ValueError:
                 pass
-        if found:
+        # every recovered call must be an offered tool, and the block of calls must end the message
+        if found and all(n in allowed for n, _, _ in found) and found[-1][2][1] == len(content):
             rest = content
             for _, _, (a, b) in reversed(found):
                 rest = rest[:a] + rest[b:]
@@ -176,7 +188,7 @@ def _text_tool_calls(content):
     return [], content
 
 
-def normalize_message(msg, turn_id="0"):
+def normalize_message(msg, turn_id="0", tool_names=None):
     msg = msg if isinstance(msg, dict) else {}
     reasoning = msg.get("reasoning")
     if not isinstance(reasoning, str):
@@ -184,7 +196,7 @@ def normalize_message(msg, turn_id="0"):
     content = _text(msg.get("content"))
     tool_calls = _norm_tool_calls(msg.get("tool_calls"), turn_id)
     if not tool_calls and content:
-        calls, rest = _text_tool_calls(content)
+        calls, rest = _text_tool_calls(content, set(tool_names or ()))
         if calls:
             tool_calls = _norm_tool_calls([{"name": n, "arguments": a} for n, a in calls], turn_id)
             content = rest
@@ -341,7 +353,8 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=Non
                  "costUsd": float(cost) if isinstance(cost, (int, float)) and not isinstance(cost, bool) else cost_usd(model, pt, ct),
                  "latencyMs": int((time.time() - t0) * 1000), "wallMs": int((time.time() - t_start) * 1000),
                  "attempts": attempt + 1, "finish_reason": choice.get("finish_reason")}
-        return normalize_message(choice.get("message"), turn_id=f"{int(t0 * 1000) % 100000}"), usage
+        names = [t.get("function", {}).get("name") for t in (tools or []) if isinstance(t, dict)]
+        return normalize_message(choice.get("message"), turn_id=f"{int(t0 * 1000) % 100000}", tool_names=names), usage
     raise last or LLMError("OpenRouter request failed")
 
 
