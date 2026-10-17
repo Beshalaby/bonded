@@ -1,103 +1,88 @@
-import Image from "next/image";
+import Link from "next/link";
+import AutoRefresh from "@/components/AutoRefresh";
+import LeaderboardTable from "@/components/LeaderboardTable";
+import LiveFeed from "@/components/LiveFeed";
+import { agentRows, overview, recentTransactions } from "@/components/data";
+import { Card, Chip, Empty, Kpi, TrustBar, compactMoney, money, pct, timeAgo } from "@/components/ui";
+import { listClaims } from "@/lib/claims";
+
+export const dynamic = "force-dynamic";
 
 export default function Home() {
+  const o = overview();
+  const txs = recentTransactions(15);
+  const claims = listClaims().slice(0, 5);
+  const agents = agentRows().slice(0, 8);
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="space-y-6">
+      <AutoRefresh types={["claim", "risk", "bench"]} />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">Insurance for AI agents that spend money</h1>
+          <p className="mt-1.5 max-w-2xl text-sm text-zinc-400">
+            Every agent purchase is benchmarked, screened by Guardian, priced by a Bayesian risk model, recorded on a tamper-evident flight recorder, and insured — so when an agent screws up, the user gets paid.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <Link href="/demo" className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black shadow-[0_0_24px_rgba(52,211,153,0.35)] hover:bg-emerald-300">Run the live demo →</Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <Kpi label="Agents insured" value={o.agents} sub={`${o.txCount} transactions`} />
+        <Kpi label="Insured volume" value={compactMoney(o.volume)} sub="approved purchases" />
+        <Kpi label="Premiums collected" value={money(o.premiums)} tone="good" sub={o.volume ? `${pct(o.premiums / o.volume, 1)} avg rate` : "—"} />
+        <Kpi label="Scams blocked" value={o.blocked} tone={o.blocked ? "warn" : "default"} sub={`${o.held} held for user`} />
+        <Kpi label="Claims paid" value={o.claimsPaid} tone={o.claimsPaid ? "bad" : "default"} sub={`${money(o.payouts)} of ${o.claimsTotal} filed`} />
+        <Kpi label="Loss ratio" value={o.premiums ? pct(o.lossRatio, 0) : "—"} tone={o.lossRatio > 1 ? "bad" : o.lossRatio > 0.6 ? "warn" : "good"} sub="payouts / premiums" />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="space-y-6 lg:col-span-3">
+          <Card title="Which AI is safest with your money?" subtitle="SpendBench — agents shopping a live store full of knockoffs, fake discounts and prompt injections" pad={false}>
+            <LeaderboardTable limit={5} />
+          </Card>
+          <Card title="Insured agents" subtitle="Trust score = posterior P(good transaction); bar shows 90% credible band" pad={false}
+            action={<Link href="/agents" className="text-xs text-zinc-400 hover:text-white">All agents →</Link>}>
+            {agents.length === 0 ? <div className="p-5"><Empty>No agents yet.</Empty></div> : (
+              <ul className="divide-y divide-white/[0.04]">
+                {agents.map((a) => (
+                  <li key={a.id}>
+                    <Link href={`/agents/${encodeURIComponent(a.id)}`} className="flex items-center gap-4 px-5 py-2.5 hover:bg-white/[0.02]">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-mono text-sm text-zinc-200">{a.id}</div>
+                        <div className="truncate text-xs text-zinc-500">{a.model} · {a.txCount} tx · limit {money(a.profile.spendLimit, 0)} · premium {pct(a.profile.premiumRate, 1)}</div>
+                      </div>
+                      <TrustBar score={a.profile.trustScore} lower={a.profile.lower} upper={a.profile.upper} width="w-36" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+        <div className="space-y-6 lg:col-span-2">
+          <Card title="Live transactions" subtitle="Guardian verdicts in real time" pad={false}
+            action={<Link href="/recorder" className="text-xs text-zinc-400 hover:text-white">Flight recorder →</Link>}>
+            <LiveFeed initial={txs} limit={10} />
+          </Card>
+          <Card title="Claims queue" pad={false} action={<Link href="/claims" className="text-xs text-zinc-400 hover:text-white">File / view claims →</Link>}>
+            {claims.length === 0 ? <div className="p-5"><Empty>No claims filed.</Empty></div> : (
+              <ul className="divide-y divide-white/[0.04]">
+                {claims.map((c) => (
+                  <li key={c.id} className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <Chip status={c.status} />
+                      {c.verdict && <Chip status={c.verdict.fault}>{c.verdict.fault} fault</Chip>}
+                      <span className="ml-auto text-sm font-medium tabular text-zinc-100">{c.verdict?.payout ? money(c.verdict.payout) : "—"}</span>
+                    </div>
+                    <div className="mt-1 truncate text-xs text-zinc-400">“{c.complaint}”</div>
+                    <div className="mt-0.5 text-[11px] text-zinc-600">{c.agentId} · {timeAgo(c.createdAt)}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

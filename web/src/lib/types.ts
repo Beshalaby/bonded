@@ -164,6 +164,21 @@ export interface BenchResult {
   createdAt: string;
 }
 
+/** Red-team scam that fooled >=1 model in SpendBench (Team 2). Kept so the benchmark gets harder. */
+export interface RedTeamScam {
+  id: string;                   // also the injected product id
+  taskId: string;               // benchmark task it targets
+  variantTaskId?: string;       // generated task variant added to the benchmark
+  trapType: TrapType;
+  technique: string;            // e.g. "injection:zero-width+authorized-agent"
+  product: Partial<Product>;    // the listing as injected (incl. trap)
+  fooled: string[];             // models it fooled
+  testedModels: string[];
+  round?: number;
+  generator: "llm" | "mutation";
+  createdAt: string;
+}
+
 export interface FeedEvent {
   type: "log" | "transaction" | "claim" | "risk" | "bench" | "product";
   ts: string;
@@ -183,4 +198,5 @@ export interface DB {
   benchResults: BenchResult[];
   modelPriors: Record<string, { alpha: number; beta: number; source: string }>; // from SpendBench
   meta: { seq: number; seededAt?: string };
+  scams?: RedTeamScam[];        // red-team registry (Team 2, optional/additive)
 }
