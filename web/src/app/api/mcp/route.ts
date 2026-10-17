@@ -4,21 +4,27 @@
 //   GET    405: this server does not open server-initiated SSE streams
 // Add to Claude Code:  claude mcp add --transport http spendbench http://localhost:3000/api/mcp
 import { NextResponse } from "next/server";
-import { closeClient, handleMessage, SUPPORTED_VERSIONS, type RpcReply } from "@/lib/mcp/server";
+import { closeClient, handleMessage, hasSession, SUPPORTED_VERSIONS, type RpcReply } from "@/lib/mcp/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const LOCAL = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+const LOCAL = ["localhost", "127.0.0.1", "[::1]", "::1"];
+/** Hostnames we answer for. Add public hosts explicitly via SPENDBENCH_ALLOWED_HOSTS=a.com,b.com */
+function allowedHosts(): Set<string> {
+  const extra = (process.env.SPENDBENCH_ALLOWED_HOSTS || "").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+  return new Set([...LOCAL, ...extra]);
+}
+const hostnameOf = (hostHeader: string) => { try { return new URL(`http://${hostHeader}`).hostname.toLowerCase(); } catch { return ""; } };
 
-/** DNS-rebinding protection: browsers may only call us from localhost or this server's own origin. */
+/** DNS-rebinding protection: the Host must be allowlisted (a rebound attacker domain is not), and a browser
+ *  Origin, when present, must be allowlisted too. No Origin = non-browser client (CLI agents). */
 function originAllowed(req: Request): boolean {
+  const hosts = allowedHosts();
+  if (!hosts.has(hostnameOf(req.headers.get("host") || ""))) return false;
   const o = req.headers.get("origin");
-  if (!o || o === "null") return true;
-  try {
-    const u = new URL(o);
-    return LOCAL.has(u.hostname) || u.host === req.headers.get("host");
-  } catch { return false; }
+  if (o === null) return true;
+  try { return hosts.has(new URL(o).hostname.toLowerCase()); } catch { return false; }
 }
 
 function cors(req: Request): Record<string, string> {
@@ -56,6 +62,8 @@ export async function POST(req: Request) {
   if (batch && !msgs.length) return rpcError(req, 400, -32600, "Invalid Request: empty batch");
 
   let sessionId = req.headers.get("mcp-session-id");
+  const initializing = msgs.some((m) => (m as { method?: unknown })?.method === "initialize");
+  if (sessionId && !initializing && !hasSession(sessionId)) return rpcError(req, 404, -32001, "Session not found; re-initialize");
   const replies: RpcReply[] = [];
   for (const m of msgs) {
     const out = await handleMessage(m, { sessionId, origin: publicOrigin(req) });

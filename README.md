@@ -150,6 +150,7 @@ has no key.
 | `SPENDBENCH_SELF_URL` | `http://127.0.0.1:$PORT` | URL spawned Python processes use to reach the server |
 | `SPENDBENCH_DEMO` | on in dev, off in `next start` | Enables admin + process-spawning routes (`1` force on, `0` force off) |
 | `SPENDBENCH_WORKERS` | `8` | Runner threads per run |
+| `SPENDBENCH_ALLOWED_HOSTS` | (localhost only) | Extra hostnames `/api/mcp` answers for (comma-separated). DNS-rebinding protection rejects any other Host/Origin |
 | `OPENROUTER_API_KEY` | – | Real models + LLM judges |
 | `NEXT_DIST_DIR` | `.next` | Lets several dev servers coexist |
 

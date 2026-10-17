@@ -58,26 +58,14 @@ function newClient(id: string, info?: { name?: string; version?: string }, proto
   };
 }
 
-/** Look up (or lazily recreate, e.g. after a server restart) the state for an MCP session. */
-function clientFor(sid: string | null): McpClient {
-  const id = sid || "anonymous";
-  let c = clients.get(id);
-  if (!c) {
-    c = newClient(id);
-    // Recover an in-flight task from the store: its arena agentId ends with this session's short id.
-    const sfx = `-${short(id)}`;
-    const s = [...read().sessions].reverse().find((x) => x.status === "active" && x.agentId.startsWith("mcp-") && x.agentId.endsWith(sfx));
-    if (s && s.task.taskId) {
-      const steps = getChain(s.id).filter((e) => e.actor === "agent").map(stepFromEntry);
-      c.clientName = s.model.slice(4);
-      c.task = {
-        sessionId: s.id, taskId: s.task.taskId, model: s.model, agentName: mcpAgentName(s.model), agentId: s.agentId,
-        runId: s.runId || "adhoc", startedAt: Date.parse(s.createdAt) || Date.now(), steps,
-      };
-      if (s.runId) c.runs[s.model] = s.runId;
-    }
-    clients.set(id, c);
-  }
+/** State for a session id this server issued on initialize. Unknown ids (e.g. after a restart) get no
+ *  state — the route answers 404 so the client re-initializes, per the Streamable HTTP spec. */
+export function hasSession(sid: string | null): boolean {
+  return !!sid && clients.has(sid);
+}
+function clientFor(sid: string | null): McpClient | undefined {
+  const c = sid ? clients.get(sid) : undefined;
+  if (!c) return undefined;
   c.lastSeen = new Date().toISOString();
   return c;
 }
@@ -422,6 +410,7 @@ export async function handleMessage(msg: unknown, ctx: HandleCtx): Promise<Handl
       if (!TOOL_NAMES.has(name)) return { reply: fail(id, -32602, `Unknown tool: ${name}`) };
       const args = (params.arguments && typeof params.arguments === "object" ? params.arguments : {}) as Record<string, unknown>;
       const c = clientFor(ctx.sessionId);
+      if (!c) return { reply: fail(id, -32001, "No valid Mcp-Session-Id: call initialize first") };
       c.calls++;
       const activeBefore = c.task;
       try {
