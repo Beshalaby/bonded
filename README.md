@@ -94,3 +94,9 @@ See [`CONTRACTS.md`](CONTRACTS.md) for the full contract.
 - `GET /api/feed` → Server-Sent Events (`transaction`, `log`, `claim`, `risk`, `bench`, `product`)
 - `POST /api/demo/:step` with step = `reset | leaderboard | good | injection | redteam | mistake | claim`
 - `GET /api/bench/leaderboard` · `GET /api/risk` · `GET /api/risk/:agentId` · `POST /api/arena/checkout` ...
+
+## Security (sandbox only — read before deploying)
+Bonded is a hackathon sandbox with **no authentication**. Agent identity (`agentId`) is taken from the request, and anyone who can reach the server can file claims, confirm held transactions and post benchmark results.
+- `/api/admin/*`, `/api/demo/*` and `/api/recorder/tamper` are **fail-closed**: enabled in `next dev`, disabled under `next start` unless `BONDED_DEMO=1` (`BONDED_DEMO=0` always disables).
+- The demo runner only calls the server over loopback (`BONDED_SELF_URL` overrides), never the request's Host header.
+- Before exposing it publicly: per-agent API keys (derive `agentId` server-side), a user-only confirmation credential for held transactions, an admin secret for bench ingestion, and real user auth for claims.

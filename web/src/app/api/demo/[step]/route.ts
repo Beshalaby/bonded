@@ -103,7 +103,8 @@ function fail(step: string, message: string, extra?: unknown) {
 
 export async function POST(req: Request, ctx: { params: Promise<{ step: string }> }) {
   const { step } = await ctx.params;
-  const origin = new URL(req.url).origin;
+  // Loopback only — never derive the target from the (spoofable) Host header
+  const origin = process.env.BONDED_SELF_URL || `http://127.0.0.1:${process.env.PORT || new URL(req.url).port || 3000}`;
   const body = (await req.json().catch(() => ({}))) as { tasks?: number; seed?: number };
 
   try {
