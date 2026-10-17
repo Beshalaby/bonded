@@ -208,6 +208,51 @@ export interface DB {
   meta: { seq: number; seededAt?: string };
   scams?: RedTeamScam[];        // red-team registry (Team 2, optional/additive)
   agentKeys?: AgentKey[];       // per-agent API keys (only SHA-256 hashes stored; optional/additive)
+  nessie?: NessieState;         // Capital One Nessie banking cache (lib/nessie; optional/additive)
+}
+
+// ---------------------------------------------------------------- Capital One Nessie (lib/nessie)
+/** One agent's card. Ids are Nessie ids (or simulated-ledger ids when no key is configured). */
+export interface NessieWallet {
+  agentId: string;
+  model: string;
+  displayName: string;
+  customerId: string;
+  accountId: string;
+  accountLast4: string;
+  createdAt: string;
+}
+/** Local record of every ledger write, so summaries don't need N round trips. Nessie stays the source of truth. */
+export interface NessieLedgerEntry {
+  kind: "deposit" | "purchase";
+  id: string;                   // Nessie deposit / purchase id
+  agentId: string;
+  accountId: string;
+  sessionId: string;
+  amount: number;
+  description: string;
+  date: string;                 // YYYY-MM-DD
+  createdAt: string;
+  merchantId?: string;          // Nessie merchant id (purchases)
+  arenaMerchantId?: string;
+  merchantName?: string;
+}
+/** Cache for one backend (keyed by "simulated" or the API origin) so switching mock ↔ real never mixes ids. */
+export interface NessieBackendCache {
+  wallets: Record<string, NessieWallet>;      // by agentId
+  merchants: Record<string, string>;          // arena merchant id -> Nessie merchant id
+  ledger: NessieLedgerEntry[];
+}
+export interface NessieState {
+  backends: Record<string, NessieBackendCache>;
+  /** In-process simulated ledger (used only when no key / base URL is configured). */
+  sim?: {
+    customers: Record<string, unknown>[];
+    accounts: Record<string, unknown>[];
+    merchants: Record<string, unknown>[];
+    purchases: Record<string, unknown>[];
+    deposits: Record<string, unknown>[];
+  };
 }
 
 /** Per-agent API key record. The plaintext key is shown once at mint time and never stored. */

@@ -70,7 +70,7 @@ export default function Theater({
       <Stage d={d} products={products} merchants={merchants} speed={speed} agentName={agentName} intro={intro} showTraps={finished}
         overlay={reveal === "open" && result && data ? (
           <Reveal result={result} verdict={verdict} budget={d.task?.budget} sessionId={data.session.id} agentName={agentName}
-            taskId={d.task?.taskId ?? result.taskId} dodged={dodged} chain={{ valid: data.integrity.valid, length: entries.length }}
+            taskId={d.task?.taskId ?? result.taskId} dodged={dodged} bank={d.bank} chain={{ valid: data.integrity.valid, length: entries.length }}
             onSeq={(s) => { setReveal("closed"); setFocusSeq(s); }} onClose={() => setReveal("closed")} onAgain={onAgain} againLabel={againLabel} />
         ) : undefined} />
 

@@ -6,7 +6,7 @@ import { ProductArt, SellerBadge, Stars } from "@/app/arena/ui";
 import { Badge, GuardrailBadge, TrapBadge, cx } from "@/components/ui";
 import { usd } from "@/lib/ui/format";
 import { useAfter } from "./hooks";
-import { injectedSegments, obj, splitDescription, str, type Derived, type Scene, type SearchHit } from "./model";
+import { bankLine, injectedSegments, obj, splitDescription, str, type Derived, type Scene, type SearchHit } from "./model";
 
 interface StageProps {
   d: Derived;
@@ -451,6 +451,11 @@ function CheckoutScene({ scene, products, merchants, budget, speed }: {
           </div>
         </div>
       )}
+      {outcome && scene.bank && (
+        <p className="lv-fade-in mt-2.5 px-1 text-[12.5px] text-ink-3">
+          {bankLine(scene.bank)}{scene.bank.simulated && scene.bank.kind !== "error" ? <span className="text-ink-4"> · simulated ledger</span> : null}
+        </p>
+      )}
     </div>
   );
 }
@@ -482,3 +487,4 @@ export function VerdictPanel({ v, speed, compact }: { v: GuardianVerdict & { mod
     </div>
   );
 }
+

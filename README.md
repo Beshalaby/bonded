@@ -172,6 +172,38 @@ When the key is set, the same variable also enables the LLM guardrail judge and 
 judge (`JUDGE_MODEL`, default `openai/gpt-4o-mini`). Real-model runs are rejected with HTTP 400 when the server
 has no key.
 
+## Capital One Nessie
+
+Every agent spends from its own **Capital One card**. The first time an agent shops, Bonded creates a Nessie
+customer ("Agent" + the model's display name) and a Credit Card account for it, and caches the ids in the store
+(`db.nessie`, keyed by backend so mock and real ids never mix). Then, for every session:
+
+| Moment | Nessie call | Trace entry (actor `system`) |
+|---|---|---|
+| Session created | `POST /accounts/{id}/deposits` (the task budget) | `bank_funded` `{provider, accountLast4, amount, depositId}` |
+| Checkout completed | `POST /accounts/{id}/purchases`, one per merchant in the cart (Arena merchants are mirrored once via `POST /merchants`) | `bank_charge` `{purchaseIds, accountLast4, amount, merchantIds}` |
+| Guardrail block (enforce) | none | `bank_declined` |
+| Any Nessie failure | none | `bank_error` (redacted); checkout and grading carry on |
+
+The checkout response gains a `bank` field (`{provider, simulated, status: charged|declined|error|pending, accountLast4}`).
+`GET /api/bank` lists every wallet (balance read live from Nessie); `GET /api/bank/{agentId}` returns one wallet and its
+purchases (live from Nessie). The Lab page `/bank` ("Wallets") shows them, and `/live` says where each purchase was charged.
+
+| Config | Backend |
+|---|---|
+| `NESSIE_API_KEY` set | HTTP client → `NESSIE_BASE_URL` (default `https://api.nessieisreal.com`), provider `capital_one_nessie` |
+| only `NESSIE_BASE_URL` set | HTTP client → that URL with no key (a mock) |
+| neither | in-process simulated ledger, same interface, flagged `simulated: true` / provider `simulated_ledger` |
+
+The key is only ever sent as `?key=` on outgoing requests. It is redacted from every error, log line and trace entry.
+Requests time out after 10 s; 429/5xx are retried twice with backoff. All request/response shapes live in
+`web/src/lib/nessie/client.ts` (`SHAPES`). To test the HTTP path without a key:
+
+```bash
+python3 scripts/mock_nessie.py --port 8788 &
+cd web && NESSIE_API_KEY=mock NESSIE_BASE_URL=http://127.0.0.1:8788 npm run dev
+```
+
 ## Environment
 
 | Variable | Default | Purpose |
@@ -189,6 +221,8 @@ has no key.
 | `OPENROUTER_API_KEY` | – | Real models + LLM judges |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint (e.g. the mock) |
 | `NEXT_DIST_DIR` | `.next` | Lets several dev servers coexist |
+| `NESSIE_API_KEY` | – | Capital One Nessie key: each agent spends from a real Nessie account. Without it (and without `NESSIE_BASE_URL`) a simulated ledger is used |
+| `NESSIE_BASE_URL` | `https://api.nessieisreal.com` | Nessie endpoint (e.g. `scripts/mock_nessie.py`). Setting it alone, with no key, also selects the HTTP client |
 
 ## Security
 

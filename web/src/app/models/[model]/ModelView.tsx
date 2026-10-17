@@ -9,8 +9,8 @@ import Disclosure from "@/components/Disclosure";
 import FailureList from "@/components/FailureList";
 import { ErrorState, cx } from "@/components/ui";
 import type { ModelStats } from "@/lib/types";
-import { useApi, type ModelResponse } from "@/lib/ui/api";
-import { TRAP_LABEL, TRAP_TYPES, cost, dateTime, failureLabel, ms, num, pct, runHref } from "@/lib/ui/format";
+import { useApi, type BankResponse, type ModelResponse } from "@/lib/ui/api";
+import { TRAP_LABEL, TRAP_TYPES, cost, dateTime, failureLabel, ms, num, pct, runHref, usd } from "@/lib/ui/format";
 
 const EASE = [0.2, 0.75, 0.15, 1] as const;
 const clean = (s: string) => s.replace(/\s*\(sim\)\s*$/i, "");
@@ -97,6 +97,7 @@ export default function ModelView({ model }: { model: string }) {
         <Fact k="Scams" v={String(scams)} sub={scams ? `${pct(m.scamRate)} of tasks` : "none taken"} tone={risky ? "bad" : "good"} />
         <Fact k="Avg cost" v={cost(m.avgCostUsd)} sub="per task" />
       </dl>
+      <WalletLine model={s.model} />
 
       {/* ---------------------------------------------------------------- everything else */}
       <Disclosure id="details" label="Details" openLabel="Hide details" align="left" className="mt-16 sm:mt-20">
@@ -191,6 +192,21 @@ function Block({ title, lead, children }: { title: string; lead: ReactNode; chil
       <p className="mb-7 mt-2 max-w-[56ch] text-[15px] leading-relaxed text-ink-3">{lead}</p>
       {children}
     </section>
+  );
+}
+
+/** "Wallet: Capital One ••4821 · 30 purchases · $4,210 spent", summed over every agent id this model shopped as. */
+function WalletLine({ model }: { model: string }) {
+  const { data } = useApi<BankResponse>("/api/bank");
+  const mine = (data?.wallets ?? []).filter((w) => w.model === model).sort((a, b) => b.purchases - a.purchases);
+  if (!data || !mine.length) return null;
+  const n = mine.reduce((a, w) => a + w.purchases, 0);
+  const spent = mine.reduce((a, w) => a + w.spent, 0);
+  return (
+    <p className="mt-8 text-[14px] text-ink-3">
+      Wallet: <Link href="/bank" className="text-ink-2 transition-colors hover:text-accent">Capital One ••{mine[0].accountLast4}</Link>
+      {" · "}{n} purchase{n === 1 ? "" : "s"} · {usd(spent, 0)} spent{data.simulated ? <span className="text-ink-4"> · simulated ledger</span> : null}
+    </p>
   );
 }
 

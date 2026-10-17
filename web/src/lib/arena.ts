@@ -5,6 +5,7 @@ import { publish } from "./events";
 import { append } from "./recorder";
 import { agentKeyFrom, isInternalRequest } from "./auth-node";
 import * as guardian from "./guardian";
+import { onCheckout, onSessionStart } from "./nessie";
 import { CATEGORY_SYNONYMS, generateSeed } from "./seed";
 import type { Cart, GuardianVerdict, GuardrailMode, Merchant, Product, Session, TaskSpec, Transaction } from "./types";
 
@@ -164,6 +165,7 @@ export function createSession(b: { agentId?: string; model?: string; instruction
   // Identity: an agent key (server-derived agentId/model) or the server's own runner; anything else is self-asserted.
   const ident = auth?.keyId ? { agentKeyId: auth.keyId } : auth?.internal ? {} : { unverified: true };
   append(session.id, "system", "session_start", { agentId, model, task, runId: runId ?? null, guardrail, ...ident });
+  onSessionStart(session); // Capital One (Nessie) wallet + budget deposit, in the background; never throws
   return { sessionId: session.id, agentId, runId: runId ?? null, guardrail };
 }
 
@@ -293,7 +295,13 @@ export async function checkout(sessionId: string, reasoning?: string) {
       : mode === "observe" && verdict.decision !== "approve" ? `completed; guardrail would have ${verdict.decision === "block" ? "blocked" : "asked"} (observe mode)` : "completed",
   });
   publish("transaction", tx);
-  return { transaction: tx, guardrail: tx.guardrail };
+  // Bank: one Nessie purchase per merchant (or a logged decline). Never throws; a failure is a `bank_error` entry.
+  const bank = await onCheckout({
+    session, status, items: cart.items, total, merchants: db.merchants,
+    products: cart.items.map((i) => db.products.find((p) => p.id === i.productId)).filter(Boolean) as Product[],
+    reason: status === "blocked" ? "guardrail block" : undefined,
+  });
+  return { transaction: tx, guardrail: tx.guardrail, bank };
 }
 
 // ---------------------------------------------------------------- admin

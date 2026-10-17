@@ -1,10 +1,10 @@
 "use client";
-// Three steps, three objects. Each asset floats gently on its own burst of light.
+// Three steps, three objects. Step one is the agent's Capital One (Nessie) card. Each asset floats gently on its own burst of light.
 import Image from "next/image";
 import { motion } from "motion/react";
 
 const STEPS = [
-  { src: "/hero/coin.png", title: "Give an agent a budget.", body: "A hard limit.", tone: "burst-gold", float: ["8s", "0s", "-12px", "4deg"] },
+  { src: "/hero/coin.png", title: "Give an agent a Capital One card.", body: "A real Nessie account. A hard limit.", tone: "burst-gold", float: ["8s", "0s", "-12px", "4deg"] },
   { src: "/hero/leaf_money.png", title: "Let it shop a store full of traps.", body: "Knockoffs, injections, fakes.", tone: "burst-sage", float: ["10s", "-3s", "-14px", "3deg"] },
   { src: "/hero/certificate_coin.png", title: "Every step is signed and graded.", body: "Hash-chained and replayable.", tone: "burst-gold", float: ["9s", "-6s", "-12px", "2.5deg"] },
 ] as const;
@@ -32,6 +32,7 @@ export default function HowItWorks() {
           </motion.li>
         ))}
       </ol>
+      <p className="mt-16 text-center text-[13px] tracking-[0.02em] text-ink-4 sm:mt-20">Powered by Capital One Nessie</p>
     </section>
   );
 }

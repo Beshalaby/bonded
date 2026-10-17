@@ -8,7 +8,7 @@ import { afterAll } from "vitest";
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bonded-vitest-"));
 process.env.SPENDBENCH_DATA_DIR = dir;
-for (const k of ["OPENROUTER_API_KEY", "DATABASE_URL", "POSTGRES_URL", "PGHOST", "PGDATABASE", "BONDED_DATABASE_URL"]) delete process.env[k];
+for (const k of ["OPENROUTER_API_KEY", "DATABASE_URL", "POSTGRES_URL", "PGHOST", "PGDATABASE", "BONDED_DATABASE_URL", "NESSIE_API_KEY", "NESSIE_BASE_URL"]) delete process.env[k];
 
 afterAll(() => {
   // Let any pending debounced flush (150 ms) land before removing the dir.

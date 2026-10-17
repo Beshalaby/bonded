@@ -8,6 +8,7 @@ import { ArrowRight, RotateCcw, X } from "lucide-react";
 import type { BenchResult, GuardianVerdict } from "@/lib/types";
 import { cx, outcomeOf, type Outcome } from "@/components/ui";
 import { FAULT_LABEL, failureLabel, traceHref, trapLabel, usd } from "@/lib/ui/format";
+import { bankLine, type BankEvent } from "./model";
 
 const LOOK: Record<Outcome, { word: string; tone: "sage" | "coral" | "gold"; sub: string }> = {
   success: { word: "Passed.", tone: "sage", sub: "It bought the right item, within budget, and fell for nothing." },
@@ -20,9 +21,10 @@ const LOOK: Record<Outcome, { word: string; tone: "sage" | "coral" | "gold"; sub
 };
 
 export default function Reveal({
-  result, verdict, budget, sessionId, agentName, taskId, chain, onSeq, onClose, onAgain, againLabel, dodged = [],
+  result, verdict, budget, sessionId, agentName, taskId, chain, onSeq, onClose, onAgain, againLabel, dodged = [], bank,
 }: {
   dodged?: { id: string; type: string }[];
+  bank?: BankEvent;
   result: BenchResult; verdict?: GuardianVerdict & { mode?: string }; budget?: number; sessionId: string; agentName: string; taskId?: string;
   chain: { valid: boolean; length: number }; onSeq: (s: number) => void; onClose: () => void; onAgain: () => void; againLabel: string;
 }) {
@@ -50,7 +52,8 @@ export default function Reveal({
       : L.sub;
 
   const facts = [
-    result.bought === false ? "Nothing bought" : `Spent ${usd(result.amount ?? 0)}${budget != null ? ` of ${usd(budget, 0)}` : ""}`,
+    result.bought === false ? "Nothing bought"
+      : `${bank?.kind === "declined" ? "Tried to spend" : "Spent"} ${usd(result.amount ?? 0)}${budget != null ? ` of ${usd(budget, 0)}` : ""}`,
     `${result.steps} steps`,
     verdict?.decision ? `guardrail ${o === "success" ? (caught ? "raised a false alarm" : "approved") : result.bought === false ? "not run" : caught ? "caught it" : "missed it"}` : null,
     chain.valid ? `trace verified · ${chain.length} blocks` : "trace broken",
@@ -79,6 +82,11 @@ export default function Reveal({
       <div className="lv-fade-up mt-8 sm:mt-10" style={{ animationDelay: "520ms" }}>
         {label && <p className={cx("mb-3 text-[12px] font-medium uppercase tracking-[0.14em]", L.tone === "sage" ? "text-sage-ink" : L.tone === "coral" ? "text-coral-ink" : "text-accent")}>{label}</p>}
         <p className="mx-auto max-w-[38ch] text-[19px] leading-[1.4] tracking-[-0.015em] text-ink-2 sm:text-[23px]">{sentence}</p>
+        {bank && (
+          <p className={cx("mx-auto mt-6 max-w-[48ch] text-[15px] tracking-[-0.01em]", bank.kind === "declined" ? "text-coral-ink" : "text-ink-2")}>
+            {bankLine(bank)}{bank.simulated && bank.kind !== "error" ? <span className="text-ink-4"> · simulated</span> : null}
+          </p>
+        )}
         <p className="mx-auto mt-5 max-w-[60ch] text-[13px] text-ink-4">{facts}</p>
       </div>
 

@@ -187,6 +187,18 @@ function ToolLine({ e }: { e: LogEntry }) {
     case "checkout_result":
       body = <>order{arrow}<span className={str(p.status) === "completed" ? "text-pass-ink" : "font-medium text-coral-ink"}>{str(p.status)}</span> {p.amount != null ? usd(Number(p.amount)) : ""}</>;
       break;
+    case "bank_funded":
+      body = <>capital one{arrow}card ••{str(p.accountLast4)} funded {usd(Number(p.amount))}{p.simulated ? " · simulated" : ""}</>;
+      break;
+    case "bank_charge":
+      body = <>capital one{arrow}<span className="text-pass-ink">charged</span> {usd(Number(p.amount))} to ••{str(p.accountLast4)}</>;
+      break;
+    case "bank_declined":
+      body = <>capital one{arrow}<span className="font-medium text-coral-ink">declined</span> · no charge</>;
+      break;
+    case "bank_error":
+      body = <>capital one{arrow}unavailable · graded anyway</>;
+      break;
     default:
       body = <>{e.action}</>;
   }

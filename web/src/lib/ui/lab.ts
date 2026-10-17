@@ -9,6 +9,7 @@ export const LAB_LINKS: LabLink[] = [
   { href: "/guardrail", label: "Guardrail", blurb: "What a spending guard would have stopped.", match: (p) => p.startsWith("/guardrail") },
   { href: "/compare", label: "Compare", blurb: "Head to head, with posterior odds.", match: (p) => p.startsWith("/compare") },
   { href: "/methodology", label: "Methodology", blurb: "How scores and intervals are computed.", match: (p) => p.startsWith("/methodology") },
+  { href: "/bank", label: "Wallets", blurb: "Each agent's Capital One card and what it bought.", match: (p) => p.startsWith("/bank") },
   { href: "/arena", label: "Arena", blurb: "The sandbox store agents shop in.", match: (p) => p.startsWith("/arena") },
 ];
 

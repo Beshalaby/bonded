@@ -3,6 +3,7 @@ import type {
   BenchResult, GuardianVerdict, GuardrailMode, LogEntry, Merchant, Product, Session, TaskSpec, Transaction,
 } from "@/lib/types";
 import { hiddenText } from "@/components/StepTimeline";
+import { usd } from "@/lib/ui/format";
 
 /** GET /api/live/sessions/:id */
 export interface LiveSessionData {
@@ -35,7 +36,10 @@ export type Scene =
   | { kind: "start" }
   | { kind: "search"; seq: number; query: string; hits: SearchHit[] }
   | { kind: "product"; seq: number; productId: string; view: P; adding?: { seq: number; qty: number } }
-  | { kind: "checkout"; seq: number; items: CartLine[]; total: number; reasoning: string; verdict?: GuardianVerdict & { mode?: GuardrailMode }; verdictSeq?: number; outcome?: P; outcomeSeq?: number };
+  | { kind: "checkout"; seq: number; items: CartLine[]; total: number; reasoning: string; verdict?: GuardianVerdict & { mode?: GuardrailMode }; verdictSeq?: number; outcome?: P; outcomeSeq?: number; bank?: BankEvent };
+
+/** What the bank (Capital One Nessie, or the simulated ledger) did at checkout, from bank_* trace entries. */
+export interface BankEvent { kind: "charged" | "declined" | "error"; accountLast4?: string; amount?: number; simulated: boolean; seq: number }
 
 export interface Derived {
   task?: TaskSpec;
@@ -52,6 +56,9 @@ export interface Derived {
   spent: number;          // cart total, or the charged amount once checked out
   checkedOut: boolean;
   last?: LogEntry;
+  /** card funded at session start */
+  card?: { accountLast4: string; simulated: boolean };
+  bank?: BankEvent;
 }
 
 const REJECT = /\bRejecting (p_[A-Za-z0-9_]+)/g;
@@ -122,6 +129,19 @@ export function derive(entries: LogEntry[]): Derived {
         if (d.scene.kind === "checkout") d.scene = { ...d.scene, outcome: p, outcomeSeq: e.seq };
         if (str(p.status) === "completed") { d.checkedOut = true; d.spent = Number(p.amount ?? d.spent); }
         else d.spent = 0;
+        break;
+      }
+      case "bank_funded": {
+        d.card = { accountLast4: str(p.accountLast4), simulated: !!p.simulated };
+        break;
+      }
+      case "bank_charge":
+      case "bank_declined":
+      case "bank_error": {
+        const kind = e.action === "bank_charge" ? "charged" : e.action === "bank_declined" ? "declined" : "error";
+        if (kind === "error" && d.bank?.kind === "charged") break; // a partial failure after a charge keeps the charge
+        d.bank = { kind, accountLast4: str(p.accountLast4) || d.card?.accountLast4 || undefined, amount: num(p.amount), simulated: !!p.simulated, seq: e.seq };
+        if (d.scene.kind === "checkout") d.scene = { ...d.scene, bank: d.bank };
         break;
       }
       case "reasoning": {
@@ -199,4 +219,11 @@ function splitPlain(s: string): { text: string; injected: boolean; how?: string 
 export function displayName(model?: string, models?: LiveModel[]) {
   if (!model) return "Agent";
   return models?.find((m) => m.id === model)?.displayName ?? model.replace(/^sim\//, "Sim-");
+}
+
+/** One quiet sentence for what the card did. Shared by the checkout scene and the verdict. */
+export function bankLine(b: BankEvent): string {
+  if (b.kind === "declined") return "Declined. No charge.";
+  if (b.kind === "error") return "Bank unavailable. No charge recorded.";
+  return `Charged to Capital One card ••${b.accountLast4 ?? "····"}${b.amount != null ? ` · ${usd(b.amount)}` : ""}`;
 }

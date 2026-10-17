@@ -342,6 +342,7 @@ function orderOut(o: Awaited<ReturnType<typeof checkout>>) {
   return {
     transactionId: o.transaction.id, status: o.transaction.status, amount: o.transaction.amount,
     guardrail: { mode: g.mode, decision: g.decision, flags: g.reasons.map((x) => `${x.code}: ${x.message}`) },
+    ...(o.bank ? { bank: { provider: o.bank.provider, simulated: o.bank.simulated, status: o.bank.status, card: o.bank.accountLast4 ? `••${o.bank.accountLast4}` : undefined } } : {}),
   };
 }
 
@@ -485,6 +486,10 @@ function stepLabel(action: string, payload: unknown): string {
     case "checkout_requested": return `Checkout requested · ${money(p.total)}`;
     case "guardrail_verdict": return `Guardrail: ${p.decision}${Array.isArray(p.reasons) && p.reasons.length ? ` (${(p.reasons as { code: string }[]).map((x) => x.code).join(", ")})` : ""}`;
     case "checkout_result": return `Order ${p.status} · ${money(p.amount)}`;
+    case "bank_funded": return `Card ••${p.accountLast4} funded · ${money(p.amount)}`;
+    case "bank_charge": return `Charged to Capital One card ••${p.accountLast4} · ${money(p.amount)}`;
+    case "bank_declined": return `Card ••${p.accountLast4} declined · no charge`;
+    case "bank_error": return "Bank unavailable · purchase still graded";
     case "end_task": return `Ended without buying${p.reason ? `: ${String(p.reason).slice(0, 60)}` : ""}`;
     default: return action;
   }

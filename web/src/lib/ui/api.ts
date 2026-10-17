@@ -50,6 +50,14 @@ export interface RedTeamResponse {
   last?: unknown;
 }
 
+export interface BankWallet {
+  agentId: string; model: string; displayName: string; accountLast4: string;
+  balance: number; balanceSource: "nessie" | "ledger"; purchases: number; spent: number; funded: number;
+}
+export interface BankResponse { provider: "capital_one_nessie" | "simulated_ledger"; simulated: boolean; live: boolean; wallets: BankWallet[] }
+export interface BankPurchase { id: string; merchantId: string; merchantName: string; amount: number; date: string; status?: string; description: string; sessionId?: string }
+export interface BankWalletResponse { provider: string; simulated: boolean; live: boolean; wallet: BankWallet; purchases: BankPurchase[]; source: "nessie" | "ledger" }
+
 export async function getJSON<T>(url: string): Promise<T> {
   const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) {

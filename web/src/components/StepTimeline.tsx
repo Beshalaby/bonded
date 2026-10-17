@@ -183,6 +183,18 @@ function render(e: LogEntry, products: Record<string, Product>, budget?: number)
         tone: ok ? "good" : "bad",
       };
     }
+    case "bank_funded":
+    case "bank_charge":
+    case "bank_declined":
+    case "bank_error": {
+      const sim = p.simulated ? <span className="text-ink-4"> · simulated ledger</span> : <span className="text-ink-4"> · Capital One Nessie</span>;
+      const card = p.accountLast4 ? <> card <span className="font-mono">••{str(p.accountLast4)}</span></> : null;
+      const amt = p.amount != null ? <> <span className="font-mono tnum">{usd(Number(p.amount))}</span></> : null;
+      if (e.action === "bank_funded") return { icon: <CreditCard size={13} />, title: <><Verb>card funded</Verb>{card}{amt}{sim}</> };
+      if (e.action === "bank_charge") return { icon: <CreditCard size={13} />, title: <><Verb>charged</Verb>{amt} to{card}{sim}</>, tone: "good" };
+      if (e.action === "bank_declined") return { icon: <CreditCard size={13} />, title: <><Verb>declined</Verb>{card} · no charge{sim}</>, tone: "bad" };
+      return { icon: <CreditCard size={13} />, title: <><Verb>bank unavailable</Verb> <span className="text-ink-3">{str(p.error).slice(0, 140)}</span></> };
+    }
     default: {
       const text = str(p.text ?? p.message ?? p.content ?? p.thought ?? "");
       return {
