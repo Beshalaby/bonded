@@ -5,8 +5,9 @@
 // the same base model shopping alone ("+N vs GPT-5 mini alone"), computed from the rows themselves.
 import Link from "next/link";
 import { useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { Leaderboard } from "@/components/report/charts";
-import { cx } from "@/design";
+import { cx, Pill } from "@/design";
 import type { ModelStats } from "@/lib/types";
 import { MIN_RANKED_N } from "@/lib/ui/rank";
 import { parseShieldModel } from "@/lib/shield/names";
@@ -51,10 +52,13 @@ export default function Ranking({ rows, loading, tasks, error, onRetry }: { rows
         ) : loading && !rows.length ? (
           <ul aria-hidden className="grid gap-3">{Array.from({ length: 6 }).map((_, i) => <li key={i} className="h-[44px] animate-pulse rounded-[12px] bg-canvas-sunk/60" />)}</ul>
         ) : !shown.length ? (
-          <p className="py-10 text-[15px] text-ink-3">No model has enough graded tasks to rank yet. <Link href="/runs/new" className="font-medium text-accent underline-offset-4 hover:underline">Start a run</Link></p>
+          <p className="py-10 text-[15px] text-ink-3">No model has enough graded tasks to rank yet.</p>
         ) : (
           <Leaderboard rows={shown} notes={notes} />
         )}
+        <div className="mt-6 flex justify-center sm:mt-8">
+          <Pill href="/runs/new" size="lg">Run models <ArrowUpRight size={16} aria-hidden /></Pill>
+        </div>
       </div>
 
       {shown.length > 0 && (
