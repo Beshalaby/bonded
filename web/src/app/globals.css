@@ -340,3 +340,24 @@ p, li, dd, figcaption { text-wrap: pretty; }
     radial-gradient(34% 34% at 10% 90%, oklch(82% 0.08 165 / 0.85), transparent 72%),
     linear-gradient(180deg, oklch(44% 0.07 178) 0%, oklch(56% 0.08 172) 48%, oklch(80% 0.07 150) 100%);
 }
+
+/* Shield's hero: deep ink-navy that warms to gold at the lower right; white type on top. */
+.mesh-shield {
+  background:
+    radial-gradient(44% 50% at 16% 20%, oklch(34% 0.05 255 / 0.95), transparent 72%),
+    radial-gradient(40% 46% at 84% 16%, oklch(40% 0.07 280 / 0.85), transparent 72%),
+    radial-gradient(46% 42% at 80% 100%, oklch(78% 0.12 80 / 0.9), transparent 75%),
+    radial-gradient(34% 34% at 8% 96%, oklch(60% 0.08 200 / 0.7), transparent 72%),
+    linear-gradient(170deg, oklch(24% 0.03 260) 0%, oklch(30% 0.045 262) 55%, oklch(46% 0.07 60) 100%);
+}
+
+/* Hero panel entrance: lines rise out of a soft blur, staggered by --d. */
+@keyframes hero-rise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.hero-rise { animation: hero-rise 0.9s cubic-bezier(0.2, 0.75, 0.15, 1) var(--d, 0s) both; }
+@media (prefers-reduced-motion: reduce) { .hero-rise { animation: none; } .idle-float { animation: none; } }
+/* Gold display text for dark panels: brighter sweep with a soft glow. */
+.text-gold-glow {
+  background: linear-gradient(100deg, oklch(82% 0.12 82) 0%, oklch(90% 0.11 92) 45%, oklch(78% 0.13 72) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 30px oklch(80% 0.13 82 / 0.35));
+}

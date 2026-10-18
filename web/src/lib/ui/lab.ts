@@ -24,8 +24,7 @@ export const isResearchPath = (p: string) => p.startsWith("/research") || p === 
 export const PRIMARY_LINKS = [
   { href: "/research", label: "Research", match: (p: string) => p.startsWith("/models") || isResearchPath(p) },
   { href: "/penny", label: "Penny", match: (p: string) => p.startsWith("/penny") },
-  { href: "/check", label: "Check", match: (p: string) => p.startsWith("/check") },
-  { href: "/live", label: "Watch", match: (p: string) => p.startsWith("/live") },
+  { href: "/check", label: "Shield", match: (p: string) => p.startsWith("/check") },
   { href: "/connect", label: "Connect", match: (p: string) => p.startsWith("/connect") },
 ] as const;
 

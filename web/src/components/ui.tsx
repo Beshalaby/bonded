@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { GuardianDecision, TrapType } from "@/lib/types";
 import { trapLabel } from "@/lib/ui/format";
+import { HeroPanel, type HeroTone } from "./HeroPanel";
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -13,18 +14,22 @@ export function cx(...c: (string | false | null | undefined)[]) {
 /* ------------------------------------------------------------------ layout */
 
 export function PageHeader({
-  title, description, eyebrow, actions, meta,
-}: { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; actions?: ReactNode; meta?: ReactNode }) {
+  title, description, eyebrow, actions, meta, tone = "gold", art = true,
+}: { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; actions?: ReactNode; meta?: ReactNode; tone?: HeroTone; art?: boolean }) {
   return (
-    <header className="mb-10 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-      <div className="min-w-0 max-w-3xl">
-        {eyebrow && <div className="micro mb-3">{eyebrow}</div>}
-        <h1 className="optical-left text-[40px] font-[560] leading-[1.04] tracking-[-0.035em] text-ink max-sm:text-[32px]">{title}</h1>
-        {description && <p className="mt-3 max-w-[640px] text-[15.5px] leading-relaxed text-ink-3">{description}</p>}
-        {meta && <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-3">{meta}</div>}
-      </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
-    </header>
+    <HeroPanel tone={tone} art={art} inner="py-12 sm:py-16">
+      <header className="min-w-0 max-w-[680px]">
+        {eyebrow && (
+          <div className="hero-rise mb-5 inline-flex items-center rounded-full bg-white/55 px-3 py-1 text-[12px] font-medium uppercase tracking-[0.14em] text-ink-2 shadow-[inset_0_0_0_1px_oklch(100%_0_0/0.6)] backdrop-blur-md">
+            {eyebrow}
+          </div>
+        )}
+        <h1 className="hero-rise font-[600] leading-[0.98] tracking-[-0.05em] text-ink [font-size:clamp(40px,6vw,80px)] [text-wrap:balance]" style={{ ["--d" as string]: "0.06s" }}>{title}</h1>
+        {description && <p className="hero-rise mt-5 max-w-[56ch] text-[16px] leading-[1.6] text-ink-2 [text-wrap:pretty] sm:text-[17px]" style={{ ["--d" as string]: "0.16s" }}>{description}</p>}
+        {meta && <div className="hero-rise mt-5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-ink-2" style={{ ["--d" as string]: "0.24s" }}>{meta}</div>}
+        {actions && <div className="hero-rise mt-7 flex flex-wrap items-center gap-2" style={{ ["--d" as string]: "0.3s" }}>{actions}</div>}
+      </header>
+    </HeroPanel>
   );
 }
 

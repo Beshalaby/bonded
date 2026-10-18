@@ -66,7 +66,7 @@ export default function RedTeamView() {
 
   return (
     <>
-      <PageHeader title="Red team"
+      <PageHeader tone="coral" title="Red team"
         description="An adversary writes new scam listings and tests them against every model. A scam that fools at least one model becomes a new benchmark task, so the benchmark gets harder over time." />
 
       <Theater director={director} busy={busy} onRun={start} onReplay={() => data && director.replay(data.scams)}

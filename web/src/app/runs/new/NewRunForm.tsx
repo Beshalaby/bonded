@@ -87,7 +87,7 @@ export default function NewRunForm() {
       <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-ink-3">
         <Link href="/runs" className="hover:text-ink max-lg:inline-flex max-lg:min-h-10 max-lg:items-center">Runs</Link><span className="text-ink-5">/</span><span>New</span>
       </nav>
-      <PageHeader title="New run" description="Pick models and tasks. The run starts immediately; results stream in as each task is graded." />
+      <PageHeader tone="sage" title="New run" description="Pick models and tasks. The run starts immediately; results stream in as each task is graded." />
 
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_300px]">
         <div className="space-y-10">

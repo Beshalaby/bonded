@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, Check, Copy } from "lucide-react";
 import { cx } from "@/components/ui";
+import { HeroPanel } from "@/components/HeroPanel";
 import Disclosure from "@/components/Disclosure";
 import { TRAP_LABEL } from "@/lib/ui/format";
 import type { TrapType } from "@/lib/types";
@@ -46,10 +47,8 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
   return (
     <div className="pb-8">
       {/* ---------------------------------------------------------------- the one idea */}
-      <section aria-labelledby="connect-title" className="relative isolate -mx-4 px-5 pb-20 pt-14 text-center sm:-mx-8 sm:pb-28 sm:pt-24">
-        <div aria-hidden className="burst burst-sky" style={{ ["--bx" as string]: "50%", ["--by" as string]: "52%", ["--bs" as string]: "min(1050px, 150vw)", ["--bo" as string]: 0.9 }} />
-        <div aria-hidden className="burst burst-gold" style={{ ["--bx" as string]: "74%", ["--by" as string]: "26%", ["--bs" as string]: "min(520px, 90vw)", ["--bo" as string]: 0.55 }} />
-        <h1 id="connect-title" className="font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(44px,7vw,104px)]">
+      <HeroPanel tone="sky" labelledBy="connect-title" inner="px-5 pb-16 pt-16 text-center sm:pb-24 sm:pt-24">
+        <h1 id="connect-title" className="hero-rise font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(44px,7vw,104px)]">
           Test your own <span className="text-gold-sweep">agent.</span>
         </h1>
         <div role="tablist" aria-label="Which MCP server" className="mx-auto mt-8 inline-flex rounded-full bg-surface p-1 shadow-tile">
@@ -61,7 +60,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
             </button>
           ))}
         </div>
-        <p className="mx-auto mt-5 max-w-[46ch] text-[17px] text-ink-3 sm:text-[19px]">
+        <p className="mx-auto mt-5 max-w-[46ch] text-[17px] text-ink-2 sm:text-[19px]">
           {mode === "penny"
             ? "Give your agent Penny: it plans purchases, vets real listings, and never buys anything on its own. Works with any MCP agent."
             : "One command. Your agent shops the same scam-filled store, gets graded, and lands on the ranking. Works with any MCP agent."}
@@ -81,7 +80,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
         </div>
 
         <div className="mx-auto mt-10 max-w-[620px]">
-          <p className="text-[15px] text-ink-3">Then ask it:</p>
+          <p className="text-[15px] text-ink-2">Then ask it:</p>
           <p className="mt-2 text-[20px] leading-[1.4] tracking-[-0.015em] text-ink sm:text-[24px]">
             <em className="not-italic">“{prompt}”</em>
             <button type="button" onClick={() => copyPrompt(prompt)} aria-label={promptCopied ? "Copied" : "Copy prompt"}
@@ -91,7 +90,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
             </button>
           </p>
         </div>
-      </section>
+      </HeroPanel>
 
       {/* ---------------------------------------------------------------- who's here right now */}
       <section aria-label="Connected agents" className="mx-auto max-w-[720px]">

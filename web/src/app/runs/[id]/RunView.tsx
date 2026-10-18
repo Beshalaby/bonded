@@ -66,7 +66,7 @@ export default function RunView({ id }: { id: string }) {
   return (
     <>
       <Crumb id={id} />
-      <PageHeader
+      <PageHeader tone="sky"
         title={<span className="flex flex-wrap items-center gap-3">{run.name}<RunStatusBadge status={run.status} /></span>}
         meta={<>
           <span>Started {dateTime(run.startedAt ?? run.createdAt)}</span>

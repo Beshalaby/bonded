@@ -16,7 +16,7 @@ export default function RunsView() {
   const runs = data?.runs ?? [];
   return (
     <>
-      <PageHeader title="Runs"
+      <PageHeader tone="sky" title="Runs"
         description="Each run evaluates a set of models on a set of tasks. Results stream in as each task is graded."
         actions={<ButtonLink href="/runs/new" variant="secondary"><Plus size={14} /> New run</ButtonLink>} />
       {error && <ErrorState error={error} onRetry={reload} />}

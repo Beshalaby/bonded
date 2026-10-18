@@ -3,8 +3,9 @@
 // each purchase linking back to the trace of the session that made it.
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { ArrowUpRight, ChevronDown, CreditCard } from "lucide-react";
 import { cx } from "@/components/ui";
+import { HeroPanel } from "@/components/HeroPanel";
 import { useApi, type BankResponse, type BankWallet, type BankWalletResponse } from "@/lib/ui/api";
 import { traceHref, usd } from "@/lib/ui/format";
 
@@ -16,16 +17,29 @@ export default function BankView() {
   const wallets = data?.wallets ?? [];
 
   return (
-    <section aria-labelledby="bank-title" className="relative isolate pb-24 pt-10 sm:pt-16">
-      <div aria-hidden className="burst burst-gold" style={{ ["--bx" as string]: "6%", ["--by" as string]: "8%", ["--bs" as string]: "min(860px, 120vw)", ["--bo" as string]: 0.65 }} />
-      <div aria-hidden className="burst burst-sage" style={{ ["--bx" as string]: "96%", ["--by" as string]: "70%", ["--bs" as string]: "min(700px, 110vw)", ["--bo" as string]: 0.5 }} />
-
-      <h1 id="bank-title" className="font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(48px,8vw,112px)]">Wallets.</h1>
-      <p className="mt-4 max-w-[40ch] text-[18px] text-ink-3 sm:text-[20px]">Every agent spends from its own Capital One card.</p>
-      <p className="mt-2 text-[13px] text-ink-4">
-        {!data ? " " : data.simulated ? "Simulated ledger. Set NESSIE_API_KEY to use real Nessie accounts."
-          : data.live ? "Live Capital One Nessie accounts." : "Capital One Nessie API (mock endpoint)."}
-      </p>
+    <section className="relative pb-24">
+      <HeroPanel tone="sage" labelledBy="bank-title" className="mb-0 sm:mb-0" inner="py-16 sm:py-24">
+        <div className="hero-rise inline-flex items-center gap-2 rounded-full bg-white/55 py-1 pl-1.5 pr-3 text-[13px] font-medium text-ink-2 shadow-[inset_0_0_0_1px_oklch(100%_0_0/0.6)] backdrop-blur-md">
+          <span className="grid size-6 place-items-center rounded-full bg-ink text-white"><CreditCard size={13} aria-hidden /></span>
+          Capital One · Nessie
+        </div>
+        <h1 id="bank-title" className="hero-rise mt-6 font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(48px,8vw,112px)]" style={{ ["--d" as string]: "0.08s" }}>Wallets.</h1>
+        <p className="hero-rise mt-4 max-w-[30ch] text-[18px] text-ink-2 sm:text-[20px]" style={{ ["--d" as string]: "0.16s" }}>Every agent spends from its own Capital One card.</p>
+        <p className="hero-rise mt-3 text-[13px] text-ink-3" style={{ ["--d" as string]: "0.22s" }}>
+          {!data ? "\u00a0" : data.simulated ? "Simulated ledger. Set NESSIE_API_KEY to use real Nessie accounts."
+            : data.live ? "Live Capital One Nessie accounts." : "Capital One Nessie API (mock endpoint)."}
+        </p>
+        {wallets.length > 0 && (
+          <div className="hero-rise mt-8 flex flex-wrap gap-2" style={{ ["--d" as string]: "0.3s" }}>
+            {([["Agents", String(wallets.length)], ["Purchases", String(wallets.reduce((n, w) => n + (w.purchases), 0))]] as const).map(([k, v]) => (
+              <span key={k} className="inline-flex items-baseline gap-2 rounded-[16px] bg-white/60 px-4 py-2.5 backdrop-blur-md">
+                <span className="text-[22px] font-[600] tracking-[-0.03em] tabular-nums text-ink">{v}</span>
+                <span className="text-[13px] text-ink-3">{k}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </HeroPanel>
 
       <div className="mt-14 sm:mt-20">
         {error && !data ? (

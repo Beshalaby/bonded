@@ -33,15 +33,15 @@ export default function GuardrailView() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader tone="sage"
         eyebrow={<Link href="/methodology#guardrail" className="tap hover:text-ink">Methodology · Guardrail evaluation</Link>}
         title="Guardrail evaluation"
         description="The pre-checkout guardrail is a classifier, and we grade it like one. Ground truth comes from the grader: a purchase should have been stopped if the cart was scammed, over budget or the wrong item. The guardrail never sees the hidden trap labels."
         actions={
-          <div className="inline-flex rounded-md border border-divider p-0.5 text-[12.5px]">
+          <div className="inline-flex rounded-full bg-white/70 p-1 text-[12.5px] shadow-[inset_0_0_0_1px_oklch(100%_0_0/0.6)] backdrop-blur-md">
             {([["all", "Every checkout"], ["latest", "Latest per model × task"]] as const).map(([k, l]) => (
               <button key={k} type="button" onClick={() => setScope(k)}
-                className={cx("rounded px-2.5 py-1 max-lg:min-h-10", scope === k ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}>{l}</button>
+                className={cx("rounded-full px-3 py-1.5 max-lg:min-h-10", scope === k ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}>{l}</button>
             ))}
           </div>
         }

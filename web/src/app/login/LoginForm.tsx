@@ -37,7 +37,7 @@ export default function LoginForm() {
 
   return (
     <div className="mx-auto max-w-sm pt-6">
-      <PageHeader title="Sign in" description="Enter the admin token to start runs, red-team rounds and live sessions." />
+      <PageHeader tone="dusk" art={false} title="Sign in" description="Enter the admin token to start runs, red-team rounds and live sessions." />
       {mode === "open" && <p className="mb-4 rounded-md border border-divider bg-ivory px-3 py-2 text-[13px] text-ink-2">This server runs in open demo mode. No sign-in is needed.</p>}
       {mode === "closed" && <p className="mb-4 rounded-md border border-divider bg-ivory px-3 py-2 text-[13px] text-ink-2">Sign-in is not configured on this server (BONDED_ADMIN_TOKEN is unset), so runs are disabled.</p>}
       {mode === "token" && admin && <p className="mb-4 rounded-md border border-divider bg-ivory px-3 py-2 text-[13px] text-ink-2">You are already signed in.</p>}

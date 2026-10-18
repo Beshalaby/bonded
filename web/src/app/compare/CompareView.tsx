@@ -50,7 +50,7 @@ export default function CompareView() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader tone="dusk"
         eyebrow={<Link href="/methodology#compare" className="tap hover:text-ink">Methodology · Comparing models</Link>}
         title="Head-to-head"
         description="Is one model actually better than another, or is the gap within noise? Each model's success rate has a Beta posterior; we report the probability that one exceeds the other, then check the paired tasks with an exact McNemar test."

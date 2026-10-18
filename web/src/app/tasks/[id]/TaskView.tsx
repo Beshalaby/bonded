@@ -25,8 +25,8 @@ export default function TaskView({ id }: { id: string }) {
   return (
     <>
       {crumb}
-      <PageHeader
-        title={<span className="break-anywhere font-mono text-[22px] max-sm:text-[19px]">{task.id}</span>}
+      <PageHeader tone="gold"
+        title={<span className="break-anywhere font-mono tracking-[-0.04em] [font-size:clamp(30px,4.4vw,56px)]">{task.id}</span>}
         meta={<>
           {task.adversarial ? <Badge tone="warn">Adversarial</Badge> : <Badge>Base task</Badge>}
           {task.baseTaskId && <span>Derived from <Link href={taskHref(task.baseTaskId)} className="font-mono text-accent hover:underline">{task.baseTaskId}</Link></span>}

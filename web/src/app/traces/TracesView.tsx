@@ -44,7 +44,7 @@ export default function TracesView({ initialModel, initialRun }: { initialModel:
 
   return (
     <>
-      <PageHeader title="Traces"
+      <PageHeader tone="sky" title="Traces"
         description="Every agent action in the Arena is logged to a per-session hash chain: searches, product views, cart changes, the guardrail verdict and checkout." />
       {error && <div className="mb-4"><ErrorState error={error} onRetry={reload} /></div>}
       <div className="mb-4 flex flex-wrap items-center gap-2">
