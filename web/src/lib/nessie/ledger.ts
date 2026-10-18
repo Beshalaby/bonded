@@ -189,7 +189,8 @@ function localTotals(c: NessieBackendCache, agentId: string) {
 const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
   Promise.race([p, new Promise<T>((_, rej) => { const t = setTimeout(() => rej(new Error(`timed out after ${ms}ms`)), ms); t.unref?.(); })]);
 
-async function liveBalance(api: NessieApi, w: NessieWallet, fallback: number): Promise<{ balance: number; source: "nessie" | "ledger" }> {
+interface LiveTotals { balance: number; source: "nessie" | "ledger"; funded?: number; spent?: number; purchases?: number }
+async function liveBalance(api: NessieApi, w: NessieWallet, fallback: number): Promise<LiveTotals> {
   if (api.simulated) return { balance: fallback, source: "ledger" };
   // The Nessie sandbox leaves `balance` untouched by deposits and purchases, so derive it from the
   // account's own transaction history on Nessie.
@@ -197,7 +198,8 @@ async function liveBalance(api: NessieApi, w: NessieWallet, fallback: number): P
     const [deps, buys] = await withTimeout(Promise.all([api.listDeposits(w.accountId), api.listPurchases(w.accountId)]), 6000);
     const ok = (s: string) => s !== "cancelled";
     const sum = (xs: { amount: number; status: string }[]) => xs.filter((x) => ok(x.status)).reduce((t, x) => t + x.amount, 0);
-    return { balance: money(sum(deps) - sum(buys)), source: "nessie" };
+    // funded / spent / count from the same Nessie history as the balance, so they always add up
+    return { balance: money(sum(deps) - sum(buys)), source: "nessie", funded: money(sum(deps)), spent: money(sum(buys)), purchases: buys.filter((x) => ok(x.status)).length };
   } catch { return { balance: fallback, source: "ledger" }; }
 }
 
@@ -208,7 +210,8 @@ export async function listWallets(): Promise<WalletRow[]> {
   const rows = await Promise.all(Object.values(c.wallets).map(async (w) => {
     const t = localTotals(c, w.agentId);
     const b = await liveBalance(api, w, t.balance);
-    return { agentId: w.agentId, model: w.model, displayName: w.displayName, accountLast4: w.accountLast4, balance: b.balance, balanceSource: b.source, purchases: t.buys.length, spent: t.spent, funded: t.funded };
+    return { agentId: w.agentId, model: w.model, displayName: w.displayName, accountLast4: w.accountLast4, balance: b.balance, balanceSource: b.source,
+      purchases: b.purchases ?? t.buys.length, spent: b.spent ?? t.spent, funded: b.funded ?? t.funded };
   }));
   return rows.sort((a, b) => b.spent - a.spent || a.displayName.localeCompare(b.displayName));
 }
