@@ -1,7 +1,7 @@
 # Publishes a frozen snapshot of the real home page to GitHub Pages.
-# Boots the app exactly like CI does (next build + next start, open mode), seeds it with the
-# baseline sim run via scripts/setup.sh, renders "/" in Chromium and deploys the static result.
-# Pages has no server, so the leaderboard is frozen at build time and interactive bits don't work.
+# Boots the app like CI does (next build + next start, open mode) and seeds it with the baseline
+# sim run (scripts/setup.sh), then rebuilds it under the Pages base path and snapshots "/" with its
+# JS intact. API GETs are served from JSON captured at build time; writes and live updates are off.
 name: Pages
 
 on:
@@ -62,13 +62,42 @@ jobs:
           for i in $(seq 1 60); do curl -sf -o /dev/null "http://127.0.0.1:$PORT/api/leaderboard" && break; sleep 1; done
           scripts/setup.sh
 
+      - name: Stop seeding server
+        run: |
+          pkill -f "next start" || true
+          pkill -f "next-server" || true
+          sleep 3
+
+      # Rebuild with basePath=/<repo> so routes, assets and the client router all live under the
+      # Pages path. next.config.ts is only patched inside this CI checkout, never committed.
+      - name: Rebuild for Pages base path
+        working-directory: web
+        env:
+          PAGES_BASE_PATH: /${{ github.event.repository.name }}
+        run: |
+          sed -i 's|devIndicators: false,|devIndicators: false, ...(process.env.PAGES_BASE_PATH ? { basePath: process.env.PAGES_BASE_PATH, images: { unoptimized: true } } : {}),|' next.config.ts
+          grep -q PAGES_BASE_PATH next.config.ts || { echo "could not patch next.config.ts"; exit 1; }
+          npx next build
+
+      - name: Start Pages build on the seeded store
+        working-directory: web
+        env:
+          PAGES_BASE_PATH: /${{ github.event.repository.name }}
+          SPENDBENCH_DEMO: "1"
+          SPENDBENCH_DATA_DIR: ${{ runner.temp }}/data
+          SPENDBENCH_SELF_URL: http://127.0.0.1:3100
+        run: |
+          nohup npx next start -p "$PORT" > "$RUNNER_TEMP/server-pages.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null "http://127.0.0.1:$PORT$PAGES_BASE_PATH/api/leaderboard" && exit 0; sleep 1; done
+          echo "server did not come up"; cat "$RUNNER_TEMP/server-pages.log"; exit 1
+
       - name: Install Playwright
         run: |
           pip install playwright==1.48.0
           python -m playwright install --with-deps chromium
 
       - name: Snapshot home page
-        run: python scripts/pages_snapshot.py "http://127.0.0.1:$PORT" _site "/${GITHUB_REPOSITORY#*/}"
+        run: python scripts/pages_snapshot.py "http://127.0.0.1:$PORT" _site "/${{ github.event.repository.name }}" web
 
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -78,8 +107,8 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: server-log
-          path: ${{ runner.temp }}/server.log
+          name: server-logs
+          path: ${{ runner.temp }}/server*.log
           if-no-files-found: ignore
 
   deploy:
