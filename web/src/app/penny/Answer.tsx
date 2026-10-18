@@ -94,7 +94,7 @@ function Disclosure({ title, children, open: init = false }: { title: React.Reac
   );
 }
 
-export default function Answer({ p, onReset }: { p: Proposal; onReset: () => void }) {
+export default function Answer({ p, onReset, showRequest = true }: { p: Proposal; onReset?: () => void; showRequest?: boolean }) {
   const h = HEADLINE[p.decision];
   const skipped = p.offers.filter((o) => o.flags.some((f) => f.severity !== "info") && o.id !== p.wouldBuy?.offerId);
   const flagged = new Map<string, number>();
@@ -104,12 +104,12 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
   return (
     <div className="grid gap-8">
       {/* you */}
-      <motion.div className="flex justify-end" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
+      {showRequest && <motion.div className="flex justify-end" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
         <div className="max-w-[80%] rounded-[20px] bg-[oklch(95.5%_0.006_85)] px-4 py-2.5 text-[15px] leading-snug text-ink">
           {p.request}
           {p.spec.budget != null && !/\$\s?\d/.test(p.request) && <span className="text-ink-4"> · under {money(p.spec.budget)}</span>}
         </div>
-      </motion.div>
+      </motion.div>}
 
       {/* Penny */}
       <motion.div className="flex items-start gap-3" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15, ease: EASE }}>
@@ -169,7 +169,7 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
               </Disclosure>
             )}
             {p.council.votes.length > 0 && (
-              <Disclosure title={`How the council voted (${Math.round(p.council.agreement * 100)}% agreement)`}>
+              <Disclosure title={`Expert reviews (${Math.round(p.council.agreement * 100)}% agreement)`}>
                 {p.council.chair.length > 0 && <p className="mb-3 text-[13px] leading-relaxed text-ink-2">{p.council.chair.join(" ")}</p>}
                 <ul className="grid gap-3">
                   {p.council.votes.map((v) => (
@@ -180,7 +180,7 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
                   ))}
                   {p.council.preMortem && p.council.preMortem.severity !== "none" && (
                     <li className="rounded-[12px] bg-canvas-sunk/70 p-3 text-[13px]">
-                      <span className="font-medium text-ink">Pre-mortem</span><span className="text-ink-4"> · {p.council.preMortem.severity}{p.council.preMortem.outcome === "switched" ? " · changed the pick" : ""}</span>
+                      <span className="font-medium text-ink">Final check</span><span className="text-ink-4"> · {p.council.preMortem.severity}{p.council.preMortem.outcome === "switched" ? " · changed the pick" : ""}</span>
                       <p className="mt-0.5 leading-relaxed text-ink-3">{p.council.preMortem.objection}</p>
                     </li>
                   )}
@@ -189,13 +189,12 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12.5px] text-ink-4">
-            <span>Nothing was ordered or charged.</span>
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-3 text-[12.5px] text-ink-4">
             <span className="flex items-center gap-4">
               <Link href={`/api/procure/${encodeURIComponent(p.id)}`} target="_blank" className="inline-flex items-center gap-1 text-ink-3 hover:text-ink">
                 Full record <ArrowUpRight size={12} aria-hidden />
               </Link>
-              <button type="button" onClick={onReset} className="font-medium text-ink-2 hover:text-ink">Ask something else</button>
+              {onReset && <button type="button" onClick={onReset} className="font-medium text-ink-2 hover:text-ink">Ask something else</button>}
             </span>
           </div>
         </div>

@@ -1,4 +1,5 @@
 __pycache__
+.omx/
 !.env.example
 .data-*
 .env*

@@ -116,6 +116,7 @@ export default function Nav() {
 
   useEffect(() => { setOpen(false); }, [path]);
   const inLab = isLabPath(path);
+  if (path.startsWith("/penny/shop")) return null;
   return (
     <>
       {/* a floating white bar, inset from the screen edges on every side; no border or shadow, the same at every scroll position */}

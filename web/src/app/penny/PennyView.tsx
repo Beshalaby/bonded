@@ -2,9 +2,10 @@
 // /penny: Penny, Bonded's shopping agent. Tell her what to buy; she shops around, checks every listing for scams,
 // has a council of expert models vote, and decides: buy, ask you, or walk away. Backed by POST /api/procure
 // (the same planner agents call as plan_purchase). She never places an order.
-// Page: hero with the ask box → her answer → capabilities (self-stepping list) → how it works (horizontal track
-// driven by scroll) → three ways to use her → FAQ.
+// Page: hero with the ask box → capabilities → how it works → ways to use her → FAQ.
+// Submitting opens the conversation at /penny/shop/:id.
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTransform,
@@ -13,30 +14,27 @@ import {
   ArrowRight, ArrowUpRight, FileCheck2, Plus, Scale, ShieldAlert, ShoppingBag, Sparkles, Users, type LucideProps,
 } from "lucide-react";
 import { cx, EASE } from "@/design";
-import type { Proposal } from "@/lib/procure/types";
-import Answer, { PennyAvatar } from "./Answer";
+import { PennyAvatar } from "./Answer";
+import { createRequest, readDraft, type PennyDraft } from "./session";
 import SetupTabs from "@/components/connect/SetupTabs";
 import { CopyField } from "@/components/connect/Code";
 
-type Where = "web" | "arena";
-type State = { kind: "idle" } | { kind: "working"; stage: number } | { kind: "done"; p: Proposal } | { kind: "error"; message: string };
-
 const EXAMPLES = ["AirPods Pro 2 under $250", "Sony WH-1000XM5 headphones in black", "Running shoes", "A MacBook Air M3 under $900"];
-const STAGES = ["Reading your request", "Shopping around", "Checking every listing", "Asking the council", "Stress-testing the pick"];
-const STAGE_AT = [0, 1800, 6000, 11000, 18000];
 
 /* ------------------------------------------------------------------ hero + ask */
 
-function Hero({ onAsk, busy }: { onAsk: (request: string, budget: number | undefined, where: Where) => void; busy: boolean }) {
+function Hero({ onAsk, busy }: { onAsk: (draft: PennyDraft) => void; busy: boolean }) {
   const [q, setQ] = useState("");
   const [budget, setBudget] = useState("");
-  const [where, setWhere] = useState<Where>("web");
   const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const draft = readDraft();
+    if (draft) { setQ(draft.request); setBudget(draft.budget); }
+  }, []);
   const submit = (text = q) => {
     const t = text.trim();
     if (!t || busy) { input.current?.focus(); return; }
-    const b = Number(budget.replace(/[$,\s]/g, ""));
-    onAsk(t, b > 0 ? b : undefined, where);
+    onAsk({ request: t, budget, where: "web" });
   };
   const rise = (d: number) => ({ initial: { opacity: 0, y: 16, filter: "blur(6px)" }, animate: { opacity: 1, y: 0, filter: "blur(0px)" }, transition: { duration: 0.9, delay: d, ease: EASE } });
 
@@ -48,7 +46,6 @@ function Hero({ onAsk, busy }: { onAsk: (request: string, budget: number | undef
           <motion.div className="inline-flex items-center gap-2.5" {...rise(0)}>
             <PennyAvatar size={30} />
             <span className="text-[18px] font-[600] tracking-[-0.02em] text-white">Penny</span>
-            <span className="rounded-[6px] bg-white/20 px-2 py-0.5 text-[12px] font-medium text-white">Beta</span>
           </motion.div>
           <motion.h1 id="penny-title" className="mt-5 font-[600] leading-[0.98] tracking-[-0.045em] text-white [font-size:clamp(48px,7vw,96px)]" {...rise(0.08)}>
             Hey, I’m Penny
@@ -66,7 +63,7 @@ function Hero({ onAsk, busy }: { onAsk: (request: string, budget: number | undef
                 placeholder="What should I buy for you?" className="h-12 min-w-0 flex-1 bg-transparent pl-4 text-[16px] text-ink outline-none placeholder:text-ink-4" />
               <button type="submit" disabled={busy}
                 className="inline-flex h-12 shrink-0 items-center gap-2 rounded-[16px] bg-ink px-5 text-[15px] font-medium text-white transition-[background-color,transform] hover:bg-ink-2 active:scale-[0.97] disabled:opacity-60">
-                {busy ? "Shopping…" : "Ask Penny"}
+                {busy ? "Opening…" : "Ask Penny"}
                 {!busy && <ArrowUpRight size={16} aria-hidden className="opacity-80" />}
               </button>
             </div>
@@ -79,17 +76,6 @@ function Hero({ onAsk, busy }: { onAsk: (request: string, budget: number | undef
                     className="h-8 w-[76px] bg-transparent pl-1 text-ink outline-none placeholder:text-ink-4" />
                 </span>
               </label>
-              <span className="inline-flex items-center gap-1.5" role="radiogroup" aria-label="Where should Penny shop?">
-                Shop
-                <span className="inline-flex rounded-[10px] bg-canvas-sunk p-0.5">
-                  {([["web", "The web"], ["arena", "Sandbox store"]] as const).map(([k, label]) => (
-                    <button key={k} type="button" role="radio" aria-checked={where === k} onClick={() => setWhere(k)}
-                      className={cx("h-7 rounded-[8px] px-2.5 text-[12.5px] transition-colors", where === k ? "bg-white font-medium text-ink shadow-[0_1px_2px_oklch(20%_0.012_70/0.12)]" : "text-ink-3 hover:text-ink")}>
-                      {label}
-                    </button>
-                  ))}
-                </span>
-              </span>
               <span className="ml-auto hidden text-ink-4 sm:inline">Nothing gets ordered.</span>
             </div>
           </motion.form>
@@ -105,36 +91,6 @@ function Hero({ onAsk, busy }: { onAsk: (request: string, budget: number | undef
         </div>
       </div>
     </section>
-  );
-}
-
-function Working({ stage, request }: { stage: number; request: string }) {
-  return (
-    <div className="grid gap-8">
-      <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-[20px] bg-[oklch(95.5%_0.006_85)] px-4 py-2.5 text-[15px] text-ink">{request}</div>
-      </div>
-      <div className="flex items-start gap-3">
-        <PennyAvatar size={28} />
-        <div className="min-w-0 pt-[3px]">
-          {/* only the current step is shown; it swaps in place as Penny moves on */}
-          <div className="relative h-[22px] overflow-hidden" aria-live="polite">
-            <AnimatePresence initial={false} mode="popLayout">
-              <motion.p key={stage} className="whitespace-nowrap bg-[linear-gradient(90deg,var(--color-ink-3)_0%,var(--color-ink)_45%,var(--color-ink-3)_90%)] bg-[length:200%_100%] bg-clip-text text-[15px] font-medium text-transparent [animation:shimmer_2.4s_linear_infinite]"
-                initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -14, opacity: 0 }} transition={{ duration: 0.4, ease: EASE }}>
-                {STAGES[stage]}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-          <div aria-hidden className="mt-3 flex gap-1">
-            {STAGES.map((s, i) => (
-              <span key={s} className={cx("h-[3px] w-6 rounded-full transition-colors duration-500", i < stage ? "bg-ink" : i === stage ? "bg-ink/40" : "bg-ink/10")} />
-            ))}
-          </div>
-          <p className="mt-2.5 text-[12.5px] text-ink-4">Step {stage + 1} of {STAGES.length} · usually 10 to 60 seconds</p>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -395,7 +351,7 @@ const FAQ = [
   { q: "Does Penny actually buy things?", a: "Not yet. Penny plans the purchase: she tells you exactly what she would buy, from which seller, for how much, and why. Nothing is ordered and no card is charged." },
   { q: "How does Penny decide whether to buy?", a: "She gives the best option a trust score out of 100, built from how well it matches what you asked for (30%), whether it’s genuine (25%), the price (15%), the seller (10%), how much her council agrees (10%) and the evidence behind it (10%). At 75 or above she’d buy. From 50 to 74 she asks you first. Below 50 she walks away." },
   { q: "When will Penny ask me instead of deciding?", a: "Whenever a missing detail would change the item, like a size or a storage capacity, whenever her trust score lands between 50 and 75, and whenever her pre-mortem finds a problem only you can settle." },
-  { q: "Where does Penny shop?", a: "Across the web, using live search. You can also point her at the Bonded sandbox store, a practice store full of deliberate traps, to watch how she handles them." },
+  { q: "Where does Penny shop?", a: "Across the web, using live search." },
   { q: "What stops Penny from falling for a scam?", a: "Every listing goes through hard checks first: knockoffs, fake discounts, overpricing, brand-new sellers, and instructions hidden in the listing text. Listings that fail are vetoed before her council of four expert models votes, and a pre-mortem then tries to find what could still go wrong." },
   { q: "Can my own AI agent use Penny?", a: "Yes, any agent that speaks MCP: Claude, Cursor, VS Code Copilot, Gemini CLI, the OpenAI Agents SDK, LangChain and more. Connect it to Bonded’s Penny server at /api/mcp/penny and it can call plan_purchase, vet_listing and send_listing. See “Use Penny from any agent” above for setup." },
   { q: "Can I see why Penny chose something?", a: "Always. Each answer has a full record with every listing she found, every check, every vote and the pre-mortem, written to a hash chain so it can’t be quietly edited afterwards." },
@@ -453,67 +409,21 @@ function Faq() {
 /* ------------------------------------------------------------------ page */
 
 export default function PennyView() {
-  const [state, setState] = useState<State>({ kind: "idle" });
-  const [request, setRequest] = useState("");
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const answer = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [opening, setOpening] = useState(false);
   const reduce = useReducedMotion();
-
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  // bring the conversation into view once it exists (the hero is a full screen tall)
-  const asking = state.kind === "working";
-  useEffect(() => {
-    if (asking) setTimeout(() => answer.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }), 80);
-  }, [asking, reduce]);
-
-  const ask = async (text: string, budget: number | undefined, where: Where) => {
-    timers.current.forEach(clearTimeout);
-    setRequest(text);
-    setState({ kind: "working", stage: 0 });
-    timers.current = STAGE_AT.slice(1).map((ms, i) => setTimeout(() => setState((s) => (s.kind === "working" ? { kind: "working", stage: i + 1 } : s)), ms));
-    try {
-      const res = await fetch("/api/procure", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ request: text, budget, sources: [where] }) });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        const message = res.status === 429 ? "Penny is busy with a lot of requests right now. Try again in a minute."
-          : res.status === 401 && where === "web" ? "Searching the open web needs a sign-in on this server. Try the Arena store instead, or sign in."
-          : res.status === 401 || res.status === 403 ? "Penny isn’t open to the public on this server."
-            : body?.error ?? "Something went wrong. Try again.";
-        setState({ kind: "error", message });
-      } else setState({ kind: "done", p: body as Proposal });
-    } catch {
-      setState({ kind: "error", message: "Couldn’t reach Penny. Check your connection and try again." });
-    } finally {
-      timers.current.forEach(clearTimeout);
-    }
+  const navigation = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(navigation.current), []);
+  const ask = (draft: PennyDraft) => {
+    const href = `/penny/shop/${createRequest(draft)}`;
+    router.prefetch(href);
+    setOpening(true);
+    navigation.current = setTimeout(() => router.push(href), reduce ? 0 : 180);
   };
 
-  const reset = () => { setState({ kind: "idle" }); window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); document.getElementById("penny-q")?.focus({ preventScroll: true }); };
-
   return (
-    <div id="top">
-      <Hero onAsk={ask} busy={state.kind === "working"} />
-
-      <div ref={answer} className="scroll-mt-20">
-        <AnimatePresence initial={false}>
-          {state.kind !== "idle" && (
-            <motion.section aria-label="Penny’s answer" aria-live="polite" className="mx-auto max-w-[760px] px-4 pt-14 sm:px-6 sm:pt-20"
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.5, ease: EASE }}>
-              {state.kind === "working" && <Working stage={state.stage} request={request} />}
-              {state.kind === "done" && <Answer p={state.p} onReset={reset} />}
-              {state.kind === "error" && (
-                <div className="flex items-start gap-3">
-                  <PennyAvatar size={36} className="mt-1" />
-                  <div className="rounded-[22px] rounded-tl-[8px] bg-coral-soft px-5 py-4 text-[15px] text-ink">
-                    {state.message}
-                    <button type="button" onClick={reset} className="ml-2 font-medium text-coral-ink underline-offset-4 hover:underline">Try again</button>
-                  </div>
-                </div>
-              )}
-            </motion.section>
-          )}
-        </AnimatePresence>
-      </div>
+    <motion.div id="top" animate={{ opacity: opening ? 0 : 1, y: opening && !reduce ? -6 : 0 }} transition={{ duration: reduce ? 0 : 0.22, ease: EASE }}>
+      <Hero onAsk={ask} busy={opening} />
 
       <Capabilities />
       <HowItWorks />
@@ -542,6 +452,6 @@ export default function PennyView() {
 
       <ForAgents />
       <Faq />
-    </div>
+    </motion.div>
   );
 }

@@ -1,4 +1,6 @@
+"use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Mark } from "@/design";
 import { LAB_LINKS, NEW_RUN, RESEARCH_LINKS, type LabLink } from "@/lib/ui/lab";
 
@@ -17,6 +19,8 @@ function Column({ label, links, cols = 2 }: { label: string; links: Pick<LabLink
 
 /** Footer: a dark inset panel with one big line, then Research (the evaluation) and the Lab (its infrastructure). */
 export default function SiteFooter() {
+  const path = usePathname();
+  if (path?.startsWith("/penny/shop")) return null;
   return (
     <footer className="px-2 pb-2 sm:px-3 sm:pb-3">
       <div className="relative isolate overflow-hidden rounded-[28px] bg-[oklch(20%_0.012_70)] text-white sm:rounded-[40px]">
