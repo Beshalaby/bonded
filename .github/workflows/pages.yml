@@ -1,10 +1,16 @@
+# Publishes a frozen snapshot of the real home page to GitHub Pages.
+# Boots the app exactly like CI does (next build + next start, open mode), seeds it with the
+# baseline sim run via scripts/setup.sh, renders "/" in Chromium and deploys the static result.
+# Pages has no server, so the leaderboard is frozen at build time and interactive bits don't work.
 name: Pages
 
 on:
   push:
     branches: [main]
     paths:
-      - "site/**"
+      - "web/**"
+      - "agents/**"
+      - "scripts/pages_snapshot.py"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -18,16 +24,70 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PORT: "3100"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build
+        working-directory: web
+        run: npx next build
+
+      - name: Start server and seed baseline
+        env:
+          SPENDBENCH_DEMO: "1"
+          SPENDBENCH_DATA_DIR: ${{ runner.temp }}/data
+          SPENDBENCH_SELF_URL: http://127.0.0.1:3100
+        run: |
+          (cd web && nohup npx next start -p "$PORT" > "$RUNNER_TEMP/server.log" 2>&1 &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null "http://127.0.0.1:$PORT/api/leaderboard" && break; sleep 1; done
+          scripts/setup.sh
+
+      - name: Install Playwright
+        run: |
+          pip install playwright==1.48.2
+          python -m playwright install --with-deps chromium
+
+      - name: Snapshot home page
+        run: python scripts/pages_snapshot.py "http://127.0.0.1:$PORT" _site "/${GITHUB_REPOSITORY#*/}"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Upload server log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-log
+          path: ${{ runner.temp }}/server.log
+          if-no-files-found: ignore
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
       - id: deployment
         uses: actions/deploy-pages@v4
