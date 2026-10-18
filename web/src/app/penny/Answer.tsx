@@ -66,7 +66,7 @@ function Pick({ p }: { p: Proposal }) {
       {s != null && (
         <div className="flex items-center gap-3 border-t border-divider px-4 py-3 text-[12.5px]">
           <span className="text-ink-3">Trust</span>
-          <div className="relative h-1 flex-1 rounded-full bg-ink/[0.07]" role="img" aria-label={`Trust ${s} out of 100. Penny buys at 75 and asks you between 50 and 75.`}>
+          <div className="relative h-1 flex-1 rounded-full bg-ink/[0.07]" role="img" aria-label={`Trust ${s} out of 100. Penny recommends scores of 75 or higher and asks you about scores from 50 to 74.`}>
             <motion.div className="absolute inset-y-0 left-0 rounded-full" style={{ background: color }} initial={{ width: 0 }} animate={{ width: `${s}%` }} transition={{ duration: 1, ease: EASE, delay: 0.2 }} />
             <span aria-hidden className="absolute -inset-y-[3px] left-1/2 w-px bg-ink/20" />
             <span aria-hidden className="absolute -inset-y-[3px] left-3/4 w-px bg-ink/20" />
@@ -132,7 +132,7 @@ export default function Answer({ p, onReset, showRequest = true }: { p: Proposal
 
           <div className="mt-6 border-b border-divider">
             {p.trust && p.trust.explain.length > 0 && (
-              <Disclosure title={`Why trust ${p.trust.score}`}>
+              <Disclosure title="Why this score?">
                 <ul className="grid gap-1.5 text-[13px] leading-relaxed text-ink-3">
                   {p.trust.explain.map((e) => <li key={e}>{e}</li>)}
                 </ul>
@@ -169,7 +169,7 @@ export default function Answer({ p, onReset, showRequest = true }: { p: Proposal
               </Disclosure>
             )}
             {p.council.votes.length > 0 && (
-              <Disclosure title={`Expert reviews (${Math.round(p.council.agreement * 100)}% agreement)`}>
+              <Disclosure title={`AI reviews (${Math.round(p.council.agreement * 100)}% agreement)`}>
                 {p.council.chair.length > 0 && <p className="mb-3 text-[13px] leading-relaxed text-ink-2">{p.council.chair.join(" ")}</p>}
                 <ul className="grid gap-3">
                   {p.council.votes.map((v) => (
@@ -192,7 +192,7 @@ export default function Answer({ p, onReset, showRequest = true }: { p: Proposal
           <div className="mt-4 flex flex-wrap items-center justify-end gap-3 text-[12.5px] text-ink-4">
             <span className="flex items-center gap-4">
               <Link href={`/api/procure/${encodeURIComponent(p.id)}`} target="_blank" className="inline-flex items-center gap-1 text-ink-3 hover:text-ink">
-                Full record <ArrowUpRight size={12} aria-hidden />
+                Search details <ArrowUpRight size={12} aria-hidden />
               </Link>
               {onReset && <button type="button" onClick={onReset} className="font-medium text-ink-2 hover:text-ink">Ask something else</button>}
             </span>

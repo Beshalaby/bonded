@@ -52,16 +52,15 @@ function Hero({ onAsk, busy }: { onAsk: (draft: PennyDraft) => void; busy: boole
             Hey, I’m Penny
           </motion.h1>
           <motion.p className="mt-5 max-w-[46ch] text-[16px] leading-[1.6] text-white/90 sm:text-[18px]" {...rise(0.18)}>
-            Your AI shopping agent. Tell me what you need and I’ll shop around, check every listing for scams, and only buy when I’m sure.
-            Otherwise I’ll ask you, or walk away.
+            Your AI shopping assistant. Tell me what you need and I’ll compare prices, check sellers, and find options that fit.
           </motion.p>
 
-          <motion.form {...rise(0.3)} onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label="Ask Penny to buy something"
+          <motion.form {...rise(0.3)} onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label="Ask Penny to find something"
             className="mt-9 w-full max-w-[680px] rounded-[24px] bg-white p-2 text-left shadow-[0_30px_60px_-28px_oklch(25%_0.06_170/0.6)]">
             <div className="flex items-center gap-2">
-              <label htmlFor="penny-q" className="sr-only">What should Penny buy?</label>
+              <label htmlFor="penny-q" className="sr-only">What are you shopping for?</label>
               <input ref={input} id="penny-q" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" maxLength={1000}
-                placeholder="What should I buy for you?" className="h-12 min-w-0 flex-1 bg-transparent pl-4 text-[16px] text-ink outline-none placeholder:text-ink-4" />
+                placeholder="What are you shopping for?" className="h-12 min-w-0 flex-1 bg-transparent pl-4 text-[16px] text-ink outline-none placeholder:text-ink-4" />
               <button type="submit" disabled={busy}
                 className="inline-flex h-12 shrink-0 items-center gap-2 rounded-[16px] bg-ink px-5 text-[15px] font-medium text-white transition-[background-color,transform] hover:bg-ink-2 active:scale-[0.97] disabled:opacity-60">
                 {busy ? "Opening…" : "Ask Penny"}
@@ -77,7 +76,6 @@ function Hero({ onAsk, busy }: { onAsk: (draft: PennyDraft) => void; busy: boole
                     className="h-8 w-[76px] bg-transparent pl-1 text-ink outline-none placeholder:text-ink-4" />
                 </span>
               </label>
-              <span className="ml-auto hidden text-ink-4 sm:inline">Nothing gets ordered.</span>
             </div>
           </motion.form>
 
@@ -137,7 +135,7 @@ function ScamVisual() {
 }
 
 function StopVisual() {
-  const zones = [["Walk away", "below 50", "bg-coral-soft text-coral-ink"], ["Ask you", "50 to 74", "bg-amber-soft text-amber-ink"], ["Buy", "75 and up", "bg-pass-soft text-pass-ink"]];
+  const zones = [["Skip", "below 50", "bg-coral-soft text-coral-ink"], ["Ask you", "50 to 74", "bg-amber-soft text-amber-ink"], ["Recommend", "75 and up", "bg-pass-soft text-pass-ink"]];
   return (
     <div className={cx(card, "w-full max-w-[380px] p-5")}>
       <div className="flex items-baseline justify-between"><span className="text-[13px] font-medium text-ink-2">Trust score</span><span className="text-[26px] font-[600] tracking-[-0.03em] tabular-nums text-ink">95<span className="text-[13px] font-normal text-ink-4">/100</span></span></div>
@@ -156,13 +154,13 @@ function CouncilVisual() {
   const votes = [["Spec checker", "Northgate", true], ["Fraud spotter", "Northgate", true], ["Value hunter", "Tecktonic", false], ["Your advocate", "Northgate", true]] as const;
   return (
     <div className={cx(card, "w-full max-w-[380px] p-4")}>
-      <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-4">The council · 3 of 4 agree</p>
+      <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-4">Second opinions · 3 of 4 agree</p>
       <ul className="mt-3 grid gap-2">
         {votes.map(([e, pick, agree], i) => (
           <motion.li key={e} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 + i * 0.08, ease: EASE }}
             className="flex items-center justify-between rounded-[12px] bg-canvas-sunk/60 px-3 py-2.5 text-[13.5px]">
             <span className="text-ink">{e}</span>
-            <span className={cx("rounded-full px-2 py-0.5 text-[11.5px] font-medium", agree ? "bg-pass-soft text-pass-ink" : "bg-coral-soft text-coral-ink")}>{agree ? pick : `${pick} (vetoed)`}</span>
+            <span className={cx("rounded-full px-2 py-0.5 text-[11.5px] font-medium", agree ? "bg-pass-soft text-pass-ink" : "bg-coral-soft text-coral-ink")}>{agree ? pick : `${pick} (skipped)`}</span>
           </motion.li>
         ))}
       </ul>
@@ -171,18 +169,17 @@ function CouncilVisual() {
 }
 
 function RecordVisual() {
-  const steps = ["intake", "sources", "checks", "council", "pre-mortem", "decision"];
+  const steps = ["Your request", "Listings found", "Seller checks", "Second opinions", "Final check", "Recommendation"];
   return (
     <div className={cx(card, "w-full max-w-[380px] p-4")}>
-      <p className="flex items-center justify-between text-[12px] font-medium uppercase tracking-[0.12em] text-ink-4">Flight record<span className="normal-case tracking-normal text-sage-ink">✓ chain verified</span></p>
+      <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-ink-4">Shopping steps</p>
       <ol className="relative mt-3 grid gap-1.5">
         <span aria-hidden className="absolute bottom-3 left-[11px] top-3 w-px bg-ink-5" />
         {steps.map((s, i) => (
           <motion.li key={s} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.08 + i * 0.07, ease: EASE }}
             className="relative flex items-center gap-3 text-[13px]">
             <span className="grid size-[23px] place-items-center rounded-full bg-white text-[10px] tabular-nums text-ink-3 shadow-[0_0_0_1px_oklch(20%_0.012_70/0.12)]">{i + 1}</span>
-            <span className="font-mono text-ink-2">{s}</span>
-            <span className="ml-auto font-mono text-[11px] text-ink-4">#{["3a9f", "b71c", "0e42", "9d15", "c6a0", "71fe"][i]}</span>
+            <span className="text-ink-2">{s}</span>
           </motion.li>
         ))}
       </ol>
@@ -192,15 +189,15 @@ function RecordVisual() {
 
 const CAPS: Cap[] = [
   { key: "shop", icon: ShoppingBag, name: "Shops around for you", visual: ShopVisual,
-    body: "Tell Penny what you want in plain words. She searches stores across the web and lines up every real option, with price and seller." },
+    body: "Tell Penny what you want. She compares listings from stores across the web, with prices and seller details." },
   { key: "scam", icon: ShieldAlert, name: "Spots the scam", visual: ScamVisual,
     body: "Every listing is checked for knockoffs, fake discounts, overpricing, brand-new sellers and instructions hidden in the description." },
   { key: "stop", icon: Scale, name: "Knows when to stop", visual: StopVisual,
-    body: "Penny only buys when her trust score clears 75. Between 50 and 75 she asks you first. Below that, she walks away." },
+    body: "Penny recommends a good match, asks when she needs more details, and skips options she doesn’t trust." },
   { key: "council", icon: Users, name: "Gets a second opinion", visual: CouncilVisual,
-    body: "Four expert models vote on every pick, then a pre-mortem tries to break it before she commits." },
+    body: "Four AI reviewers compare the options, then Penny checks the top pick for anything they missed." },
   { key: "record", icon: FileCheck2, name: "Shows her work", visual: RecordVisual,
-    body: "Every step goes into a hash-chained record, so you can see exactly why she chose what she chose." },
+    body: "See the listings she found, what she checked, and why she made her recommendation." },
 ];
 
 const STEP_MS = 6000;
@@ -225,7 +222,7 @@ function Capabilities() {
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="grid gap-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-20">
         <div>
-          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-ink-2">Penny’s capabilities</p>
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-ink-2">What Penny does</p>
           <h2 id="caps-title" className="mt-4 font-display font-normal leading-[0.98] tracking-[-0.02em] text-ink [font-size:clamp(40px,4.6vw,60px)]">
             Let Penny do the shopping
           </h2>
@@ -282,10 +279,10 @@ const HOW = [
     mock: <div className={cx(card, "w-[86%] p-4")}><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-4">Found 11 listings</p>{["$229.99 · Northgate", "$249.00 · BluePeak", "$244.99 · SoundHaus"].map((r) => <p key={r} className="mt-2 rounded-[10px] bg-canvas-sunk/70 px-3 py-1.5 text-[13px] tabular-nums text-ink-2">{r}</p>)}</div> },
   { lead: "She checks every listing", rest: " for knockoffs, fake discounts, overpricing, brand-new sellers and instructions hidden in the text.", mesh: "mesh-dusk",
     mock: <div className={cx(card, "flex w-[86%] flex-wrap gap-1.5 p-4")}>{["Knockoff", "Fake discount", "Hidden instructions", "Brand-new seller", "Overpriced"].map((f) => <span key={f} className="rounded-full bg-coral-soft px-2.5 py-1 text-[12px] font-medium text-coral-ink">{f}</span>)}</div> },
-  { lead: "The council votes", rest: " — four expert models score every safe option, then a pre-mortem tries to talk her out of the winner.", mesh: "mesh-sage",
+  { lead: "She compares the options", rest: " with four AI reviewers, then checks the top pick for anything they missed.", mesh: "mesh-sage",
     mock: <div className={cx(card, "w-[86%] p-4")}><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-4">3 of 4 picked</p><p className="mt-1.5 text-[15px] font-medium text-ink">Northgate Electronics · $229.99</p><div className="mt-3 flex gap-1.5">{[1, 1, 0, 1].map((v, i) => <span key={i} className={cx("h-1.5 flex-1 rounded-full", v ? "bg-pass" : "bg-coral")} />)}</div></div> },
-  { lead: "She decides", rest: " to buy when she’s sure, to ask you when she isn’t, or to walk away. You always see why.", mesh: "mesh-gold",
-    mock: <div className={cx(card, "w-[86%] p-4")}><div className="flex items-center gap-2"><PennyAvatar size={26} /><span className="text-[13px] font-medium text-ink">Penny</span></div><p className="mt-2 text-[15px] font-[600] tracking-[-0.02em] text-ink">I’d buy this one.</p><p className="mt-0.5 text-[12.5px] text-ink-3">Trust 95/100 · nothing ordered yet</p></div> },
+  { lead: "She shares her pick", rest: " with the price, seller, and reasons to choose it. If she needs more details, she’ll ask.", mesh: "mesh-gold",
+    mock: <div className={cx(card, "w-[86%] p-4")}><div className="flex items-center gap-2"><PennyAvatar size={26} /><span className="text-[13px] font-medium text-ink">Penny</span></div><p className="mt-2 text-[15px] font-[600] tracking-[-0.02em] text-ink">I’d buy this one.</p><p className="mt-0.5 text-[12.5px] text-ink-3">Trust 95/100</p></div> },
 ];
 
 function HowItWorks() {
@@ -344,18 +341,18 @@ function HowItWorks() {
 
 const WAYS = [
   { icon: Sparkles, title: "Ask her right here", body: "Type what you need at the top of this page. Penny shows you what she’d buy and why.", href: "#top", cta: "Ask Penny" },
-  { icon: Users, title: "Call her from your agent", body: "Any MCP agent can hand Penny a purchase with the plan_purchase tool and get her decision back.", href: "#agents", cta: "Connect an agent" },
-  { icon: FileCheck2, title: "Check her work", body: "Every answer links to its full record: the listings, the checks, the votes, and a verified hash chain.", href: "#top", cta: "Ask, then open the record" },
+  { icon: Users, title: "Use her with your AI assistant", body: "Connect your assistant to Penny for product searches, listing checks, and recommendations.", href: "#agents", cta: "Connect an assistant" },
+  { icon: FileCheck2, title: "Check her work", body: "See the listings, checks, and comparisons behind each recommendation.", href: "#top", cta: "Ask Penny" },
 ];
 
 const FAQ = [
-  { q: "Does Penny actually buy things?", a: "Not yet. Penny plans the purchase: she tells you exactly what she would buy, from which seller, for how much, and why. Nothing is ordered and no card is charged." },
-  { q: "How does Penny decide whether to buy?", a: "She gives the best option a trust score out of 100, built from how well it matches what you asked for (30%), whether it’s genuine (25%), the price (15%), the seller (10%), how much her council agrees (10%) and the evidence behind it (10%). At 75 or above she’d buy. From 50 to 74 she asks you first. Below 50 she walks away." },
-  { q: "When will Penny ask me instead of deciding?", a: "Whenever a missing detail would change the item, like a size or a storage capacity, whenever her trust score lands between 50 and 75, and whenever her pre-mortem finds a problem only you can settle." },
+  { q: "How do I buy something Penny finds?", a: "Open the recommended listing to buy from the seller. Penny gives you the price, seller details, and reasons for her pick." },
+  { q: "How does Penny choose what to recommend?", a: "She checks how well the item matches your request, whether it’s genuine, its price, and the seller. She combines those checks and the AI reviews into a trust score out of 100. She recommends options scoring 75 or higher, asks you about scores from 50 to 74, and skips anything below 50." },
+  { q: "When will Penny ask me for more details?", a: "When a detail like size or storage is missing, or when she finds a concern she needs your help to resolve." },
   { q: "Where does Penny shop?", a: "Across the web, using live search." },
-  { q: "What stops Penny from falling for a scam?", a: "Every listing goes through hard checks first: knockoffs, fake discounts, overpricing, brand-new sellers, and instructions hidden in the listing text. Listings that fail are vetoed before her council of four expert models votes, and a pre-mortem then tries to find what could still go wrong." },
-  { q: "Can my own AI agent use Penny?", a: "Yes, any agent that speaks MCP: Claude, Cursor, VS Code Copilot, Gemini CLI, the OpenAI Agents SDK, LangChain and more. Connect it to Bonded’s Penny server at /api/mcp/penny and it can call plan_purchase, vet_listing and send_listing. See “Use Penny from any agent” above for setup." },
-  { q: "Can I see why Penny chose something?", a: "Always. Each answer has a full record with every listing she found, every check, every vote and the pre-mortem, written to a hash chain so it can’t be quietly edited afterwards." },
+  { q: "How does Penny check for scams?", a: "She looks for knockoffs, fake discounts, inflated prices, suspicious sellers, and hidden instructions. Risky listings are filtered out before she compares the remaining options and checks her final pick." },
+  { q: "Can my own AI assistant use Penny?", a: "Yes. Connect Claude, Cursor, or another assistant that supports MCP using the setup instructions above." },
+  { q: "Can I see why Penny chose something?", a: "Yes. Each answer includes the listings she found, the checks she ran, and the reasons for her recommendation." },
 ];
 
 /** Connect any MCP agent to Penny's server: the address, then per-client setup. */
@@ -365,9 +362,9 @@ function ForAgents() {
   return (
     <section id="agents" aria-labelledby="agents-title" className="relative isolate mx-auto max-w-[920px] scroll-mt-24 px-5 py-24 sm:px-8 sm:py-32">
       <div aria-hidden className="burst burst-sky" style={{ ["--bx" as string]: "50%", ["--by" as string]: "40%", ["--bs" as string]: "min(900px, 140vw)", ["--bo" as string]: 0.7 }} />
-      <h2 id="agents-title" className="text-center font-[600] leading-[1] tracking-[-0.045em] text-ink [font-size:clamp(34px,4.4vw,52px)]">Use Penny from any agent.</h2>
+      <h2 id="agents-title" className="text-center font-[600] leading-[1] tracking-[-0.045em] text-ink [font-size:clamp(34px,4.4vw,52px)]">Use Penny with your AI assistant</h2>
       <p className="mx-auto mt-5 max-w-[52ch] text-center text-[16px] leading-[1.6] text-ink-3 sm:text-[17px]">
-        Penny is an MCP server, an open standard, so it works with Claude, Cursor, VS Code Copilot, Gemini CLI, the OpenAI Agents SDK, LangChain and anything else that speaks MCP. Your agent gets four tools: <span className="font-mono text-[14px] text-ink-2">plan_purchase</span>, <span className="font-mono text-[14px] text-ink-2">get_proposal</span>, <span className="font-mono text-[14px] text-ink-2">vet_listing</span> and <span className="font-mono text-[14px] text-ink-2">send_listing</span>. None of them ever buys anything.
+        Connect Penny to Claude, Cursor, or another assistant using MCP. Your assistant can find products, check listings, and get recommendations.
       </p>
       <div className="mx-auto mt-10 flex max-w-[620px] justify-center"><CopyField value={endpoint} size="lg" className="w-full" /></div>
       <div className="mt-10"><SetupTabs endpoint={endpoint} /></div>

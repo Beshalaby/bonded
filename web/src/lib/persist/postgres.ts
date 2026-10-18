@@ -8,9 +8,14 @@
 // Single writer: exactly one server process may own the snapshot (last flush wins). We take a session-level
 // advisory lock at boot and log a loud warning if another process already holds it.
 import { execFileSync } from "node:child_process";
-import { Pool, type PoolConfig } from "pg";
+import type { Pool as PgPool, PoolConfig } from "pg";
 import type { DB, LogEntry } from "../types";
 import type { Backend } from "./types";
+
+// Keep this dependency synchronous: Next's instrumentation bundle can read our exports before an ESM
+// external resolves. pg provides a CommonJS entry point for the store's synchronous API.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Pool } = require("pg") as typeof import("pg");
 
 const SNAPSHOT_ID = 1;
 const LOCK_KEY = 0x60_d0_ed; // arbitrary constant for pg_try_advisory_lock
@@ -74,11 +79,11 @@ function redact(url: string) {
   try { const u = new URL(url); return `postgres://${u.hostname}:${u.port || 5432}${u.pathname}`; } catch { return "postgres://(unparseable DATABASE_URL)"; }
 }
 
-type PgState = { pool?: Pool; schema?: Promise<void>; lockClient?: import("pg").PoolClient; logMark?: number };
+type PgState = { pool?: PgPool; schema?: Promise<void>; lockClient?: import("pg").PoolClient; logMark?: number };
 const g = globalThis as unknown as { __sbPg?: PgState };
 const st: PgState = g.__sbPg ?? (g.__sbPg = {});
 
-function pool(): Pool {
+function pool(): PgPool {
   if (!st.pool) {
     st.pool = new Pool(pgConfig());
     st.pool.on("error", (e) => console.error("[db:postgres] idle client error", e.message));
