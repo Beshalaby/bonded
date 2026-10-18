@@ -53,7 +53,7 @@ export function CopyButton({ text, label = "Copy", className, compact }: { text:
 
 /* ------------------------------------------------------------------ tiny highlighters */
 
-type Lang = "shell" | "json" | "text";
+type Lang = "shell" | "json" | "text" | "python";
 
 function hlShell(src: string): ReactNode[] {
   const out: ReactNode[] = [];

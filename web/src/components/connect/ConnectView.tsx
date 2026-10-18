@@ -63,8 +63,8 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
         </div>
         <p className="mx-auto mt-5 max-w-[46ch] text-[17px] text-ink-3 sm:text-[19px]">
           {mode === "penny"
-            ? "Give your agent Penny: it plans purchases, vets real listings, and never buys anything on its own."
-            : "One command. Your agent shops the same scam-filled store, gets graded, and lands on the ranking."}
+            ? "Give your agent Penny: it plans purchases, vets real listings, and never buys anything on its own. Works with any MCP agent."
+            : "One command. Your agent shops the same scam-filled store, gets graded, and lands on the ranking. Works with any MCP agent."}
         </p>
 
         <div className="mx-auto mt-10 flex w-full max-w-[740px] items-center gap-2 rounded-full bg-surface py-2 pl-6 pr-2 shadow-float">

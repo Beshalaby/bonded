@@ -15,6 +15,8 @@ import {
 import { cx, EASE } from "@/design";
 import type { Proposal } from "@/lib/procure/types";
 import Answer, { PennyAvatar } from "./Answer";
+import SetupTabs from "@/components/connect/SetupTabs";
+import { CopyField } from "@/components/connect/Code";
 
 type Where = "web" | "arena";
 type State = { kind: "idle" } | { kind: "working"; stage: number } | { kind: "done"; p: Proposal } | { kind: "error"; message: string };
@@ -385,7 +387,7 @@ function HowItWorks() {
 
 const WAYS = [
   { icon: Sparkles, title: "Ask her right here", body: "Type what you need at the top of this page. Penny shows you what she’d buy and why.", href: "#top", cta: "Ask Penny" },
-  { icon: Users, title: "Call her from your agent", body: "Any MCP agent can hand Penny a purchase with the plan_purchase tool and get her decision back.", href: "/connect", cta: "Connect an agent" },
+  { icon: Users, title: "Call her from your agent", body: "Any MCP agent can hand Penny a purchase with the plan_purchase tool and get her decision back.", href: "#agents", cta: "Connect an agent" },
   { icon: FileCheck2, title: "Check her work", body: "Every answer links to its full record: the listings, the checks, the votes, and a verified hash chain.", href: "#top", cta: "Ask, then open the record" },
 ];
 
@@ -395,9 +397,30 @@ const FAQ = [
   { q: "When will Penny ask me instead of deciding?", a: "Whenever a missing detail would change the item, like a size or a storage capacity, whenever her trust score lands between 50 and 75, and whenever her pre-mortem finds a problem only you can settle." },
   { q: "Where does Penny shop?", a: "Across the web, using live search. You can also point her at the Bonded sandbox store, a practice store full of deliberate traps, to watch how she handles them." },
   { q: "What stops Penny from falling for a scam?", a: "Every listing goes through hard checks first: knockoffs, fake discounts, overpricing, brand-new sellers, and instructions hidden in the listing text. Listings that fail are vetoed before her council of four expert models votes, and a pre-mortem then tries to find what could still go wrong." },
-  { q: "Can my own AI agent use Penny?", a: "Yes. Penny is the plan_purchase tool on Bonded’s MCP server. Connect your agent and it can ask Penny to plan any purchase." },
+  { q: "Can my own AI agent use Penny?", a: "Yes, any agent that speaks MCP: Claude, Cursor, VS Code Copilot, Gemini CLI, the OpenAI Agents SDK, LangChain and more. Connect it to Bonded’s Penny server at /api/mcp/penny and it can call plan_purchase, vet_listing and send_listing. See “Use Penny from any agent” above for setup." },
   { q: "Can I see why Penny chose something?", a: "Always. Each answer has a full record with every listing she found, every check, every vote and the pre-mortem, written to a hash chain so it can’t be quietly edited afterwards." },
 ];
+
+/** Connect any MCP agent to Penny's server: the address, then per-client setup. */
+function ForAgents() {
+  const [origin, setOrigin] = useState("http://localhost:3000");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const endpoint = `${origin}/api/mcp/penny`;
+  return (
+    <section id="agents" aria-labelledby="agents-title" className="relative isolate mx-auto max-w-[920px] scroll-mt-24 px-5 py-24 sm:px-8 sm:py-32">
+      <div aria-hidden className="burst burst-sky" style={{ ["--bx" as string]: "50%", ["--by" as string]: "40%", ["--bs" as string]: "min(900px, 140vw)", ["--bo" as string]: 0.7 }} />
+      <h2 id="agents-title" className="text-center font-[600] leading-[1] tracking-[-0.045em] text-ink [font-size:clamp(34px,4.4vw,52px)]">Use Penny from any agent.</h2>
+      <p className="mx-auto mt-5 max-w-[52ch] text-center text-[16px] leading-[1.6] text-ink-3 sm:text-[17px]">
+        Penny is an MCP server, an open standard, so it works with Claude, Cursor, VS Code Copilot, Gemini CLI, the OpenAI Agents SDK, LangChain and anything else that speaks MCP. Your agent gets four tools: <span className="font-mono text-[14px] text-ink-2">plan_purchase</span>, <span className="font-mono text-[14px] text-ink-2">get_proposal</span>, <span className="font-mono text-[14px] text-ink-2">vet_listing</span> and <span className="font-mono text-[14px] text-ink-2">send_listing</span>. None of them ever buys anything.
+      </p>
+      <div className="mx-auto mt-10 flex max-w-[620px] justify-center"><CopyField value={endpoint} size="lg" className="w-full" /></div>
+      <div className="mt-10"><SetupTabs endpoint={endpoint} /></div>
+      <p className="mt-6 text-center text-[13.5px] leading-[1.6] text-ink-4">
+        Hosted agents (ChatGPT, Claude.ai) need Bonded on a public HTTPS address. Want to benchmark your agent instead? <Link href="/connect" className="text-ink-2 underline-offset-4 hover:underline">Use the SpendBench server</Link>.
+      </p>
+    </section>
+  );
+}
 
 function Faq() {
   const [open, setOpen] = useState<number | null>(0);
@@ -517,6 +540,7 @@ export default function PennyView() {
         </ul>
       </section>
 
+      <ForAgents />
       <Faq />
     </div>
   );
