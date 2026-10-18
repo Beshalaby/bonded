@@ -3,10 +3,10 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, ArrowUp, Check, Menu, MessageSquare, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, Check, Menu, MessageSquare, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { cx, EASE } from "@/design";
 import Answer, { PennyAvatar } from "./Answer";
-import { createRequest, listChats, readConversation, shop, type PennyChat, type PennyDraft, type PennyRequest } from "./session";
+import { createRequest, deleteChat, listChats, readConversation, shop, type PennyChat, type PennyDraft, type PennyRequest } from "./session";
 
 const STAGES = ["Reading your request", "Finding options", "Checking listings", "Comparing options", "Checking the final pick"];
 const STAGE_AT = [0, 1800, 6000, 11000, 18000];
@@ -42,8 +42,8 @@ export default function ProcessView({ id }: { id?: string }) {
       if (latest) { setBudget(latest.draft.budget); setWhere(latest.draft.where); }
       initialized.current = true;
     }
-    const current = (retry && conversation.find((turn) => turn.id === retry.id && !turn.proposal)) || conversation.at(-1);
-    if (!current || current.proposal || (current.error && retry?.id !== current.id)) {
+    const current = (retry && conversation.find((turn) => turn.id === retry.id && !turn.proposal && !turn.reply)) || conversation.at(-1);
+    if (!current || current.proposal || current.reply || (current.error && retry?.id !== current.id)) {
       setBusyId(undefined);
       return;
     }
@@ -99,7 +99,17 @@ export default function ProcessView({ id }: { id?: string }) {
     if (id) router.push("/penny/shop");
     else { setMessage(""); textarea.current?.focus(); }
   };
-  const sidebar = <Sidebar chats={chats} activeId={id} onNew={newChat} onSelect={() => setSidebarOpen(false)} />;
+  const removeChat = (chatId: string) => {
+    deleteChat(chatId);
+    setChats(listChats());
+    if (chatId === (turns[0]?.conversationId ?? id)) {
+      setSidebarOpen(false);
+      setTurns([]);
+      setBusyId(undefined);
+      router.replace("/penny/shop");
+    }
+  };
+  const sidebar = <Sidebar chats={chats} activeId={id} onNew={newChat} onSelect={() => setSidebarOpen(false)} onDelete={removeChat} />;
   const missing = loaded && !!id && !turns.length;
 
   return (
@@ -154,6 +164,12 @@ export default function ProcessView({ id }: { id?: string }) {
                 <motion.article key={turn.id} aria-label="Shopping request" initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE }} className="grid gap-7">
                   <RequestBubble draft={turn.draft} />
                   {turn.proposal ? <Answer p={turn.proposal} showRequest={false} />
+                    : turn.reply ? (
+                      <div className="flex items-start gap-3">
+                        <PennyAvatar size={28} />
+                        <p className="break-anywhere min-w-0 pt-1 text-[15px] leading-relaxed text-ink-2">{turn.reply.message}</p>
+                      </div>
+                    )
                     : turn.error && busyId !== turn.id ? (
                       <div className="flex items-start gap-3">
                         <PennyAvatar size={28} />
@@ -176,7 +192,7 @@ export default function ProcessView({ id }: { id?: string }) {
   );
 }
 
-function Sidebar({ chats, activeId, onNew, onSelect }: { chats: PennyChat[]; activeId?: string; onNew: () => void; onSelect: () => void }) {
+function Sidebar({ chats, activeId, onNew, onSelect, onDelete }: { chats: PennyChat[]; activeId?: string; onNew: () => void; onSelect: () => void; onDelete: (id: string) => void }) {
   return (
     <>
       <Link href="/penny" className="mx-5 mt-6 flex w-fit items-center gap-2.5 text-[19px] font-[600] tracking-[-0.035em] text-ink"><PennyAvatar size={28} /> Penny</Link>
@@ -186,11 +202,15 @@ function Sidebar({ chats, activeId, onNew, onSelect }: { chats: PennyChat[]; act
       <nav aria-label="Previous chats" className="mt-7 min-h-0 flex-1 overflow-y-auto px-3">
         <p className="mb-2 px-3 text-[11.5px] font-medium text-ink-3">Chats</p>
         {chats.length ? <ul className="space-y-1">
-          {chats.map((chat) => <li key={chat.id}>
+          {chats.map((chat) => <li key={chat.id} className={cx("flex min-w-0 items-center rounded-[12px] transition-colors hover:bg-ink/[0.05]", activeId === chat.id && "bg-ink/[0.06]")}>
             <Link href={"/penny/shop/" + chat.id} onClick={onSelect} aria-current={activeId === chat.id ? "page" : undefined} title={chat.title}
-              className={cx("flex min-h-11 items-center gap-2.5 rounded-[12px] px-3 text-[13px] transition-colors hover:bg-ink/[0.05]", activeId === chat.id ? "bg-ink/[0.06] font-medium text-ink" : "text-ink-2")}>
+              className={cx("flex min-h-11 min-w-0 flex-1 items-center gap-2.5 px-3 text-[13px]", activeId === chat.id ? "font-medium text-ink" : "text-ink-2")}>
               <MessageSquare size={14} className="shrink-0 text-ink-3" aria-hidden /><span className="truncate">{chat.title}</span>
             </Link>
+            <button type="button" onClick={() => onDelete(chat.id)} aria-label={`Delete chat: ${chat.title}`} title="Delete chat"
+              className="mr-1 grid size-9 shrink-0 place-items-center rounded-[8px] text-ink-3 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+              <Trash2 size={14} aria-hidden />
+            </button>
           </li>)}
         </ul> : <p className="px-3 text-[12.5px] text-ink-3">No chats yet</p>}
       </nav>
@@ -207,11 +227,11 @@ function Composer({ message, onMessage, budget, onBudget, busy, textarea, onSubm
     <div className="shrink-0 bg-canvas px-3 pt-2 sm:px-7" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
       <form onSubmit={onSubmit} aria-label="Message Penny" className="mx-auto max-w-[736px] rounded-[24px] bg-white p-3 shadow-[0_0_0_1px_oklch(20%_0.012_70/0.10),0_8px_28px_-16px_oklch(20%_0.012_70/0.2)] transition-shadow focus-within:shadow-[0_0_0_1px_oklch(52%_0.105_72/0.35),0_8px_28px_-16px_oklch(20%_0.012_70/0.2)] sm:p-4">
         <label htmlFor="penny-message" className="sr-only">Message Penny</label>
-        <textarea ref={textarea} id="penny-message" value={message} maxLength={1000} rows={1}
+        <textarea ref={textarea} id="penny-message" value={message} maxLength={1000} rows={1} wrap="soft"
           onChange={(e) => { onMessage(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px"; }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
           placeholder="Message Penny…"
-          className="block max-h-40 min-h-12 w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-relaxed text-ink outline-none placeholder:text-ink-3" />
+          className="block max-h-40 min-h-12 w-full resize-none overflow-x-hidden bg-transparent px-1 py-1 text-[15px] leading-relaxed text-ink outline-none placeholder:text-ink-3" />
         <div className="mt-2 flex items-center gap-2">
           <label className="inline-flex items-center gap-1 rounded-full bg-canvas-sunk px-2.5 text-[12px] text-ink-3">
             <span>Budget</span><span aria-hidden>$</span>
@@ -227,11 +247,12 @@ function Composer({ message, onMessage, budget, onBudget, busy, textarea, onSubm
 }
 
 function RequestBubble({ draft }: { draft: PennyDraft }) {
+  const detail = [draft.budget && `Budget $ ${draft.budget.replace(/^\$/, "")}`, draft.where === "arena" && "Sandbox store"].filter(Boolean).join(" · ");
   return (
     <div className="flex justify-end">
       <div className="max-w-[88%] whitespace-pre-wrap break-words rounded-[22px] rounded-br-[6px] bg-canvas-sunk px-4 py-3 text-[15px] leading-relaxed text-ink sm:max-w-[80%]">
         {draft.request}
-        <p className="mt-1.5 text-[11.5px] text-ink-3">{draft.budget && <>Budget $ {draft.budget.replace(/^\$/, "")} · </>}{draft.where === "web" ? "The web" : "Sandbox store"}</p>
+        {detail && <p className="mt-1.5 text-[11.5px] text-ink-3">{detail}</p>}
       </div>
     </div>
   );

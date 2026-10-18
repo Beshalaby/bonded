@@ -17,6 +17,7 @@ function memoryStorage() {
     key: (index: number) => [...entries.keys()][index] ?? null,
     getItem: (key: string) => entries.get(key) ?? null,
     setItem: (key: string, value: string) => { entries.set(key, value); },
+    removeItem: (key: string) => { entries.delete(key); },
   };
 }
 async function session() { return import("@/app/penny/session"); }
@@ -61,12 +62,13 @@ describe("Penny conversation sessions", () => {
     const followup = api.createRequest({ request: "Size 10, in blue", budget: "$200", where: "web" }, root);
     await api.shop(api.readRequest(followup)!);
     const firstBody = JSON.parse(fetch.mock.calls[0][1].body);
-    expect(firstBody).toEqual({ request: draft.request, budget: 150, sources: ["arena"] });
+    expect(firstBody).toEqual({ request: draft.request, message: draft.request, budget: 150, sources: ["arena"] });
     const body = JSON.parse(fetch.mock.calls[1][1].body);
     expect(body.request).toContain(draft.request);
     expect(body.request).toContain("What size?");
     expect(body.request).toContain("Nike running shoes");
     expect(body.request).toContain("Size 10, in blue");
+    expect(body.message).toBe("Size 10, in blue");
     expect(body.budget).toBe(200);
     expect(body.sources).toEqual(["web"]);
     expect(api.readRequest(followup)?.draft.request).toBe("Size 10, in blue");
@@ -150,11 +152,85 @@ describe("Penny conversation sessions", () => {
     expect(api.readRequest(id)?.error).toBeUndefined();
   });
 
+  it("caches conversational replies and restores them after reload", async () => {
+    let api = await session();
+    const reply = { kind: "reply", message: "Hi! What can I help you shop for?" };
+    const fetch = vi.fn().mockResolvedValue(Response.json(reply));
+    vi.stubGlobal("fetch", fetch);
+    const id = api.createRequest({ ...draft, request: "Hi" });
+    await expect(api.shop(api.readRequest(id)!)).resolves.toEqual(reply);
+    expect(api.readRequest(id)?.reply).toEqual(reply);
+    expect(api.readRequest(id)?.proposal).toBeUndefined();
+    vi.resetModules();
+    api = await session();
+    await expect(api.shop(api.readRequest(id)!)).resolves.toEqual(reply);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps conversational messages out of shopping context while preserving shopping followups", async () => {
+    const api = await session();
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(Response.json({ kind: "reply", message: "Hello!" }))
+      .mockResolvedValue(Response.json(proposal));
+    vi.stubGlobal("fetch", fetch);
+    const root = api.createRequest({ ...draft, request: "How has your day been?" });
+    await api.shop(api.readRequest(root)!);
+    const shopping = api.createRequest(draft, root);
+    await api.shop(api.readRequest(shopping)!);
+    expect(JSON.parse(fetch.mock.calls[1][1].body).request).toBe(draft.request);
+    const followup = api.createRequest({ ...draft, request: "Keep it under 200" }, root);
+    await api.shop(api.readRequest(followup)!);
+    const body = JSON.parse(fetch.mock.calls[2][1].body);
+    expect(body.message).toBe("Keep it under 200");
+    expect(body.request).toContain(draft.request);
+    expect(body.request).toContain("What size?");
+    expect(body.request).not.toContain("How has your day been?");
+  });
+
+  it.each(["root", "followup"])("deletes a whole conversation by its %s ID and persists deletion", async (turn) => {
+    let api = await session();
+    const root = api.createRequest(draft);
+    const followup = api.createRequest({ ...draft, request: "Size 10" }, root);
+    const unrelated = api.createRequest({ ...draft, request: "Find a keyboard" });
+    // Reload first to exercise deletion of stored turns that are not in memory.
+    vi.resetModules();
+    api = await session();
+    api.deleteChat(turn === "root" ? root : followup);
+    expect(api.readConversation(root)).toEqual([]);
+    expect(api.readRequest(followup)).toBeUndefined();
+    expect(api.listChats().map((chat) => chat.id)).toEqual([unrelated]);
+    vi.resetModules();
+    api = await session();
+    expect(api.readRequest(root)).toBeUndefined();
+    expect(api.readRequest(followup)).toBeUndefined();
+    expect(api.listChats().map((chat) => chat.id)).toEqual([unrelated]);
+  });
+
+  it.each(["success", "failure"])("does not restore a deleted chat when pending work completes with %s", async (result) => {
+    let api = await session();
+    let resolve!: (response: Response) => void;
+    const fetch = vi.fn().mockImplementation(() => new Promise<Response>((done) => { resolve = done; }));
+    vi.stubGlobal("fetch", fetch);
+    const root = api.createRequest(draft);
+    const followup = api.createRequest({ ...draft, request: "Size 10" }, root);
+    const completion = api.shop(api.readRequest(followup)!).then(() => undefined, () => undefined);
+    api.deleteChat(root);
+    resolve(result === "success" ? Response.json(proposal) : Response.json({ error: "Try later" }, { status: 500 }));
+    await completion;
+    expect(api.readConversation(root)).toEqual([]);
+    expect(api.listChats()).toEqual([]);
+    vi.resetModules();
+    api = await session();
+    expect(api.readRequest(followup)).toBeUndefined();
+    expect(api.listChats()).toEqual([]);
+  });
+
   it("keeps draft, history, and retries usable when browser storage is denied", async () => {
     vi.stubGlobal("sessionStorage", {
       get length() { throw new Error("Denied"); },
       getItem: () => { throw new Error("Denied"); },
       setItem: () => { throw new Error("Denied"); },
+      removeItem: () => { throw new Error("Denied"); },
     });
     const api = await session();
     const fetch = vi.fn().mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce(Response.json(proposal));
@@ -167,5 +243,8 @@ describe("Penny conversation sessions", () => {
     expect(api.readDraft()).toEqual(draft);
     expect(api.listChats()[0].id).toBe(id);
     expect(api.readConversation(id)).toEqual([request]);
+    expect(() => api.deleteChat(id)).not.toThrow();
+    expect(api.listChats()).toEqual([]);
+    expect(api.readRequest(id)).toBeUndefined();
   });
 });

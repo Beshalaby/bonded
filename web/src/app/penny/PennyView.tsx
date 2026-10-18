@@ -30,12 +30,13 @@ function Hero({ onAsk, busy }: { onAsk: (draft: PennyDraft) => void; busy: boole
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const draft = readDraft();
-    if (draft) { setQ(draft.request); setBudget(draft.budget); }
+    if (draft) setBudget(draft.budget);
   }, []);
   const submit = (text = q) => {
     const t = text.trim();
     if (!t || busy) { input.current?.focus(); return; }
     onAsk({ request: t, budget, where: "web" });
+    setQ("");
   };
   const rise = (d: number) => ({ initial: { opacity: 0, y: 16, filter: "blur(6px)" }, animate: { opacity: 1, y: 0, filter: "blur(0px)" }, transition: { duration: 0.9, delay: d, ease: EASE } });
 

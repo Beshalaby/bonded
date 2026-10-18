@@ -9,6 +9,7 @@ import { agentKeyFrom, isInternalRequest } from "@/lib/auth-node";
 import { HttpError, intParam, jsonBody, respond } from "@/lib/http";
 import { listProposals, procure } from "@/lib/procure";
 import { parseProcureArgs } from "@/lib/procure/args";
+import { checkRelevance } from "@/lib/procure/relevance";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,21 +20,28 @@ export async function POST(req: Request) {
     const b = await jsonBody(req);
     const parsed = parseProcureArgs(b);
     if (typeof parsed === "string") throw new HttpError(400, parsed);
+    const message = b.message ?? parsed.request;
+    if (typeof message !== "string" || !message.trim() || message.length > 1000)
+      throw new HttpError(400, "'message' must be between 1 and 1000 characters");
     // Web sourcing (LLM search + page fetches) spends the operator's credit: anonymous callers on an exposed
     // server share Penny's daily allowance (lib/procure/quota.ts); admins, agent keys and the service token don't.
     let agent = "http";
+    let trusted = true;
     if (authMode() !== "open") {
       let key: ReturnType<typeof agentKeyFrom> = null;
       try { key = agentKeyFrom(req); } catch { throw new HttpError(401, "invalid or revoked agent key"); }
-      const trusted = !!key || isInternalRequest(req) || (await isAdminRequest(req));
+      trusted = !!key || isInternalRequest(req) || (await isAdminRequest(req));
       // Decide the sources once and hand procure() that same list, so the allowance check and the search agree
       // (an empty or missing list means procure's default: web when there's an LLM key).
       parsed.sources = parsed.sources?.length ? parsed.sources : HAS_LLM ? ["web"] : ["arena"];
-      if (!trusted && parsed.sources.includes("web")) {
-        const over = takeWebPlan({ trusted: false });
-        if (over) throw new HttpError(429, over);
-      }
       if (key) agent = key.name;
+    }
+    const relevance = await checkRelevance(message, parsed.request);
+    if (!relevance) throw new HttpError(503, "Penny couldn’t check your message. Please try again.");
+    if (!relevance.relevant) return { kind: "reply", message: relevance.reply };
+    if (!trusted && parsed.sources?.includes("web")) {
+      const over = takeWebPlan({ trusted: false });
+      if (over) throw new HttpError(429, over);
     }
     return procure({ ...parsed, agent });
   });

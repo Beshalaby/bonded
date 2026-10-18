@@ -1,10 +1,12 @@
 import type { Proposal } from "@/lib/procure/types";
+import type { PennyReply } from "@/lib/procure/relevance";
 
 export interface PennyDraft { request: string; budget: string; where: "web" | "arena" }
 export interface PennyRequest {
   id: string;
   draft: PennyDraft;
   proposal?: Proposal;
+  reply?: PennyReply;
   conversationId?: string;
   createdAt?: number;
   error?: string;
@@ -12,7 +14,8 @@ export interface PennyRequest {
 export interface PennyChat { id: string; title: string; updatedAt: number }
 
 const requests = new Map<string, PennyRequest>();
-const pending = new Map<string, Promise<Proposal>>();
+const pending = new Map<string, Promise<Proposal | PennyReply>>();
+const deleted = new Set<string>();
 let lastDraft: PennyDraft | undefined;
 const DRAFT_KEY = "penny:draft";
 const REQUEST_PREFIX = "penny:request:";
@@ -40,6 +43,7 @@ function restoreRequests() {
 }
 
 function persist(request: PennyRequest) {
+  if (deleted.has(request.id)) return; // A late response must not restore a deleted conversation.
   requests.set(request.id, request);
   store(requestKey(request.id), request);
 }
@@ -61,6 +65,7 @@ export function createRequest(draft: PennyDraft, conversationId?: string): strin
 }
 
 export function readRequest(id: string): PennyRequest | undefined {
+  if (deleted.has(id)) return undefined;
   const request = requests.get(id) ?? readStored<PennyRequest>(requestKey(id));
   if (!request || request.id !== id || typeof request.draft?.request !== "string"
     || typeof request.draft.budget !== "string" || !["web", "arena"].includes(request.draft.where)) return undefined;
@@ -90,9 +95,18 @@ export function listChats(): PennyChat[] {
   return [...chats.values()].sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+export function deleteChat(id: string): void {
+  for (const turn of readConversation(id)) {
+    deleted.add(turn.id);
+    requests.delete(turn.id);
+    try { sessionStorage.removeItem(requestKey(turn.id)); }
+    catch { /* In-memory deletion still works when browser storage is unavailable. */ }
+  }
+}
+
 function contextualRequest(request: PennyRequest): string {
   const conversation = readConversation(request.conversationId ?? request.id);
-  const previous = conversation.slice(0, conversation.findIndex((turn) => turn.id === request.id));
+  const previous = conversation.slice(0, conversation.findIndex((turn) => turn.id === request.id)).filter((turn) => !turn.reply);
   if (!previous.length) return request.draft.request;
   const latest = request.draft.request;
   const contextLabel = "\nPrevious context (latest message takes priority):\n";
@@ -118,9 +132,10 @@ function contextualRequest(request: PennyRequest): string {
   return `${latest}${contextLabel}${effectiveContext}`;
 }
 
-export function shop(input: PennyRequest): Promise<Proposal> {
+export function shop(input: PennyRequest): Promise<Proposal | PennyReply> {
   const request = readRequest(input.id) ?? input;
   if (request.proposal) return Promise.resolve(request.proposal);
+  if (request.reply) return Promise.resolve(request.reply);
   const existing = pending.get(request.id);
   if (existing) return existing;
   delete request.error;
@@ -133,7 +148,7 @@ export function shop(input: PennyRequest): Promise<Proposal> {
     try {
       res = await fetch("/api/procure", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ request: contextualRequest(request), budget: budget > 0 ? budget : undefined, sources: [draft.where] }),
+        body: JSON.stringify({ request: contextualRequest(request), message: draft.request, budget: budget > 0 ? budget : undefined, sources: [draft.where] }),
       });
     } catch {
       throw new Error("Couldn’t reach Penny. Check your connection and try again.");
@@ -145,9 +160,10 @@ export function shop(input: PennyRequest): Promise<Proposal> {
         : res.status === 401 || res.status === 403 ? "Penny isn’t open to the public on this server."
           : body?.error ?? "Something went wrong. Try again.");
     }
-    request.proposal = body as Proposal;
+    if (body?.kind === "reply") request.reply = body as PennyReply;
+    else request.proposal = body as Proposal;
     persist(request);
-    return request.proposal;
+    return (request.reply ?? request.proposal)!;
   })().catch((error: unknown) => {
     request.error = error instanceof Error ? error.message : "Something went wrong. Try again.";
     persist(request);
