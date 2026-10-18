@@ -16,6 +16,15 @@ BASE="${BASE:-http://127.0.0.1:3000}"
 BASE="${BASE%/}"
 [[ -f "$ENVF" ]] && { set -a; . "$ENVF"; set +a; }
 
+# Resolve the public host through 1.1.1.1: macOS can cache "not found" for a brand-new tunnel hostname for minutes,
+# which would make every check fail here even though the link works for everyone else.
+RESOLVE=()
+if [[ "$BASE" == https://* ]] && command -v dig >/dev/null; then
+  host="${BASE#https://}"; ip=$(dig +short +time=3 +tries=1 @1.1.1.1 "$host" 2>/dev/null | grep -E '^[0-9.]+$' | head -1)
+  [[ -n "$ip" ]] && RESOLVE=(--resolve "$host:443:$ip")
+fi
+curl() { command curl "${RESOLVE[@]}" "$@"; }
+
 PASS=0; FAIL=0; WARN=0
 ok()   { printf '  \033[32mPASS\033[0m  %s\n' "$*"; PASS=$((PASS+1)); }
 bad()  { printf '  \033[31mFAIL\033[0m  %s\n' "$*"; FAIL=$((FAIL+1)); }
