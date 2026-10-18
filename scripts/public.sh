@@ -34,7 +34,9 @@ die()  { printf '  \033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 mkdir -p "$STATE"
 PIDS=()
+CLEANED=0
 cleanup() {
+  [[ $CLEANED == 1 ]] && return; CLEANED=1
   echo
   bold "Stopping…"
   [[ -n "${TUNNEL_PID:-}" ]] && kill "$TUNNEL_PID" 2>/dev/null || true
@@ -42,7 +44,8 @@ cleanup() {
   wait 2>/dev/null || true
   ok "tunnel, server and keep-awake stopped"
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT TERM   # leave via EXIT so cleanup runs once and the watchdog loop really stops
 
 # ---------------------------------------------------------------- 1. preflight
 bold "1/7  Preflight"
@@ -164,7 +167,7 @@ EOF
 # ---------------------------------------------------------------- watchdog
 fails=0
 while true; do
-  sleep 20
+  sleep 20 & wait $!   # wait (not a foreground sleep) so Ctrl+C stops everything immediately
   alive=1
   kill -0 "$TUNNEL_PID" 2>/dev/null || alive=0
   grep -q "Tunnel not found" "$STATE/tunnel.log" 2>/dev/null && alive=0
