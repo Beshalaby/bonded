@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2.6">
+  <style>.ink{stroke:#1a1510}@media (prefers-color-scheme:dark){.ink{stroke:#fdfcfa}}</style>
+  <mask id="m" maskUnits="userSpaceOnUse">
+    <rect width="24" height="24" fill="white"/>
+    <path d="M20.5 12A5.5 5.5 0 0 1 9.5 12" stroke="black" stroke-width="4.4"/>
+  </mask>
+  <circle cx="15" cy="12" r="5.5" stroke="#ba7f14"/>
+  <circle class="ink" cx="9" cy="12" r="5.5" mask="url(#m)"/>
+</svg>
