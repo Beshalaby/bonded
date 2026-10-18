@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowUpRight, Check, ChevronDown, CircleHelp, ShieldCheck, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, CircleHelp, X } from "lucide-react";
 import { cx, EASE } from "@/design";
 import type { Proposal } from "@/lib/procure/types";
 
@@ -36,59 +36,46 @@ export function PennyAvatar({ size = 36, className }: { size?: number; className
   );
 }
 
-function Trust({ p }: { p: Proposal }) {
-  if (!p.trust) return null;
-  const s = p.trust.score;
-  const color = s >= 75 ? "var(--color-pass)" : s >= 50 ? "var(--color-amber)" : "var(--color-coral)";
-  return (
-    <div className="mt-4 rounded-[18px] bg-canvas-sunk/60 p-4">
-      <div className="flex items-baseline justify-between">
-        <span className="text-[13px] font-medium text-ink-2">Trust score</span>
-        <span className="tabular-nums"><span className="text-[22px] font-[600] tracking-[-0.03em] text-ink">{s}</span><span className="text-[13px] text-ink-4">/100 · {p.trust.grade}</span></span>
-      </div>
-      <div className="relative mt-2 h-1.5 rounded-full bg-ink-5/60" role="img" aria-label={`Trust ${s} out of 100. Penny buys at 75 and asks you between 50 and 75.`}>
-        <motion.div className="absolute inset-y-0 left-0 rounded-full" style={{ background: color }} initial={{ width: 0 }} animate={{ width: `${s}%` }} transition={{ duration: 1, ease: EASE, delay: 0.2 }} />
-        <span aria-hidden className="absolute -top-1 h-3.5 w-px bg-ink-3" style={{ left: "50%" }} />
-        <span aria-hidden className="absolute -top-1 h-3.5 w-px bg-ink-3" style={{ left: "75%" }} />
-      </div>
-      <div aria-hidden className="relative mt-1 h-4 text-[11px] text-ink-4">
-        <span className="absolute -translate-x-1/2" style={{ left: "50%" }}>ask</span>
-        <span className="absolute -translate-x-1/2" style={{ left: "75%" }}>buy</span>
-      </div>
-      {p.trust.explain.length > 0 && (
-        <ul className="mt-2 grid gap-1.5 text-[13px] text-ink-3">
-          {p.trust.explain.slice(0, 4).map((e) => <li key={e} className="flex gap-2"><span aria-hidden className="mt-[7px] size-1 shrink-0 rounded-full bg-ink-4" />{e}</li>)}
-        </ul>
-      )}
-    </div>
-  );
-}
-
+// The listing she'd buy, with its trust score as a quiet footer row (thresholds: ask at 50, buy at 75).
 function Pick({ p }: { p: Proposal }) {
   const w = p.wouldBuy;
   if (!w) return null;
   const href = w.url ?? (w.productId ? `/arena/p/${encodeURIComponent(w.productId)}` : undefined);
-  const body = (
+  const s = p.trust?.score;
+  const color = s == null ? "" : s >= 75 ? "var(--color-pass)" : s >= 50 ? "var(--color-amber)" : "var(--color-coral)";
+  const meta = [w.brand, w.merchant, w.condition && w.condition !== "new" ? w.condition : "", w.quantity > 1 ? `${w.quantity} × ${money(w.unitPrice)}` : "", w.shipping ? `${money(w.shipping)} shipping` : ""].filter(Boolean);
+  const top = (
     <>
       <span className="min-w-0 flex-1">
-        <span className="block text-[12px] font-medium uppercase tracking-[0.1em] text-ink-4">{w.brand}</span>
-        <span className="mt-0.5 line-clamp-2 block text-[15px] font-medium leading-snug text-ink">{w.title}</span>
-        <span className="mt-1 block text-[13px] text-ink-3">
-          {w.merchant}{w.condition && w.condition !== "new" ? ` · ${w.condition}` : ""}{w.quantity > 1 ? ` · ${w.quantity} × ${money(w.unitPrice)}` : ""}{w.shipping ? ` · ${money(w.shipping)} shipping` : ""}
-        </span>
+        <span className="line-clamp-2 block text-[15px] font-medium leading-snug tracking-[-0.01em] text-ink">{w.title}</span>
+        <span className="mt-1 block text-[13px] text-ink-4">{meta.join(" · ")}</span>
       </span>
-      <span className="text-right">
-        <span className="block text-[20px] font-[600] tracking-[-0.03em] tabular-nums text-ink">{money(w.total)}</span>
-        {p.spec.budget != null && <span className="text-[12px] tabular-nums text-ink-4">budget {money(p.spec.budget)}</span>}
+      <span className="shrink-0 text-right">
+        <span className="block text-[17px] font-[600] tracking-[-0.02em] tabular-nums text-ink">{money(w.total)}</span>
+        {p.spec.budget != null && <span className="text-[12px] tabular-nums text-ink-4">of {money(p.spec.budget)}</span>}
       </span>
     </>
   );
-  return href ? (
-    <a href={href} target={w.url ? "_blank" : undefined} rel={w.url ? "noopener noreferrer" : undefined}
-      className="group mt-4 flex items-start gap-4 rounded-[18px] bg-white p-4 shadow-[0_0_0_1px_oklch(20%_0.012_70/0.07)] transition-shadow hover:shadow-[0_0_0_1px_oklch(20%_0.012_70/0.14),0_10px_24px_-14px_oklch(20%_0.012_70/0.3)]">
-      {body}
-    </a>
-  ) : <div className="mt-4 flex items-start gap-4 rounded-[18px] bg-white p-4 shadow-[0_0_0_1px_oklch(20%_0.012_70/0.07)]">{body}</div>;
+  const row = "flex items-start gap-4 p-4";
+  return (
+    <div className="mt-5 overflow-hidden rounded-[18px] bg-white shadow-[0_0_0_1px_oklch(20%_0.012_70/0.08)]">
+      {href ? (
+        <a href={href} target={w.url ? "_blank" : undefined} rel={w.url ? "noopener noreferrer" : undefined}
+          className={cx(row, "transition-colors hover:bg-[oklch(98.6%_0.004_85)]")}>{top}</a>
+      ) : <div className={row}>{top}</div>}
+      {s != null && (
+        <div className="flex items-center gap-3 border-t border-divider px-4 py-3 text-[12.5px]">
+          <span className="text-ink-3">Trust</span>
+          <div className="relative h-1 flex-1 rounded-full bg-ink/[0.07]" role="img" aria-label={`Trust ${s} out of 100. Penny buys at 75 and asks you between 50 and 75.`}>
+            <motion.div className="absolute inset-y-0 left-0 rounded-full" style={{ background: color }} initial={{ width: 0 }} animate={{ width: `${s}%` }} transition={{ duration: 1, ease: EASE, delay: 0.2 }} />
+            <span aria-hidden className="absolute -inset-y-[3px] left-1/2 w-px bg-ink/20" />
+            <span aria-hidden className="absolute -inset-y-[3px] left-3/4 w-px bg-ink/20" />
+          </div>
+          <span className="tabular-nums"><span className="font-medium text-ink">{s}</span><span className="text-ink-4">/100</span></span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Disclosure({ title, children, open: init = false }: { title: React.ReactNode; children: React.ReactNode; open?: boolean }) {
@@ -115,51 +102,49 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
   const Icon = h.icon;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-8">
       {/* you */}
       <motion.div className="flex justify-end" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
-        <div className="max-w-[80%] rounded-[22px] rounded-br-[8px] bg-ink px-4 py-3 text-[15px] leading-snug text-white">
+        <div className="max-w-[80%] rounded-[20px] bg-[oklch(95.5%_0.006_85)] px-4 py-2.5 text-[15px] leading-snug text-ink">
           {p.request}
-          {p.spec.budget != null && !/\$\s?\d/.test(p.request) && <span className="text-white/60"> · under {money(p.spec.budget)}</span>}
+          {p.spec.budget != null && !/\$\s?\d/.test(p.request) && <span className="text-ink-4"> · under {money(p.spec.budget)}</span>}
         </div>
       </motion.div>
 
       {/* Penny */}
       <motion.div className="flex items-start gap-3" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15, ease: EASE }}>
-        <PennyAvatar size={36} className="mt-1" />
-        <div className="min-w-0 flex-1 rounded-[26px] rounded-tl-[8px] bg-[oklch(99.4%_0.003_90)] p-5 shadow-[0_0_0_1px_oklch(20%_0.012_70/0.05),0_30px_60px_-36px_oklch(25%_0.03_70/0.4)] sm:p-6">
-          <div className="flex items-center gap-2 text-[13px] text-ink-3">
-            <span className="font-medium text-ink">Penny</span>
-            <span>·</span>
-            <span>looked at {p.offers.length} listing{p.offers.length === 1 ? "" : "s"} in {(p.latencyMs / 1000).toFixed(0)}s</span>
-          </div>
-          <p className="mt-3 flex items-center gap-2.5">
-            <span className={cx("grid size-7 place-items-center rounded-full", h.tone)}><Icon size={15} strokeWidth={2.4} aria-hidden /></span>
-            <span className="text-[21px] font-[600] tracking-[-0.03em] text-ink sm:text-[24px]">{h.text}</span>
+        <PennyAvatar size={28} />
+        <div className="min-w-0 flex-1 pt-[3px]">
+          <p className="text-[12.5px] text-ink-4">
+            {p.offers.length} listing{p.offers.length === 1 ? "" : "s"} checked in {(p.latencyMs / 1000).toFixed(0)}s
           </p>
-          {p.council.chair.length > 0 && <p className="mt-2 text-[14.5px] leading-relaxed text-ink-3">{p.council.chair.join(" ")}</p>}
-
+          <h3 className="mt-1.5 flex items-center gap-2 text-[20px] font-[600] tracking-[-0.03em] text-ink">
+            <span className={cx("grid size-5 shrink-0 place-items-center rounded-full", h.tone)}><Icon size={12} strokeWidth={2.6} aria-hidden /></span>
+            {h.text}
+          </h3>
           {p.questions.length > 0 && (
-            <ul className="mt-4 grid gap-2">
-              {p.questions.map((q) => (
-                <li key={q} className="flex items-start gap-2.5 rounded-[14px] bg-amber-soft px-3.5 py-2.5 text-[14px] text-ink">
-                  <CircleHelp size={16} className="mt-0.5 shrink-0 text-amber-ink" aria-hidden />{q}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-2 grid gap-1.5 text-[15px] leading-relaxed text-ink-2">
+              {p.questions.map((q) => <p key={q}>{q}</p>)}
+            </div>
           )}
 
           <Pick p={p} />
-          <Trust p={p} />
 
-          <div className="mt-5">
+          <div className="mt-6 border-b border-divider">
+            {p.trust && p.trust.explain.length > 0 && (
+              <Disclosure title={`Why trust ${p.trust.score}`}>
+                <ul className="grid gap-1.5 text-[13px] leading-relaxed text-ink-3">
+                  {p.trust.explain.map((e) => <li key={e}>{e}</li>)}
+                </ul>
+              </Disclosure>
+            )}
             {skipped.length > 0 && (
-              <Disclosure open title={<span>Skipped {skipped.length} risky listing{skipped.length === 1 ? "" : "s"}
+              <Disclosure title={<span>Skipped {skipped.length} risky listing{skipped.length === 1 ? "" : "s"}
                 <span className="ml-2 font-normal text-ink-4">{[...flagged.keys()].slice(0, 3).map(flagLabel).join(" · ")}</span></span>}>
                 <ul className="grid gap-2">
                   {skipped.slice(0, 8).map((o) => (
-                    <li key={o.id} className="flex items-center gap-3 text-[13px]">
-                      <span className="min-w-0 flex-1 truncate text-ink-2">{o.title}<span className="text-ink-4"> · {o.merchant}</span></span>
+                    <li key={o.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] sm:flex-nowrap">
+                      <span className="block w-full min-w-0 truncate text-ink-2 sm:w-auto sm:flex-1">{o.title}<span className="text-ink-4"> · {o.merchant}</span></span>
                       <span className="shrink-0 tabular-nums text-ink-3">{money(o.unitPrice)}</span>
                       <span className="flex shrink-0 gap-1">
                         {o.flags.filter((f) => f.severity !== "info").slice(0, 2).map((f) => (
@@ -176,7 +161,7 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
                 <ul className="grid gap-2.5">
                   {p.alternatives.slice(0, 4).map((a) => (
                     <li key={a.offerId} className="text-[13px]">
-                      <div className="flex gap-3"><span className="min-w-0 flex-1 truncate text-ink-2">{a.title}<span className="text-ink-4"> · {a.merchant}</span></span><span className="tabular-nums text-ink-3">{money(a.unitPrice)}</span></div>
+                      <div className="flex gap-3"><span className="block min-w-0 flex-1 truncate text-ink-2">{a.title}<span className="text-ink-4"> · {a.merchant}</span></span><span className="tabular-nums text-ink-3">{money(a.unitPrice)}</span></div>
                       <p className="mt-0.5 text-ink-4">{a.whyNot}</p>
                     </li>
                   ))}
@@ -185,6 +170,7 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
             )}
             {p.council.votes.length > 0 && (
               <Disclosure title={`How the council voted (${Math.round(p.council.agreement * 100)}% agreement)`}>
+                {p.council.chair.length > 0 && <p className="mb-3 text-[13px] leading-relaxed text-ink-2">{p.council.chair.join(" ")}</p>}
                 <ul className="grid gap-3">
                   {p.council.votes.map((v) => (
                     <li key={v.expert} className="text-[13px]">
@@ -203,8 +189,8 @@ export default function Answer({ p, onReset }: { p: Proposal; onReset: () => voi
             )}
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-4 text-[12.5px] text-ink-4">
-            <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-sage-ink" aria-hidden />Nothing was ordered or charged.</span>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12.5px] text-ink-4">
+            <span>Nothing was ordered or charged.</span>
             <span className="flex items-center gap-4">
               <Link href={`/api/procure/${encodeURIComponent(p.id)}`} target="_blank" className="inline-flex items-center gap-1 text-ink-3 hover:text-ink">
                 Full record <ArrowUpRight size={12} aria-hidden />

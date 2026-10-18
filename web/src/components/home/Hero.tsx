@@ -25,15 +25,6 @@ export default function Hero() {
 
         {/* Fills the first screen minus --peek, so the top of the stage always shows below the fold line */}
         <div className="flex min-h-[calc(100svh-64px-var(--peek))] flex-col items-center justify-center px-5 py-10 text-center [--peek:clamp(88px,15svh,150px)] sm:min-h-[calc(100svh-68px-var(--peek))] sm:py-12">
-          <motion.div {...rise(0)}>
-            <Link href="/research"
-              className="group mb-7 inline-flex items-center gap-2 rounded-full bg-white/80 py-1 pl-1.5 pr-3.5 text-[13px] text-ink-2 shadow-[0_0_0_1px_oklch(20%_0.012_70/0.07),0_6px_18px_-8px_oklch(40%_0.05_70/0.22)] transition-colors hover:text-ink sm:mb-9">
-              <span className="rounded-full bg-gold-soft px-2 py-0.5 text-[12px] font-medium text-accent">New</span>
-              SpendBench results are in
-              <ArrowUpRight size={13} aria-hidden className="text-ink-4 transition-transform duration-300 group-hover:-translate-y-px group-hover:translate-x-px group-hover:text-ink" />
-            </Link>
-          </motion.div>
-
           <h1 id="hero-title" className="font-display font-normal leading-[0.92] tracking-[-0.025em] [font-size:clamp(50px,min(8vw,12.5svh),124px)]">
             <motion.span className="block text-ink" {...rise(0.06)}>Would you trust an AI</motion.span>
             <motion.span className="block pb-[0.06em] text-ink-3" {...rise(0.16)}>with your wallet?</motion.span>

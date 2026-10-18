@@ -10,7 +10,7 @@ import {
   AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTransform,
 } from "motion/react";
 import {
-  ArrowRight, ArrowUpRight, Check, FileCheck2, Plus, Scale, ShieldAlert, ShoppingBag, Sparkles, Users, type LucideProps,
+  ArrowRight, ArrowUpRight, FileCheck2, Plus, Scale, ShieldAlert, ShoppingBag, Sparkles, Users, type LucideProps,
 } from "lucide-react";
 import { cx, EASE } from "@/design";
 import type { Proposal } from "@/lib/procure/types";
@@ -108,27 +108,28 @@ function Hero({ onAsk, busy }: { onAsk: (request: string, budget: number | undef
 
 function Working({ stage, request }: { stage: number; request: string }) {
   return (
-    <div className="grid gap-4">
-      <div className="flex justify-end"><div className="max-w-[80%] rounded-[22px] rounded-br-[8px] bg-ink px-4 py-3 text-[15px] text-white">{request}</div></div>
+    <div className="grid gap-8">
+      <div className="flex justify-end">
+        <div className="max-w-[80%] rounded-[20px] bg-[oklch(95.5%_0.006_85)] px-4 py-2.5 text-[15px] text-ink">{request}</div>
+      </div>
       <div className="flex items-start gap-3">
-        <PennyAvatar size={36} className="mt-1" />
-        <div className="w-full max-w-[460px] rounded-[26px] rounded-tl-[8px] bg-[oklch(99.4%_0.003_90)] p-5 shadow-[0_0_0_1px_oklch(20%_0.012_70/0.05),0_30px_60px_-36px_oklch(25%_0.03_70/0.4)]">
-          <ol className="grid gap-1" aria-live="polite">
-            {STAGES.map((s, i) => {
-              const done = i < stage, now = i === stage;
-              return (
-                <li key={s} className={cx("flex h-9 items-center gap-3 text-[15px] transition-colors duration-500", now ? "font-medium text-ink" : done ? "text-ink-3" : "text-ink-4")}>
-                  <span aria-hidden className="relative grid size-5 place-items-center">
-                    {done ? <span className="grid size-5 place-items-center rounded-full bg-sage-soft text-sage-ink"><Check size={12} strokeWidth={2.6} /></span>
-                      : now ? <><span className="absolute size-5 animate-ping rounded-full bg-gold/40 [animation-duration:1.6s]" /><span className="size-2 rounded-full bg-gold" /></>
-                        : <span className="size-1.5 rounded-full bg-ink-5" />}
-                  </span>
-                  {s}{now ? "…" : ""}
-                </li>
-              );
-            })}
-          </ol>
-          <p className="mt-3 text-[12.5px] text-ink-4">Usually 10 to 60 seconds.</p>
+        <PennyAvatar size={28} />
+        <div className="min-w-0 pt-[3px]">
+          {/* only the current step is shown; it swaps in place as Penny moves on */}
+          <div className="relative h-[22px] overflow-hidden" aria-live="polite">
+            <AnimatePresence initial={false} mode="popLayout">
+              <motion.p key={stage} className="whitespace-nowrap bg-[linear-gradient(90deg,var(--color-ink-3)_0%,var(--color-ink)_45%,var(--color-ink-3)_90%)] bg-[length:200%_100%] bg-clip-text text-[15px] font-medium text-transparent [animation:shimmer_2.4s_linear_infinite]"
+                initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -14, opacity: 0 }} transition={{ duration: 0.4, ease: EASE }}>
+                {STAGES[stage]}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+          <div aria-hidden className="mt-3 flex gap-1">
+            {STAGES.map((s, i) => (
+              <span key={s} className={cx("h-[3px] w-6 rounded-full transition-colors duration-500", i < stage ? "bg-ink" : i === stage ? "bg-ink/40" : "bg-ink/10")} />
+            ))}
+          </div>
+          <p className="mt-2.5 text-[12.5px] text-ink-4">Step {stage + 1} of {STAGES.length} · usually 10 to 60 seconds</p>
         </div>
       </div>
     </div>
@@ -362,7 +363,7 @@ function HowItWorks() {
           </h2>
         </div>
         <motion.div ref={track} style={{ x }}
-          className={cx("mt-12 flex gap-5 px-5 sm:gap-6 sm:px-[max(32px,calc((100vw-1180px)/2))]", pinned ? "w-max" : "snap-x snap-mandatory overflow-x-auto pb-4 [scrollbar-width:none]")}>
+          className={cx("mt-12 flex gap-5 px-5 sm:gap-6 sm:px-[max(32px,calc((100vw-1180px)/2))]", pinned ? "w-max" : "snap-x snap-mandatory scroll-px-5 overflow-x-auto pb-4 [scrollbar-width:none] sm:scroll-px-8")}>
           {HOW.map((h, i) => (
             <article key={h.lead} className="w-[min(340px,82vw)] shrink-0 snap-start sm:w-[360px]">
               <div className="relative isolate grid aspect-[4/3] place-items-center overflow-hidden rounded-[24px]">
@@ -436,13 +437,17 @@ export default function PennyView() {
   const reduce = useReducedMotion();
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // bring the conversation into view once it exists (the hero is a full screen tall)
+  const asking = state.kind === "working";
+  useEffect(() => {
+    if (asking) setTimeout(() => answer.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }), 80);
+  }, [asking, reduce]);
 
   const ask = async (text: string, budget: number | undefined, where: Where) => {
     timers.current.forEach(clearTimeout);
     setRequest(text);
     setState({ kind: "working", stage: 0 });
     timers.current = STAGE_AT.slice(1).map((ms, i) => setTimeout(() => setState((s) => (s.kind === "working" ? { kind: "working", stage: i + 1 } : s)), ms));
-    requestAnimationFrame(() => answer.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }));
     try {
       const res = await fetch("/api/procure", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ request: text, budget, sources: [where] }) });
       const body = await res.json().catch(() => null);
