@@ -2,7 +2,6 @@
 // web-search plugin). Web offers are LLM-extracted, so each one is checked against evidence: was its URL among
 // the search citations, does the page load, and does the quoted price actually appear on it.
 import { BlockedError, FetchError, safeFetch } from "../shield/web/fetch";
-import net from "node:net";
 import { getMerchant, search } from "../arena";
 import { scanInjection } from "../guardian";
 import { HAS_LLM, chatJSON } from "../llm";
