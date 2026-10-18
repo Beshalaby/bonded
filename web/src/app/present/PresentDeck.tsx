@@ -1,4 +1,5 @@
 "use client";
+import { usePublicOrigin } from "@/lib/ui/usePublicOrigin";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -418,9 +419,8 @@ function RedTeamSlide({ rt, rows }: { rt: RedTeamResponse | null; rows: ModelSta
 }
 
 function ConnectSlide() {
-  const [origin, setOrigin] = useState("http://localhost:3000");
-  useEffect(() => { setOrigin(window.location.origin); }, []);
-  const cmd = useMemo(() => `claude mcp add --transport http bonded ${origin}/api/mcp`, [origin]);
+  const origin = usePublicOrigin();
+  const cmd = useMemo(() => `claude mcp add --transport http bonded-bench ${origin}/api/mcp/bench`, [origin]);
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(cmd); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* clipboard blocked */ }
@@ -440,7 +440,7 @@ function ConnectSlide() {
         <div data-noadvance className="flex items-center gap-[calc(var(--u)*1.2)] max-sm:px-3 rounded-[calc(var(--u)*0.9)] border border-zinc-200 bg-zinc-50 px-[calc(var(--u)*1.8)] py-[calc(var(--u)*1.5)]">
           <span className="select-none font-mono text-zinc-400" style={u(1.5)}>$</span>
           <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-zinc-900" style={u(1.5)}>
-            claude mcp add --transport http bonded <span className="text-accent">{origin}/api/mcp</span>
+            claude mcp add --transport http bonded-bench <span className="text-accent">{origin}/api/mcp/bench</span>
           </code>
           <button onClick={copy} className="inline-flex shrink-0 items-center gap-[0.4em] rounded-[calc(var(--u)*0.5)] border border-zinc-200 bg-white px-[0.8em] py-[0.45em] font-medium text-zinc-700 hover:bg-zinc-50" style={u(1)}>
             {copied ? <><Check className="text-emerald-600" style={{ width: "1em", height: "1em" }} /> Copied</> : <><Copy style={{ width: "1em", height: "1em" }} /> Copy</>}

@@ -1,6 +1,7 @@
 "use client";
 // Connect: one title, one command, one sentence to say to your agent, and the agents that are connected right now.
 // Every other way in (client configs, the tool reference, the protocol, plain HTTP) sits behind one disclosure.
+import { usePublicOrigin } from "@/lib/ui/usePublicOrigin";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, Check, Copy } from "lucide-react";
@@ -22,8 +23,7 @@ function useCopied() {
 }
 
 export default function ConnectView({ initialOrigin, tasks, parity }: { initialOrigin: string; tasks: DemoTask[]; parity: string }) {
-  const [origin, setOrigin] = useState(initialOrigin);
-  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const origin = usePublicOrigin(initialOrigin);
   // Two MCP servers: SpendBench (benchmark your agent) and Penny (let your agent shop safely for a real user).
   const [mode, setMode] = useState<"bench" | "penny">("bench");
   useEffect(() => { if (window.location.hash === "#penny") setMode("penny"); }, []);

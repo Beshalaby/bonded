@@ -18,6 +18,7 @@ import { PennyAvatar } from "./Answer";
 import { createRequest, readDraft, type PennyDraft } from "./session";
 import SetupTabs from "@/components/connect/SetupTabs";
 import { CopyField } from "@/components/connect/Code";
+import { usePublicOrigin } from "@/lib/ui/usePublicOrigin";
 
 const EXAMPLES = ["AirPods Pro 2 under $250", "Sony WH-1000XM5 headphones in black", "Running shoes", "A MacBook Air M3 under $900"];
 
@@ -359,8 +360,7 @@ const FAQ = [
 
 /** Connect any MCP agent to Penny's server: the address, then per-client setup. */
 function ForAgents() {
-  const [origin, setOrigin] = useState("http://localhost:3000");
-  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const origin = usePublicOrigin();
   const endpoint = `${origin}/api/mcp/penny`;
   return (
     <section id="agents" aria-labelledby="agents-title" className="relative isolate mx-auto max-w-[920px] scroll-mt-24 px-5 py-24 sm:px-8 sm:py-32">

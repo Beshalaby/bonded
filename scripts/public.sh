@@ -102,6 +102,7 @@ ok "$URL"
 bold "5/7  Server"
 LAN=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
 export SPENDBENCH_ALLOWED_HOSTS="$HOST${LAN:+,$LAN}"
+export BONDED_PUBLIC_URL="$URL"                  # pages show copy-paste snippets with this link, even on localhost
 export SPENDBENCH_DATA_DIR="$WEB/.data"          # the demo data (real-model results, wallets, traces)
 export BONDED_PROXY_HOPS=1                       # Cloudflare adds the visitor's IP to X-Forwarded-For
 export PORT

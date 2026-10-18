@@ -1,5 +1,6 @@
 "use client";
 // Test your own agent: one command in a single-line pill, a copy button, and a door to the full setup page.
+import { usePublicOrigin } from "@/lib/ui/usePublicOrigin";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, Copy } from "lucide-react";
@@ -7,9 +8,8 @@ import { copyText } from "@/components/connect/Code";
 import { cx } from "@/design";
 
 export default function ConnectStrip({ origin: initial }: { origin: string }) {
-  const [origin, setOrigin] = useState(initial);
+  const origin = usePublicOrigin(initial);
   const [copied, setCopied] = useState(false);
-  useEffect(() => { setOrigin(window.location.origin); }, []);
   useEffect(() => { if (!copied) return; const t = setTimeout(() => setCopied(false), 1800); return () => clearTimeout(t); }, [copied]);
   const cmd = `claude mcp add --transport http bonded-bench ${origin}/api/mcp/bench`;
 
