@@ -453,6 +453,7 @@ export default function PennyView() {
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         const message = res.status === 429 ? "Penny is busy with a lot of requests right now. Try again in a minute."
+          : res.status === 401 && where === "web" ? "Searching the open web needs a sign-in on this server. Try the Arena store instead, or sign in."
           : res.status === 401 || res.status === 403 ? "Penny isn’t open to the public on this server."
             : body?.error ?? "Something went wrong. Try again.";
         setState({ kind: "error", message });

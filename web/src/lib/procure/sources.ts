@@ -1,7 +1,7 @@
 // Sourcing: candidate offers from the Arena catalog (sandbox, fully offline) and from the live web (OpenRouter's
 // web-search plugin). Web offers are LLM-extracted, so each one is checked against evidence: was its URL among
 // the search citations, does the page load, and does the quoted price actually appear on it.
-import dns from "node:dns/promises";
+import { BlockedError, FetchError, safeFetch } from "../shield/web/fetch";
 import net from "node:net";
 import { getMerchant, search } from "../arena";
 import { scanInjection } from "../guardian";
@@ -117,34 +117,14 @@ function normUrl(u: string): string {
 }
 
 // ---------------------------------------------------------------- page verification
-function privateIp(ip: string): boolean {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split(".").map(Number);
-    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
-  }
-  const l = ip.toLowerCase();
-  return l === "::1" || l === "::" || l.startsWith("fc") || l.startsWith("fd") || l.startsWith("fe80") || l.startsWith("::ffff:");
-}
-
-/** Only fetch public https hosts: the URL came from an LLM reading the open web. */
-async function safeToFetch(url: string): Promise<boolean> {
-  let u: URL;
-  try { u = new URL(url); } catch { return false; }
-  if (u.protocol !== "https:" || u.port && u.port !== "443" || net.isIP(u.hostname) || !u.hostname.includes(".")) return false;
-  if (/(^|\.)(localhost|local|internal|lan|home|corp)$/i.test(u.hostname)) return false;
-  try { return (await dns.lookup(u.hostname, { all: true })).every((a) => !privateIp(a.address)); } catch { return false; }
-}
-
+// Page fetches go through Shield's SSRF-safe fetcher: full private/metadata blocklist, DNS resolved once and
+// pinned for the connection (no rebinding), every redirect re-validated, size and time caps.
 async function verifyPage(o: Omit<Offer, "id">): Promise<void> {
-  if (!o.url || !(await safeToFetch(o.url))) { o.evidence.note = "page not fetched"; return; }
+  if (!o.url) { o.evidence.note = "page not fetched"; return; }
   try {
-    const res = await fetch(o.url, {
-      redirect: "manual", signal: AbortSignal.timeout(7000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; BondedProcure/1.0; +https://bonded.local)", Accept: "text/html" },
-    });
-    if (res.status >= 300 && res.status < 400) { o.evidence.note = `redirects (${res.status}); not followed`; return; }
-    if (!res.ok) { o.evidence.note = `page returned HTTP ${res.status} (many retailers block bots)`; return; }
-    const html = (await res.text()).slice(0, 1_500_000);
+    const res = await safeFetch(o.url, { timeoutMs: 7000, maxBytes: 1_500_000, maxRedirects: 3, allowJson: false });
+    if (res.status < 200 || res.status >= 300) { o.evidence.note = `page returned HTTP ${res.status} (many retailers block bots)`; return; }
+    const html = res.body;
     o.evidence.fetched = true;
     const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
     const cents = o.unitPrice.toFixed(2), whole = String(Math.floor(o.unitPrice));
@@ -153,6 +133,8 @@ async function verifyPage(o: Omit<Offer, "id">): Promise<void> {
     const inj = scanInjection({ title: o.title, description: text.slice(0, 200_000), specs: {} }, { page: true });
     if (inj) o.evidence.injection = inj.replace(/^Listing "[^"]*"/, "The product page");
   } catch (e) {
+    if (e instanceof BlockedError) { o.evidence.note = `page blocks automated access (${e.reason})`; return; }
+    if (e instanceof FetchError && /private|internal|blocked|port|scheme|credentials/i.test(e.message)) { o.evidence.note = "page not fetched (not a public web address)"; return; }
     o.evidence.note = `page fetch failed: ${(e as Error).name === "TimeoutError" ? "timeout" : (e as Error).message.slice(0, 60)}`;
   }
 }
