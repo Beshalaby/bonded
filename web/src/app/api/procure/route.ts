@@ -2,6 +2,7 @@
 // POST /api/procure { request, budget?, quantity?, constraints?, sources?: ("web"|"arena")[] } -> Proposal
 //   Plans a purchase (council of experts + trust score) and returns what Penny would buy. Never orders anything.
 // GET  /api/procure?limit=50 -> { proposals: Proposal[] } newest first
+import { takeWebPlan } from "@/lib/procure/quota";
 import { authMode, isAdminRequest } from "@/lib/auth";
 import { agentKeyFrom, isInternalRequest } from "@/lib/auth-node";
 import { HttpError, intParam, jsonBody, respond } from "@/lib/http";
@@ -17,16 +18,16 @@ export async function POST(req: Request) {
     const b = await jsonBody(req);
     const parsed = parseProcureArgs(b);
     if (typeof parsed === "string") throw new HttpError(400, parsed);
-    // Same gate as the MCP plan_purchase tool: on an exposed server, web sourcing (LLM search + page fetches,
-    // the expensive part) needs an admin session, an agent key or the service token; anyone else gets the Arena.
+    // Web sourcing (LLM search + page fetches) spends the operator's credit: anonymous callers on an exposed
+    // server share Penny's daily allowance (lib/procure/quota.ts); admins, agent keys and the service token don't.
     let agent = "http";
     if (authMode() !== "open") {
       let key: ReturnType<typeof agentKeyFrom> = null;
       try { key = agentKeyFrom(req); } catch { throw new HttpError(401, "invalid or revoked agent key"); }
       const trusted = !!key || isInternalRequest(req) || (await isAdminRequest(req));
-      if (!trusted) {
-        if (parsed.sources?.includes("web")) throw new HttpError(401, "Web sourcing needs a sign-in or an agent key. Use sources: [\"arena\"].");
-        parsed.sources = ["arena"];
+      if (!trusted && (parsed.sources ?? ["web"]).includes("web")) {
+        const over = takeWebPlan({ trusted: false });
+        if (over) throw new HttpError(429, over);
       }
       if (key) agent = key.name;
     }

@@ -80,6 +80,8 @@ function trustScore(o: CheckedOffer, votes: ExpertVote[], pick: string, ref: num
   else if (pm?.severity === "major") { s *= 0.85; explain.push(`Pre-mortem raised a major concern: ${pm.objection}`); }
   if (pm?.severity === "blocker") { s *= 0.7; explain.push(`Pre-mortem raised a blocker: ${pm.objection}`); }
   if (blockingAmbiguity) { s = Math.min(s, 60); explain.push("Capped: the request leaves a detail open that changes what gets bought."); }
+  // An offer no expert picked can't earn a confident grade, however clean its other components look.
+  if (picks === 0) { s = Math.min(s, 64); explain.push("Capped: none of the experts picked this offer."); }
   const score = Math.round(s);
   const grade = score >= 85 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 45 ? "D" : "F";
   return { score, grade, components: Object.fromEntries(Object.entries(components).map(([k, v]) => [k, r2(v)])) as TrustScore["components"], explain };
@@ -152,7 +154,10 @@ export async function procure(input: ProcureInput): Promise<Proposal> {
   const specScore = (o: CheckedOffer) => scoreOf(votes.find((v) => v.expert === "spec")!, o.id)?.score ?? 0;
   const closestOver = spec.budget != null
     ? [...checked].filter((o) => overBudget(o) && o.inStock !== false && !vetoed(o) && specScore(o) >= 70
-      && o.flags.every((f) => f.code === "OVER_BUDGET" || f.severity === "info")).sort((a, b) => a.unitPrice - b.unitPrice)[0]
+      && o.flags.every((f) => f.code === "OVER_BUDGET" || f.severity === "info"))
+      // the council's preferred clean offer (votes, then council score), not merely the cheapest
+      .sort((a, b) => votes.filter((v) => v.pick === b.id).length - votes.filter((v) => v.pick === a.id).length
+        || (cs.get(b.id) ?? 0) - (cs.get(a.id) ?? 0) || a.unitPrice - b.unitPrice)[0]
     : undefined;
   if (!checked.length) { decision = "decline"; chair.push("No offers were found for this item."); }
   else if (!pick) { decision = "decline"; chair.push("Every offer was vetoed or scored too low to recommend."); }
@@ -168,7 +173,7 @@ export async function procure(input: ProcureInput): Promise<Proposal> {
     // Nothing trustworthy fits the budget, but a clean offer exists above it: ask instead of a flat no.
     const total = closestOver.unitPrice * spec.quantity + (closestOver.shipping ?? 0);
     decision = "ask_user";
-    questions.push(`Nothing trustworthy fits the ${money(spec.budget!)} budget. The cheapest clean offer is ${money(total)} at ${closestOver.merchant}. Raise the budget?`);
+    questions.push(`Nothing trustworthy fits the ${money(spec.budget!)} budget. The best clean option is ${money(total)} at ${closestOver.merchant}. Raise the budget?`);
     chair.push(`Offering ${closestOver.id} (${closestOver.merchant}) above budget instead of ${pick ? `the risky in-budget ${pick.id}` : "nothing"}.`);
     pick = closestOver;
     trust = trustScore(pick, votes, pick.id, ref, null, blocking.length > 0);

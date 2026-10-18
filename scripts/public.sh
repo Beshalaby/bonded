@@ -141,7 +141,7 @@ $(bold "Bonded is live")
   Penny MCP        $URL/api/mcp/penny
   SpendBench MCP   $URL/api/mcp/bench
   Judges           open $URL/connect or $URL/penny#agents: every snippet already uses this address
-  Claude Code      claude mcp add --transport http bonded-penny $URL/api/mcp/penny
+  Claude Code      claude mcp add --transport http penny $URL/api/mcp/penny
 
   The link changes each time this script starts. Keep this window open; Ctrl+C stops everything.
   Logs: web/.public/server.log, web/.public/tunnel.log

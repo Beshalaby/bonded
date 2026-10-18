@@ -152,18 +152,19 @@ Bonded runs two MCP servers (Streamable HTTP, protocol 2025-06-18; 2025-03-26 an
 
 ```bash
 # Claude Code (or open this repo: .mcp.json registers both)
-claude mcp add --transport http bonded-penny http://localhost:3000/api/mcp/penny
+claude mcp add --transport http penny http://localhost:3000/api/mcp/penny
 claude mcp add --transport http bonded-bench http://localhost:3000/api/mcp/bench
-# then e.g.  "Use bonded-penny to find me AirPods Pro 2 under $260"
+# then e.g.  "Use penny to find me AirPods Pro 2 under $260"
 #       or   "Use the bonded-bench tools to complete SpendBench task airpods-pro-2"
 ```
 
-Cursor: `{"mcpServers": {"bonded-penny": {"url": "http://localhost:3000/api/mcp/penny"}}}`. Claude Desktop or any
+Cursor: `{"mcpServers": {"penny": {"url": "http://localhost:3000/api/mcp/penny"}}}`. Claude Desktop or any
 stdio-only agent: `{"command": "node", "args": ["/path/to/bonded/mcp/bonded-mcp.mjs"], "env": {"BONDED_URL":
 "http://localhost:3000", "BONDED_MCP": "penny"}}` (or `"bench"`). The bridge (`mcp/bonded-mcp.mjs`, zero
 dependencies, Node 18+) re-initializes if the server restarts and sends `BONDED_AGENT_KEY` as a Bearer key when set.
-With logins on (`BONDED_ADMIN_TOKEN`), Penny's web sourcing needs an agent key (`POST /api/auth/agent-keys`);
-without one it plans from the Arena. Hosted agents (e.g. Claude.ai connectors) need a public HTTPS deployment and
+Penny searches live stores only (never the sandbox Arena). With logins on (`BONDED_ADMIN_TOKEN`), anonymous agents share
+a daily allowance of web plans (`PENNY_DAILY_WEB_LIMIT`, default 200) and 20 per MCP session (`PENNY_SESSION_LIMIT`);
+agents with a key (`POST /api/auth/agent-keys`) aren't counted. Hosted agents (e.g. Claude.ai connectors) need a public HTTPS deployment and
 `SPENDBENCH_ALLOWED_HOSTS`; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Plan a purchase (council + trust score)

@@ -27,7 +27,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
   // Two MCP servers: SpendBench (benchmark your agent) and Penny (let your agent shop safely for a real user).
   const [mode, setMode] = useState<"bench" | "penny">("bench");
   useEffect(() => { if (window.location.hash === "#penny") setMode("penny"); }, []);
-  const server = mode === "penny" ? "bonded-penny" : "bonded-bench";
+  const server = mode === "penny" ? "penny" : "bonded-bench";
   const endpoint = `${origin}/api/mcp/${mode}`;
   const cmd = `claude mcp add --transport http ${server} ${endpoint}`;
   const [cmdCopied, copyCmd] = useCopied();
@@ -36,7 +36,7 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? "airpods-pro-2");
   const task = tasks.find((t) => t.id === taskId);
   const prompt = mode === "penny"
-    ? "Use bonded-penny to find me AirPods Pro 2 under $260. Don't buy anything, just tell me what you'd get."
+    ? "Use penny to find me AirPods Pro 2 under $260. Don't buy anything, just tell me what you'd get."
     : `Use the bonded-bench tools to complete SpendBench task ${taskId}.`;
   const suite = useMemo(() => {
     const ids = tasks.slice(0, 5).map((t) => t.id);

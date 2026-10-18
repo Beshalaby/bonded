@@ -57,7 +57,7 @@ export default function SetupTabs({ endpoint }: { endpoint: string }) {
 
   const origin = endpoint.replace(/\/api\/mcp(\/(penny|bench))?$/, "");
   const which = endpoint.endsWith("/penny") ? "penny" : "bench";
-  const name = `bonded-${which}`;
+  const name = which === "penny" ? "penny" : "bonded-bench";
   const json = (server: Record<string, unknown>) => JSON.stringify({ mcpServers: { [name]: server } }, null, 2);
   const panes: Record<TabId, { body: ReactNode; note: ReactNode }> = {
     "claude-code": {
