@@ -80,6 +80,7 @@ export interface NessieApi {
   createPurchase(accountId: string, p: NewPurchase): Promise<string>;
   listPurchases(accountId: string): Promise<Purchase[]>;
   createDeposit(accountId: string, d: NewDeposit): Promise<string>;
+  listDeposits(accountId: string): Promise<Deposit[]>;
 }
 
 // ---------------------------------------------------------------- redaction
@@ -178,6 +179,7 @@ export class NessieClient implements NessieApi {
   async listMerchants() { return listOf(await this.request("GET", "/merchants")).map(SHAPES.merchant); }
   createPurchase(accountId: string, p: NewPurchase) { return this.created(`/accounts/${enc(accountId)}/purchases`, p); }
   async listPurchases(accountId: string) { return listOf(await this.request("GET", `/accounts/${enc(accountId)}/purchases`)).map(SHAPES.purchase); }
+  async listDeposits(accountId: string) { return listOf(await this.request("GET", `/accounts/${enc(accountId)}/deposits`)).map(SHAPES.deposit); }
   createDeposit(accountId: string, d: NewDeposit) { return this.created(`/accounts/${enc(accountId)}/deposits`, d); }
 }
 

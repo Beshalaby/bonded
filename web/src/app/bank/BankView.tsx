@@ -61,7 +61,10 @@ function Row({ w, open, onToggle }: { w: BankWallet; open: boolean; onToggle: ()
           <span className="block truncate text-[12.5px] text-ink-4 sm:hidden">••{w.accountLast4} · {w.purchases} purchase{w.purchases === 1 ? "" : "s"}</span>
         </span>
         <span className="hidden font-mono text-[14px] text-ink-3 sm:block">••{w.accountLast4}</span>
-        <span className="text-right text-[22px] font-[560] leading-none tracking-[-0.04em] text-ink tabular-nums sm:text-[26px]">{usd(w.balance, 0)}</span>
+        <span className={`text-right text-[22px] font-[560] leading-none tracking-[-0.04em] tabular-nums sm:text-[26px] ${w.balance < 0 ? "text-coral-ink" : "text-ink"}`}
+          title={w.balance < 0 ? "Overspent: this agent charged more than it was funded" : undefined}>
+          {w.balance < 0 ? `\u2212${usd(-w.balance, 0)}` : usd(w.balance, 0)}
+        </span>
         <span className="hidden text-right text-[15px] text-ink-3 tabular-nums sm:block">{w.purchases}</span>
         <ChevronDown aria-hidden size={16} className={cx("justify-self-end text-ink-4 transition-transform duration-300", open && "rotate-180")} />
       </button>

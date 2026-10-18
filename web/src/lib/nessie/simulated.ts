@@ -69,6 +69,10 @@ export class SimulatedNessie implements NessieApi {
     return peek().purchases.filter((p) => p.payer_id === accountId).map(SHAPES.purchase);
   }
 
+  async listDeposits(accountId: string) {
+    return peek().deposits.filter((d) => d.payee_id === accountId).map(SHAPES.deposit);
+  }
+
   async createDeposit(accountId: string, d: NewDeposit) {
     return sim((s) => {
       const a = s.accounts.find((x) => x._id === accountId) as Obj | undefined;

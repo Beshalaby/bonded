@@ -140,11 +140,15 @@ function record(api: NessieApi, e: NessieLedgerEntry) {
   writeCache(api, (c) => { c.ledger.push(e); });
 }
 
+/** The real Nessie API stores amounts as whole dollars (229.99 is saved as 229). Send the nearest dollar and
+ *  keep the exact amount in the description and the trace. The simulated ledger keeps cents. */
+export const toNessieAmount = (api: Pick<NessieApi, "simulated">, x: number) => (api.simulated ? money(x) : Math.round(x));
+
 /** Deposit a task's budget into the agent's account. */
 export async function fundForTask(wallet: NessieWallet, budget: number, sessionId: string): Promise<{ depositId: string; amount: number }> {
   const api = backend();
-  const amount = money(budget);
-  const description = `Bonded task budget ${sessionId}`;
+  const amount = toNessieAmount(api, budget);
+  const description = `Bonded task budget ${sessionId} ($${money(budget).toFixed(2)})`;
   const depositId = await api.createDeposit(wallet.accountId, { medium: "balance", transaction_date: today(), status: "completed", amount, description });
   record(api, { kind: "deposit", id: depositId, agentId: wallet.agentId, accountId: wallet.accountId, sessionId, amount, description, date: today(), createdAt: new Date().toISOString() });
   return { depositId, amount };
@@ -154,8 +158,9 @@ export async function fundForTask(wallet: NessieWallet, budget: number, sessionI
 export async function chargePurchase(o: { wallet: NessieWallet; merchant: Pick<ArenaMerchant, "id" | "name">; amount: number; description: string; sessionId: string }): Promise<{ purchaseId: string; merchantId: string; amount: number }> {
   const api = backend();
   const merchantId = await ensureMerchant(o.merchant);
-  const amount = money(o.amount);
-  const description = o.description.includes(o.sessionId) ? o.description : `Bonded ${o.sessionId} · ${o.description}`;
+  const amount = toNessieAmount(api, o.amount);
+  const exact = `$${money(o.amount).toFixed(2)}`;
+  const description = `${o.description.includes(o.sessionId) ? o.description : `Bonded ${o.sessionId} · ${o.description}`} (${exact})`;
   const desc = description.slice(0, 140);
   const purchaseId = await api.createPurchase(o.wallet.accountId, { merchant_id: merchantId, medium: "balance", purchase_date: today(), amount, status: "completed", description: desc });
   record(api, {
@@ -186,8 +191,14 @@ const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
 
 async function liveBalance(api: NessieApi, w: NessieWallet, fallback: number): Promise<{ balance: number; source: "nessie" | "ledger" }> {
   if (api.simulated) return { balance: fallback, source: "ledger" };
-  try { return { balance: (await withTimeout(api.getAccount(w.accountId), 5000)).balance, source: "nessie" }; }
-  catch { return { balance: fallback, source: "ledger" }; }
+  // The Nessie sandbox leaves `balance` untouched by deposits and purchases, so derive it from the
+  // account's own transaction history on Nessie.
+  try {
+    const [deps, buys] = await withTimeout(Promise.all([api.listDeposits(w.accountId), api.listPurchases(w.accountId)]), 6000);
+    const ok = (s: string) => s !== "cancelled";
+    const sum = (xs: { amount: number; status: string }[]) => xs.filter((x) => ok(x.status)).reduce((t, x) => t + x.amount, 0);
+    return { balance: money(sum(deps) - sum(buys)), source: "nessie" };
+  } catch { return { balance: fallback, source: "ledger" }; }
 }
 
 /** Every wallet on the active backend, with balance (live from Nessie when real) and purchase totals. */

@@ -132,7 +132,8 @@ describe("checkout + bank", () => {
     const actions = chain.map((e) => e.action);
     expect(actions).toContain("bank_funded");
     const charge = chain.find((e) => e.action === "bank_charge")!.payload as Record<string, unknown>;
-    expect(charge).toMatchObject({ accountLast4: expect.stringMatching(/^\d{4}$/), amount: out.transaction.amount });
+    // The real Nessie API stores whole dollars, so the HTTP path charges the nearest dollar.
+    expect(charge).toMatchObject({ accountLast4: expect.stringMatching(/^\d{4}$/), amount: Math.round(out.transaction.amount) });
     expect((charge.purchaseIds as string[]).length).toBe(1);
     expect(verify(s.sessionId).valid).toBe(true);
     const sum = await walletSummary(s.agentId);
@@ -177,5 +178,14 @@ describe("checkout + bank", () => {
     const chain = getChain(s.sessionId);
     expect(chain.some((e) => e.action === "bank_declined")).toBe(true);
     expect(chain.some((e) => e.action === "bank_charge")).toBe(false);
+  });
+});
+
+describe("whole-dollar amounts", () => {
+  it("rounds for the real API and keeps cents on the simulated ledger", async () => {
+    const { toNessieAmount } = await import("@/lib/nessie/ledger");
+    expect(toNessieAmount({ simulated: false }, 229.99)).toBe(230);
+    expect(toNessieAmount({ simulated: false }, 644.49)).toBe(644);
+    expect(toNessieAmount({ simulated: true }, 229.99)).toBe(229.99);
   });
 });

@@ -204,6 +204,12 @@ python3 scripts/mock_nessie.py --port 8788 &
 cd web && NESSIE_API_KEY=mock NESSIE_BASE_URL=http://127.0.0.1:8788 npm run dev
 ```
 
+**Real-API notes** (verified against `api.nessieisreal.com`): amounts are stored as **whole dollars** (229.99 is
+saved as 229), so Bonded sends the nearest dollar and keeps the exact amount in the purchase description and the
+trace; and the sandbox's account `balance` field is not moved by deposits or purchases, so Wallets derives each
+card's balance from the account's own deposits and purchases on Nessie. A negative balance means the agent
+overspent its funding.
+
 ## Environment
 
 | Variable | Default | Purpose |
