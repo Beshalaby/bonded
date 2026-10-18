@@ -20,10 +20,31 @@ const hostnameOf = (hostHeader: string) => { try { return new URL(`http://${host
  *  Origin, when present, must be allowlisted too. No Origin = non-browser client (CLI agents). */
 function originAllowed(req: Request): boolean {
   const hosts = allowedHosts();
-  if (!hosts.has(hostnameOf(req.headers.get("host") || ""))) return false;
+  const host = hostnameOf(req.headers.get("host") || "");
+  if (!hosts.has(host)) return false;
   const o = req.headers.get("origin");
   if (o === null) return true;
+  // A deliberately public hostname (tunnel or deployment): hosted agents (Claude.ai, ChatGPT connectors,
+  // browser clients) send their own Origin, and MCP carries no ambient credentials, so any origin may call it.
+  // The Host allowlist above still defeats DNS rebinding.
+  if (isPublicName(host)) return true;
+  // localhost / IP literals (incl. a LAN IP): a malicious web page must not be able to drive a server on the
+  // visitor's own machine or network, so the Origin has to be allow-listed too.
   try { return hosts.has(new URL(o).hostname.toLowerCase()); } catch { return false; }
+}
+
+/** A DNS name other than localhost-style names; IP literals don't count. */
+function isPublicName(host: string): boolean {
+  if (!host || LOCAL.includes(host) || host.endsWith(".localhost") || host.endsWith(".local")) return false;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":") || host.startsWith("[")) return false;
+  return host.includes(".");
+}
+
+/** One line per MCP request (no bodies, no keys), so connection problems can be traced from the server log. */
+function logRequest(req: Request, status: number, note = "") {
+  const ua = (req.headers.get("user-agent") || "-").slice(0, 60);
+  const origin = req.headers.get("origin") || "-";
+  console.log(`[mcp] ${req.method} ${new URL(req.url).pathname} ${status} host=${hostnameOf(req.headers.get("host") || "")} origin=${origin} ua="${ua}"${note ? ` ${note}` : ""}`);
 }
 
 function cors(req: Request): Record<string, string> {
@@ -51,7 +72,7 @@ const rpcError = (req: Request, status: number, code: number, message: string) =
 
 export function mcpHandlers(toolset: Toolset) {
 async function POST(req: Request) {
-  if (!originAllowed(req)) return rpcError(req, 403, -32000, "Forbidden origin");
+  if (!originAllowed(req)) { logRequest(req, 403, "forbidden-origin-or-host"); return rpcError(req, 403, -32000, "Forbidden origin"); }
   const pv = req.headers.get("mcp-protocol-version");
   if (pv && !SUPPORTED_VERSIONS.includes(pv)) return rpcError(req, 400, -32000, `Unsupported MCP-Protocol-Version: ${pv}`);
 
@@ -79,7 +100,9 @@ async function POST(req: Request) {
     if (out.reply) replies.push(out.reply);
   }
   const headers: Record<string, string> = { ...cors(req), ...(sessionId ? { "Mcp-Session-Id": sessionId } : {}) };
-  if (!replies.length) return new Response(null, { status: 202, headers });
+  const methods = msgs.map((m) => String((m as { method?: unknown })?.method ?? "?")).join(",");
+  if (!replies.length) { logRequest(req, 202, methods); return new Response(null, { status: 202, headers }); }
+  logRequest(req, 200, methods);
   return NextResponse.json(batch ? replies : replies[0], { headers });
 }
 
