@@ -718,8 +718,9 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None, ru
         seed = int(hashlib.sha256(f"{model}|{task.get('instruction')}".encode()).hexdigest()[:8], 16)
     rng = random.Random(seed)
 
-    if not is_sim(model) and not llm.HAS_LLM:
-        raise RuntimeError(f"OPENROUTER_API_KEY not set; cannot run real model {model} (use sim/*)")
+    if not is_sim(model) and not llm.has_key_for(base_model(model)):
+        key = "GEMINI_API_KEY" if llm.is_gemini_direct(base_model(model)) else "OPENROUTER_API_KEY"
+        raise RuntimeError(f"{key} not set; cannot run real model {model} (use sim/*)")
     arena = Arena(base)
     arena.start_session(agent_id, model, task["instruction"], task["budget"], task.get("constraints"),
                         task.get("taskId") or task.get("id"), run_id=run_id, guardrail=guardrail)

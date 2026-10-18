@@ -24,6 +24,7 @@ const REAL_NAMES: Record<string, string> = {
   "openai/gpt-5-mini": "GPT-5 mini",
   "anthropic/claude-haiku-4.5": "Claude Haiku 4.5",
   "google/gemini-2.5-flash": "Gemini 2.5 Flash",
+  "gemini/gemini-2.5-flash": "Gemini 2.5 Flash · Gemini API",
   "meta-llama/llama-4-maverick": "Llama 4 Maverick",
   "deepseek/deepseek-v3.2": "DeepSeek V3.2",
   "qwen/qwen3-235b-a22b-2507": "Qwen3 235B",
@@ -35,7 +36,7 @@ const REAL_NAMES: Record<string, string> = {
 };
 
 const PROVIDERS: Record<string, string> = {
-  sim: "Simulated", mcp: MCP_PROVIDER, openai: "OpenAI", anthropic: "Anthropic", google: "Google", "meta-llama": "Meta", mistralai: "Mistral",
+  sim: "Simulated", mcp: MCP_PROVIDER, openai: "OpenAI", anthropic: "Anthropic", google: "Google", gemini: "Google", "meta-llama": "Meta", mistralai: "Mistral",
   "x-ai": "xAI", deepseek: "DeepSeek", qwen: "Qwen", cohere: "Cohere", amazon: "Amazon", microsoft: "Microsoft", nvidia: "NVIDIA",
 };
 

@@ -37,6 +37,7 @@ PIDS=()
 cleanup() {
   echo
   bold "Stopping…"
+  [[ -n "${TUNNEL_PID:-}" ]] && kill "$TUNNEL_PID" 2>/dev/null || true
   for p in "${PIDS[@]:-}"; do [[ -n "$p" ]] && kill "$p" 2>/dev/null || true; done
   wait 2>/dev/null || true
   ok "tunnel, server and keep-awake stopped"
@@ -85,24 +86,35 @@ fi
 # ---------------------------------------------------------------- 4. tunnel
 bold "4/7  Cloudflare tunnel"
 : > "$STATE/tunnel.log"
-cloudflared tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" > "$STATE/tunnel.log" 2>&1 &
-PIDS+=($!)
-URL=""
-for _ in $(seq 1 60); do
-  URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$STATE/tunnel.log" | head -1 || true)
-  [[ -n "$URL" ]] && break
-  sleep 1
-done
-[[ -n "$URL" ]] || { tail -20 "$STATE/tunnel.log"; die "no tunnel URL after 60s (network blocked? see web/.public/tunnel.log)"; }
-HOST="${URL#https://}"
-echo "$URL" > "$STATE/url"
+TUNNEL_PID=""
+start_tunnel() { # starts a quick tunnel, sets URL, writes it to web/.public/url (the server reads that file live)
+  : > "$STATE/tunnel.log"
+  cloudflared tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" > "$STATE/tunnel.log" 2>&1 &
+  TUNNEL_PID=$!
+  URL=""
+  for _ in $(seq 1 60); do
+    URL=$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$STATE/tunnel.log" | head -1 || true)
+    [[ -n "$URL" ]] && break
+    sleep 1
+  done
+  [[ -n "$URL" ]] || return 1
+  echo "$URL" > "$STATE/url"
+}
+# Curl the public link without the system DNS cache: right after a tunnel starts, macOS can cache "not found" for
+# its brand-new hostname for minutes. Resolving through 1.1.1.1 avoids false alarms in the checks and the watchdog.
+pubcurl() {
+  local host="${URL#https://}" ip=""
+  command -v dig >/dev/null && ip=$(dig +short +time=3 +tries=1 @1.1.1.1 "$host" 2>/dev/null | grep -E '^[0-9.]+$' | head -1)
+  if [[ -n "$ip" ]]; then curl --resolve "$host:443:$ip" "$@"; else curl "$@"; fi
+}
+start_tunnel || { tail -20 "$STATE/tunnel.log"; die "no tunnel URL after 60s (network blocked? see web/.public/tunnel.log)"; }
 ok "$URL"
 
 # ---------------------------------------------------------------- 5. server
 bold "5/7  Server"
 LAN=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
-export SPENDBENCH_ALLOWED_HOSTS="$HOST${LAN:+,$LAN}"
-export BONDED_PUBLIC_URL="$URL"                  # pages show copy-paste snippets with this link, even on localhost
+export SPENDBENCH_ALLOWED_HOSTS="${LAN:-}"
+export BONDED_PUBLIC_URL_FILE="$STATE/url"       # the live tunnel link: snippets and the MCP host allowlist follow it
 export SPENDBENCH_DATA_DIR="$WEB/.data"          # the demo data (real-model results, wallets, traces)
 export BONDED_PROXY_HOPS=1                       # Cloudflare adds the visitor's IP to X-Forwarded-For
 export PORT
@@ -121,10 +133,10 @@ bold "7/7  Checking from the internet"
 pass=1
 check() { # label, expected code, curl args...
   local label="$1" want="$2"; shift 2
-  local got; got=$(curl -s -o /dev/null -m 25 -w '%{http_code}' "$@" || echo 000)
+  local got; got=$(pubcurl -s -o /dev/null -m 25 -w '%{http_code}' "$@" || echo 000)
   if [[ "$got" == "$want" ]]; then ok "$label ($got)"; else warn "$label: got $got, expected $want"; pass=0; fi
 }
-for _ in $(seq 1 30); do curl -s -o /dev/null -m 5 "$URL/api/health" && break; sleep 2; done   # DNS for a new tunnel can lag
+for _ in $(seq 1 30); do pubcurl -s -o /dev/null -m 5 "$URL/api/health" && break; sleep 2; done   # a new tunnel takes a few seconds to answer
 MCP_INIT='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"public-check"}}}'
 H=(-H 'content-type: application/json' -H 'accept: application/json, text/event-stream')
 check "home page"                   200 "$URL/"
@@ -143,8 +155,31 @@ $(bold "Bonded is live")
   Judges           open $URL/connect or $URL/penny#agents: every snippet already uses this address
   Claude Code      claude mcp add --transport http penny $URL/api/mcp/penny
 
-  The link changes each time this script starts. Keep this window open; Ctrl+C stops everything.
+  Keep this window open; Ctrl+C stops everything. A watchdog checks the link every 20 s: if Cloudflare drops
+  the quick tunnel (sleep, Wi-Fi change), it opens a new one and prints the NEW link here; the site, snippets
+  and QR code switch to it automatically. The current link is always in web/.public/url.
   Logs: web/.public/server.log, web/.public/tunnel.log
 EOF
 
-wait "${PIDS[0]}"   # the tunnel; if it dies, everything stops
+# ---------------------------------------------------------------- watchdog
+fails=0
+while true; do
+  sleep 20
+  alive=1
+  kill -0 "$TUNNEL_PID" 2>/dev/null || alive=0
+  grep -q "Tunnel not found" "$STATE/tunnel.log" 2>/dev/null && alive=0
+  if [[ $alive == 1 ]] && ! pubcurl -s -o /dev/null -m 10 "$URL/api/health"; then fails=$((fails+1)); else fails=0; fi
+  [[ $fails -ge 3 ]] && alive=0
+  if [[ $alive == 0 ]]; then
+    printf '\n%s  tunnel lost; opening a new one\n' "$(date +%H:%M:%S)"
+    kill "$TUNNEL_PID" 2>/dev/null || true
+    if start_tunnel; then
+      fails=0
+      bold "NEW public link: $URL"
+      echo "  Penny MCP  $URL/api/mcp/penny     SpendBench MCP  $URL/api/mcp/bench"
+      command -v osascript >/dev/null && osascript -e "display notification \"$URL\" with title \"Bonded: new public link\"" 2>/dev/null || true
+    else
+      warn "could not open a new tunnel yet (offline?); retrying"
+    fi
+  fi
+done

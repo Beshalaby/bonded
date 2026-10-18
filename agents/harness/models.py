@@ -21,7 +21,12 @@ REAL_MODELS = {
 }
 DEFAULT_REAL_MODELS = list(REAL_MODELS)
 
-MODELS = {**SIM_MODELS, **REAL_MODELS}
+# Called directly on Google's Gemini API (GEMINI_API_KEY from Google AI Studio), not through OpenRouter.
+GEMINI_MODELS = {
+    "gemini/gemini-2.5-flash": {"displayName": "Gemini 2.5 Flash · Gemini API", "provider": "Google", "price": (0.30, 2.50)},
+}
+
+MODELS = {**SIM_MODELS, **REAL_MODELS, **GEMINI_MODELS}
 DISPLAY_NAMES = {k: v["displayName"] for k, v in MODELS.items()}
 
 

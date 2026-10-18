@@ -3,6 +3,7 @@
 //   DELETE end the MCP session (Mcp-Session-Id header)
 //   GET    405: this server does not open server-initiated SSE streams
 // Mounted three times: /api/mcp/penny (Penny's shopping tools), /api/mcp/bench (SpendBench), /api/mcp (all, legacy).
+import { currentPublicHost } from "@/lib/public-url";
 import { NextResponse } from "next/server";
 import { agentKeyFrom, KeyError, type PublicAgentKey } from "@/lib/auth-node";
 import { closeClient, handleMessage, hasSession, SUPPORTED_VERSIONS, type RpcReply, type Toolset } from "@/lib/mcp/server";
@@ -12,6 +13,8 @@ const LOCAL = ["localhost", "127.0.0.1", "[::1]", "::1"];
 /** Hostnames we answer for. Add public hosts explicitly via SPENDBENCH_ALLOWED_HOSTS=a.com,b.com */
 function allowedHosts(): Set<string> {
   const extra = (process.env.SPENDBENCH_ALLOWED_HOSTS || "").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+  const pub = currentPublicHost(); // the live tunnel link, which can change while the server runs
+  if (pub) extra.push(pub);
   return new Set([...LOCAL, ...extra]);
 }
 const hostnameOf = (hostHeader: string) => { try { return new URL(`http://${hostHeader}`).hostname.toLowerCase(); } catch { return ""; } };

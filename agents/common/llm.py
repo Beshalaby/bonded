@@ -5,6 +5,9 @@ Env:
   OPENROUTER_BASE_URL   default https://openrouter.ai/api/v1 (point it at scripts/mock_openrouter.py to test offline)
   OPENROUTER_TIMEOUT    per-request timeout in seconds (default 90)
   OPENROUTER_RETRIES    retries on 429 / 5xx / timeouts / network errors (default 4)
+  GEMINI_API_KEY        enables `gemini/<model>` ids (e.g. gemini/gemini-2.5-flash), sent straight to the Gemini API
+                        (Google AI Studio key) through its OpenAI-compatible endpoint instead of OpenRouter
+  GEMINI_BASE_URL       default https://generativelanguage.googleapis.com/v1beta/openai
 
 chat() always returns a *normalized* assistant message:
   {"role": "assistant", "content": str (never None), "tool_calls": [ {id, type, function: {name, arguments: str}} ],
@@ -24,7 +27,19 @@ DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 BASE_URL = (os.environ.get("OPENROUTER_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
 OPENROUTER_URL = BASE_URL + "/chat/completions"
 API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
+GEMINI_BASE_URL = (os.environ.get("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com/v1beta/openai").rstrip("/")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_PREFIX = "gemini/"  # gemini/gemini-2.5-flash -> model "gemini-2.5-flash" on the Gemini API
 HAS_LLM = bool(API_KEY)
+
+
+def is_gemini_direct(model):
+    return (model or "").startswith(GEMINI_PREFIX)
+
+
+def has_key_for(model):
+    """Whether this process can call `model`: gemini/* needs GEMINI_API_KEY, everything else OPENROUTER_API_KEY."""
+    return bool(GEMINI_API_KEY) if is_gemini_direct(model) else HAS_LLM
 
 
 def _env_num(name, default, cast=float):
@@ -44,6 +59,7 @@ PRICES = {
     "openai/gpt-5-mini": (0.25, 2.00),
     "anthropic/claude-haiku-4.5": (1.00, 5.00),
     "google/gemini-2.5-flash": (0.30, 2.50),
+    "gemini/gemini-2.5-flash": (0.30, 2.50),  # direct Gemini API (Google AI Studio list price)
     "meta-llama/llama-4-maverick": (0.19, 0.65),
     "deepseek/deepseek-v3.2": (0.28, 0.42),
     "qwen/qwen3-235b-a22b-2507": (0.09, 0.55),
@@ -286,35 +302,39 @@ def _backoff(attempt, hint=0.0):
     return max(hint, min(20.0, 1.0 * 2 ** attempt)) * random.uniform(0.8, 1.2)
 
 
-def _post(body, timeout):
-    req = urllib.request.Request(OPENROUTER_URL, data=json.dumps(body).encode(), method="POST", headers={
-        "Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json",
-        "HTTP-Referer": "https://bonded.local", "X-Title": "Bonded SpendBench",
-    })
+def _post(body, timeout, gemini=False):
+    if gemini:
+        url, label = GEMINI_BASE_URL + "/chat/completions", "Gemini API"
+        headers = {"Authorization": f"Bearer {GEMINI_API_KEY}", "Content-Type": "application/json"}
+    else:
+        url, label = OPENROUTER_URL, "OpenRouter"
+        headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json",
+                   "HTTP-Referer": "https://bonded.local", "X-Title": "Bonded SpendBench"}
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST", headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as r:
             raw = r.read().decode(errors="replace")
     except urllib.error.HTTPError as e:
         text = e.read().decode(errors="replace")[:400]
         code = e.code
-        raise LLMError(f"OpenRouter HTTP {code}: {text}", code,
+        raise LLMError(f"{label} HTTP {code}: {text}", code,
                        retryable=code in (408, 409, 425, 429) or code >= 500,
                        retry_after=_retry_after(e.headers)) from None
     except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:  # incl. socket.timeout
-        raise LLMError(f"OpenRouter network error: {type(e).__name__}: {e}", None, retryable=True) from None
+        raise LLMError(f"{label} network error: {type(e).__name__}: {e}", None, retryable=True) from None
     try:
         j = json.loads(raw)
     except ValueError:
-        raise LLMError(f"OpenRouter returned non-JSON: {raw[:200]!r}", None, retryable=True) from None
+        raise LLMError(f"{label} returned non-JSON: {raw[:200]!r}", None, retryable=True) from None
     if isinstance(j, dict) and j.get("error") and not j.get("choices"):
-        # OpenRouter can answer 200 with an error object (e.g. upstream provider failure)
+        # OpenRouter (and the Gemini API) can answer 200 with an error object (e.g. upstream provider failure)
         err = j["error"] if isinstance(j["error"], dict) else {"message": str(j["error"])}
         code = err.get("code")
         code = int(code) if isinstance(code, (int, float)) or (isinstance(code, str) and code.isdigit()) else None
-        raise LLMError(f"OpenRouter error {code}: {str(err.get('message'))[:300]}", code,
+        raise LLMError(f"{label} error {code}: {str(err.get('message'))[:300]}", code,
                        retryable=code is None or code == 429 or code >= 500)
     if not isinstance(j, dict) or not isinstance(j.get("choices"), list) or not j["choices"]:
-        raise LLMError(f"OpenRouter response has no choices: {raw[:200]!r}", None, retryable=True)
+        raise LLMError(f"{label} response has no choices: {raw[:200]!r}", None, retryable=True)
     return j
 
 
@@ -329,11 +349,15 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=Non
 
     message: normalized (see module doc). usage: {prompt_tokens, completion_tokens, costUsd, latencyMs, attempts,
     finish_reason}. Retries 429 / 5xx / timeouts / network errors with exponential backoff (+Retry-After)."""
-    if not HAS_LLM:
-        raise LLMError("OPENROUTER_API_KEY not set; use a sim/* model")
+    gemini = is_gemini_direct(model)
+    if not has_key_for(model):
+        raise LLMError(f"{'GEMINI_API_KEY' if gemini else 'OPENROUTER_API_KEY'} not set; use a sim/* model")
     timeout = DEFAULT_TIMEOUT if timeout is None else timeout
     retries = DEFAULT_RETRIES if retries is None else retries
-    body = {"model": model, "messages": messages, "usage": {"include": True}}
+    if gemini:  # the Gemini API takes the bare model name and has no OpenRouter usage/provider extensions
+        body = {"model": model[len(GEMINI_PREFIX):], "messages": messages}
+    else:
+        body = {"model": model, "messages": messages, "usage": {"include": True}}
     if not model.startswith(NO_TEMPERATURE):
         body["temperature"] = temperature
     if tools:
@@ -343,7 +367,7 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=Non
         # then writes calls as text): require a host that supports every parameter we send. First-party models
         # (OpenAI/Anthropic/Google) always support tools, and require_parameters would wrongly exclude e.g. GPT-5,
         # which rejects `temperature`.
-        if not model.startswith(FIRST_PARTY):
+        if not gemini and not model.startswith(FIRST_PARTY):
             body["provider"] = {"require_parameters": True}
     if response_format:
         body["response_format"] = response_format
@@ -354,7 +378,7 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=Non
     for attempt in range(retries + 1):
         t0 = time.time()
         try:
-            j = _post(body, timeout)
+            j = _post(body, timeout, gemini=gemini)
         except LLMError as e:
             last = e
             if not e.retryable or attempt == retries:
@@ -371,7 +395,7 @@ def chat(model, messages, tools=None, temperature=0.2, timeout=None, retries=Non
                  "attempts": attempt + 1, "finish_reason": choice.get("finish_reason")}
         names = [t.get("function", {}).get("name") for t in (tools or []) if isinstance(t, dict)]
         return normalize_message(choice.get("message"), turn_id=f"{int(t0 * 1000) % 100000}", tool_names=names), usage
-    raise last or LLMError("OpenRouter request failed")
+    raise last or LLMError(("Gemini API" if gemini else "OpenRouter") + " request failed")
 
 
 def chat_json(model, system, user, temperature=0.0, timeout=60, retries=None):

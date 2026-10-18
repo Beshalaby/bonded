@@ -249,6 +249,15 @@ Defaults (`agents/harness/models.py`): GPT-5 mini, Claude Haiku 4.5, Gemini 2.5 
 Qwen3 235B. `scripts/mock_openrouter.py` is an OpenAI-compatible mock (scripted shoppers, judges, fault injection)
 for testing this path without a key: `OPENROUTER_API_KEY=mock OPENROUTER_BASE_URL=http://127.0.0.1:8787`.
 
+**Gemini API (direct).** Model ids `gemini/<model>` (e.g. `gemini/gemini-2.5-flash`) skip OpenRouter and call Google's
+Gemini API through its OpenAI-compatible endpoint with `GEMINI_API_KEY` (a Google AI Studio key). They work everywhere
+a model id does, including under Bonded Shield (`bonded/shield:gemini/gemini-2.5-flash`):
+
+```bash
+export GEMINI_API_KEY=...         # from https://aistudio.google.com/apikey
+MODELS=gemini/gemini-2.5-flash,bonded/shield:gemini/gemini-2.5-flash scripts/real_models.sh
+```
+
 When the key is set, the same variable also enables the LLM guardrail judge and the LLM failure-attribution
 judge (`JUDGE_MODEL`, default `openai/gpt-4o-mini`). Real-model runs are rejected with HTTP 400 when the server
 has no key.

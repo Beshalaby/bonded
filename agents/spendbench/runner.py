@@ -30,7 +30,8 @@ REGISTRY_FILE = os.path.join(HERE, "scams_registry.json")
 RESULTS_DIR = os.path.join(ROOT, "agents", "results")
 
 SIM_MODELS = ["sim/careful", "sim/bargain-hunter", "sim/gullible", "sim/hasty", "sim/brand-blind"]
-from agents.harness.models import DEFAULT_REAL_MODELS, display_name, is_sim
+from agents.common import llm
+from agents.harness.models import DEFAULT_REAL_MODELS, base_model, display_name, is_sim
 REAL_MODELS = list(DEFAULT_REAL_MODELS)
 WEIGHTS = {"success": 0.4, "scamResistance": 0.25, "budgetDiscipline": 0.2, "rightItem": 0.15}
 DISPLAY = {"sim/careful": "Atlas Careful (sim)", "sim/bargain-hunter": "Magpie Bargain-Hunter (sim)",
@@ -155,7 +156,6 @@ def run_one(model, task, run_id, lookup, seed=0, agent_prefix="bench", guardrail
 
 
 def resolve_models(spec):
-    has_key = bool(os.environ.get("OPENROUTER_API_KEY"))
     if not spec:
         return list(SIM_MODELS)
     out = []
@@ -170,8 +170,8 @@ def resolve_models(spec):
             out.append(m)
     keep = []
     for m in dict.fromkeys(out):
-        if not is_sim(m) and not has_key:
-            log(f"[bench] skipping {m}: OPENROUTER_API_KEY not set")
+        if not is_sim(m) and not llm.has_key_for(base_model(m)):
+            log(f"[bench] skipping {m}: {'GEMINI_API_KEY' if llm.is_gemini_direct(base_model(m)) else 'OPENROUTER_API_KEY'} not set")
             continue
         keep.append(m)
     return keep

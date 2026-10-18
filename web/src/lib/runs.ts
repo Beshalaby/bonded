@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { mutate, read, uid } from "./db";
 import { internalToken } from "./auth-node";
 import { publish } from "./events";
-import { isSimulatedModel } from "./shield/names";
+import { isSimulatedModel, parseShieldModel } from "./shield/names";
 import { listTasks, repoRoot, sampleTasks, type Task } from "./tasks";
 import type { EvalRun, GuardrailMode } from "./types";
 
@@ -20,14 +20,14 @@ export function selfUrl() {
   return (process.env.SPENDBENCH_SELF_URL || `http://127.0.0.1:${process.env.PORT || 3000}`).replace(/\/$/, "");
 }
 
-/** Minimal env for child processes: no server secrets except the OpenRouter key the agents need and the
+/** Minimal env for child processes: no server secrets except the model API keys the agents need and the
  *  service token (`x-bonded-internal`) they send back to this server's bench/admin routes. */
 export function childEnv(): NodeJS.ProcessEnv {
   const env: Record<string, string | undefined> = {
     PATH: process.env.PATH, HOME: process.env.HOME, LANG: process.env.LANG || "en_US.UTF-8",
     PYTHONUNBUFFERED: "1", PYTHONDONTWRITEBYTECODE: "1", ARENA_URL: selfUrl(), BONDED_INTERNAL_TOKEN: internalToken(),
   };
-  for (const k of ["OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "OPENROUTER_TIMEOUT", "OPENROUTER_RETRIES", "JUDGE_MODEL", "REDTEAM_MODEL", "BENCH_DEBUG"]) if (process.env[k]) env[k] = process.env[k];
+  for (const k of ["OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "GEMINI_API_KEY", "GEMINI_BASE_URL", "OPENROUTER_TIMEOUT", "OPENROUTER_RETRIES", "JUDGE_MODEL", "REDTEAM_MODEL", "BENCH_DEBUG"]) if (process.env[k]) env[k] = process.env[k];
   return env as NodeJS.ProcessEnv;
 }
 
@@ -86,8 +86,13 @@ export function createRun(b: CreateRunInput): EvalRun {
   const bad = models.find((m) => !MODEL_RE.test(m));
   if (bad) throw new RunError(400, `invalid model id: ${bad}`);
   const real = models.filter((m) => !isSimulatedModel(m));
-  if (real.length && !process.env.OPENROUTER_API_KEY)
-    throw new RunError(400, `OPENROUTER_API_KEY is not set on the server; cannot run ${real.join(", ")} (use sim/* models)`);
+  // gemini/* models call the Gemini API directly (GEMINI_API_KEY); every other real model goes through OpenRouter.
+  const isGemini = (m: string) => (parseShieldModel(m)?.base ?? m).startsWith("gemini/");
+  const noKey = real.filter((m) => !(isGemini(m) ? process.env.GEMINI_API_KEY : process.env.OPENROUTER_API_KEY));
+  if (noKey.length) {
+    const key = noKey.every(isGemini) ? "GEMINI_API_KEY" : "OPENROUTER_API_KEY";
+    throw new RunError(400, `${key} is not set on the server; cannot run ${noKey.join(", ")} (use sim/* models)`);
+  }
   const guardrail = (b.guardrail ?? "observe") as GuardrailMode;
   if (!MODES.includes(guardrail)) throw new RunError(400, `guardrail must be one of ${MODES.join(", ")}`);
   const tasks = selectTasks(b);
