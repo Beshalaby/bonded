@@ -454,14 +454,38 @@ function vetOut(r: CheckResult, origin: string) {
   };
 }
 
+/** What an agent needs to show the user one offer: the link to the listing, price detail, seller, ratings, risks. */
+function offerOut(o: Proposal["offers"][number] | undefined, origin: string) {
+  if (!o) return {};
+  const specs = Object.entries(o.specs ?? {}).slice(0, 8);
+  return {
+    link: o.url ?? null,
+    store: o.merchantDomain ?? o.merchant,
+    brand: o.brand || undefined, model: o.model,
+    price: o.unitPrice,
+    ...(o.listPrice && o.listPrice > o.unitPrice ? { list_price: o.listPrice, savings: Math.round((o.listPrice - o.unitPrice) * 100) / 100 } : {}),
+    shipping: o.shipping ?? 0,
+    condition: o.condition, in_stock: o.inStock, rating: o.rating, review_count: o.reviewCount,
+    ...(specs.length ? { specs: Object.fromEntries(specs) } : {}),
+    price_verified_on_page: !!o.evidence.priceSeen,
+    risk_flags: o.flags.map((f) => `${f.severity}: ${f.message}`),
+    council_score: o.councilScore,
+    shield_check: o.url ? `${origin}/check?u=${encodeURIComponent(o.url)}` : undefined,
+  };
+}
+
 /** Compact view for the calling agent; get_proposal has the full deliberation. */
 function proposalOut(p: Proposal, origin: string) {
+  const byId = new Map(p.offers.map((o) => [o.id, o]));
   return {
     proposal_id: p.id,
     decision: p.decision,
     executed: false,
     summary: p.summary,
-    would_buy: p.wouldBuy,
+    would_buy: p.wouldBuy ? { ...p.wouldBuy, ...offerOut(byId.get(p.wouldBuy.offerId), origin) } : null,
+    answer_hint: p.wouldBuy
+      ? "Show the user would_buy.link (the listing to buy from), the total, store, rating and any risk_flags; list alternatives with their links."
+      : "Nothing to recommend; tell the user why (summary, council.chair).",
     trust: p.trust,
     questions_for_user: p.questions,
     council: {
@@ -470,7 +494,7 @@ function proposalOut(p: Proposal, origin: string) {
       pre_mortem: p.council.preMortem,
       chair: p.council.chair,
     },
-    alternatives: p.alternatives,
+    alternatives: p.alternatives.map((a) => ({ ...a, ...offerOut(byId.get(a.offerId), origin) })),
     reference_price: p.referencePrice,
     offers_considered: p.offers.length,
     spec: { item: p.spec.item, variant: p.spec.variant, quantity: p.spec.quantity, budget: p.spec.budget, condition: p.spec.condition },

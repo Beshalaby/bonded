@@ -139,7 +139,7 @@ TOOLS.push(
     description:
       "Ask Penny, Bonded's shopping agent, to buy something for the user. Penny parses the request, searches live stores on the web for offers, " +
       "runs fraud and counterfeit checks on each, has a council of independent expert models vote, stress-tests the pick with a pre-mortem, " +
-      "and returns what it WOULD buy with a 0-100 trust score. Nothing is ordered or charged. " +
+      "and returns what it WOULD buy with a 0-100 trust score, plus a link to each listing (would_buy.link, alternatives[].link) with its price, store, rating and risk flags. Nothing is ordered or charged. " +
       "decision is \"buy\" (safe to proceed), \"ask_user\" (show the user questions_for_user first) or \"decline\" (don't buy; see why). " +
       "Takes 10-60 seconds. Use this instead of start_task when the user wants a real item, not a benchmark task.",
     inputSchema: {
