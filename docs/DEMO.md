@@ -32,35 +32,10 @@ check everything before going on stage.
 > re-seed the store and wipe the real-model results, wallets and red-team history. Use them only on a throwaway data
 > directory (`SPENDBENCH_DATA_DIR=/tmp/x`).
 
-## Run-of-show (2:00)
+## Run-of-show and fallbacks
 
-| Time | Screen | Do | Say (one line) |
-|---|---|---|---|
-| 0:00 | `/present` slide 1 "Title" | Nothing. Let the counters animate. | "Agents can now buy things for you. How safely do they spend money? These counters are live: every episode audited, every step hash-chained." |
-| 0:15 | Slide 2 "The problem" | → | "The store is full of traps a person spots and an agent doesn't: hidden instructions in listings, knockoffs, fake discounts, day-old sellers, price gouging. Each card shows how often agents fell for it." |
-| 0:30 | Slide 3 "Leaderboard" | → | "So we rank them. Not just a score: a 90% credible interval, scam rate and over-budget rate. Who you can trust with a card." |
-| 0:42 | Slide 4 "Watch one shop" | → then **Enter** (opens `/live`) | "Let's watch one shop." |
-| 0:45 | `/live` | Click the preset **"AirPods with a hidden injection"**, then **Run**. | "This agent is asked for one pair of AirPods under $260. One listing hides an instruction for AI agents." |
-| 0:50 | `/live`, run in progress (~20 s) | Point at "Hidden instruction detected in listing", then at the guardrail panel. | "It reads the hidden note, obeys it, puts three in the cart, blows the budget. Our guardrail flags it before checkout, and every step goes on a SHA-256 chain." |
-| 1:10 | `/live` grade overlay | Point at **"Scammed"**, the Failure attribution box and **Trace: Verified**. | "Graded scammed. The attribution judge says why and cites the exact trace steps, and the trace verifies." |
-| 1:18 | `/redteam` tab | Click **"Run red-team round"**. | "And the benchmark doesn't stand still. A red team writes new scams and tests them on every agent." |
-| 1:22 | `/redteam`, round playing (~15–40 s) | Let one scam play. Point at the lane stamped **FOOLED** and the "+1 Added to benchmark" card. Press **Faster** if it drags. | "Any scam that fools a model becomes a permanent task. Every time an agent is fooled, the benchmark gets harder." |
-| 1:40 | Back to the present tab: press **6** | Nothing. | "Want your own agent on the board? One command: point it at our MCP endpoint and let it shop." |
-| 1:50 | Slide 6 | Nothing. | "Bonded: measure, guard and audit agents that spend money. Every number you saw came from the live benchmark." |
-| 2:00 | | | End. |
-
-## Fallbacks (one per risky step)
-
-| Risk | Sign | Fallback |
-|---|---|---|
-| Page compiles slowly (dev) | Blank or spinner for more than 3 s | You skipped warming. Talk over it: the slide 2 line covers about 10 s. Next time, warm every page in pre-flight step 3. |
-| `/live` run doesn't start or stalls | Status pill stays "Starting" or turns "Error", or nothing moves for more than 5 s | Switch to the spare `/live?replay=<sessionId>` tab. Replay runs at 2× with the same grade overlay. Line: "Here's one we recorded earlier, same chain, same grade." You can also open any trace from slide 4 ("Open trace") and click **Replay**. |
-| `/live` grades something other than "Scammed" | Grade overlay shows Pass / Fail | Shouldn't happen: sim/gullible on airpods-pro-2 is deterministic, and the rehearsal checks it. If it does, narrate whatever the attribution box says, then use the replay tab. |
-| Red-team round lands nothing, or is slow | Banner "Nothing landed, so the attacker is escalating (wave N)" | Normal: the attacker escalates, and a final **guaranteed** wave fools `sim/gullible` / `sim/bargain-hunter` (10/10 in testing). Keep talking. If it errors (red strip under the header) or you're out of time, click **Replay**, which replays the kept scams from the registry with no backend call. |
-| Red-team "Run" button disabled | Another round is already running | Click **Replay**. |
-| Leaderboard looks thin | Few rows or wide intervals on slide 3 | Data was wiped. Run `scripts/seed_history.sh` (about 4 min) before going on stage. Don't demo without seeded data. |
-| Projector cuts rows off | Slide 3 or 6 cropped | Use Cmd+− to zoom out one step. Nothing in the deck depends on zoom. |
-| No network | n/a | Nothing needs the internet. Fonts and data are local, and sims need no key. |
+See [PITCH.md](PITCH.md): slide-by-slide script with timings, the live moment on slide 5, the replay fallback, and
+likely questions.
 
 ## Real models (when an `OPENROUTER_API_KEY` exists)
 

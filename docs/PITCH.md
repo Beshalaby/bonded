@@ -20,6 +20,9 @@ Re-check them with `scripts/preflight.sh` right before you go on.
 5. Browser fullscreen (Ctrl+Cmd+F), zoom 100% (110% on a 1080p projector), Do Not Disturb on.
 6. Deck keys: → / Space next, ← back, 1–7 jump, Enter on slide 5 opens the live run, Esc exits.
 
+**Slide 5 live run:** the button opens `/live?model=sim%2Fgullible&task=airpods-pro-2`: a deliberately gullible test
+agent that reliably follows the hidden instruction (~20 s). Real models usually pass this task, so say "test agent".
+
 **Fallback replay:** open `/traces`, filter model "Echo Gullible", open a scammed AirPods trace, copy the session id
 into `/live?replay=<id>`. If a live run stalls or the Wi-Fi is bad, play this at 2× instead; it is the same footage.
 
@@ -33,7 +36,7 @@ into `/live?replay=<id>`. If a live run stalls or the Wi-Fi is bad, play this at
 | 0:10 | 2 · The problem | "The web is full of traps a human might spot but an agent can't: knockoffs, fake discounts, sketchy sellers, and instructions hidden inside listings that tell the AI to ignore your budget. Today nobody measures this." | Point at the hidden-instruction tile. |
 | 0:25 | 3 · SpendBench | "So we measured it. Six real models from five labs shop the same store full of traps, graded with confidence intervals. Even good models get fooled: Qwen3 fell for 3 scams out of 38." | — |
 | 0:40 | 4 · Bonded Shield | "Then we fixed it. Bonded Shield wraps any model: it strips hidden instructions, checks sellers and prices, and refuses bad carts. Same models, same tasks: scams went to zero, and Shield is number one on the board." | Let the numbers sit for a beat. |
-| 1:00 | 5 · Capital One | "And this is real money flow: every agent spends from its own Capital One account through Nessie. Watch an unprotected agent shop." | **Enter** → `/live` → Run. While it runs: "It just read a listing with a hidden instruction… it's following it… three units, way over budget… and that's a real charge on its Capital One card." Back to deck with the tab. |
+| 1:00 | 5 · Capital One | "And this is real money flow: every agent spends from its own Capital One account through Nessie. Here's a deliberately gullible test agent with no Shield." | **Enter** → `/live` → Run. While it runs: "It just read a listing with a hidden instruction… it's following it… three units, way over budget… and that's a real charge on its Capital One card." Back to deck with the tab. |
 | 1:30 | 6 · Penny | "For your own agent, there's Penny: it searches real stores, a council of four models votes, it gives a trust score, and it never buys without you. Paste any real listing and it'll tell you if it's safe." | Optional: show `/check` with a real link. |
 | 1:45 | 7 · Use it today | "It's one line for any MCP agent: Claude, Cursor, VS Code, OpenAI Agents, LangChain. Scan the code and try it right now. Bonded: AI agents you can trust with your wallet." | Hold on the QR code. |
 
