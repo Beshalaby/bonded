@@ -64,7 +64,7 @@ jobs:
 
       - name: Install Playwright
         run: |
-          pip install playwright==1.48.2
+          pip install playwright==1.48.0
           python -m playwright install --with-deps chromium
 
       - name: Snapshot home page
