@@ -1,5 +1,6 @@
 {
   "mcpServers": {
-    "bonded": { "type": "http", "url": "http://localhost:3000/api/mcp" }
+    "bonded-penny": { "type": "http", "url": "http://localhost:3000/api/mcp/penny" },
+    "bonded-bench": { "type": "http", "url": "http://localhost:3000/api/mcp/bench" }
   }
 }

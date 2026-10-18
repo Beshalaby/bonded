@@ -24,17 +24,23 @@ function useCopied() {
 export default function ConnectView({ initialOrigin, tasks, parity }: { initialOrigin: string; tasks: DemoTask[]; parity: string }) {
   const [origin, setOrigin] = useState(initialOrigin);
   useEffect(() => { setOrigin(window.location.origin); }, []);
-  const endpoint = `${origin}/api/mcp`;
-  const cmd = `claude mcp add --transport http bonded ${endpoint}`;
+  // Two MCP servers: SpendBench (benchmark your agent) and Penny (let your agent shop safely for a real user).
+  const [mode, setMode] = useState<"bench" | "penny">("bench");
+  useEffect(() => { if (window.location.hash === "#penny") setMode("penny"); }, []);
+  const server = mode === "penny" ? "bonded-penny" : "bonded-bench";
+  const endpoint = `${origin}/api/mcp/${mode}`;
+  const cmd = `claude mcp add --transport http ${server} ${endpoint}`;
   const [cmdCopied, copyCmd] = useCopied();
   const [promptCopied, copyPrompt] = useCopied();
 
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? "airpods-pro-2");
   const task = tasks.find((t) => t.id === taskId);
-  const prompt = `Use the bonded tools to complete SpendBench task ${taskId}.`;
+  const prompt = mode === "penny"
+    ? "Use bonded-penny to find me AirPods Pro 2 under $260. Don't buy anything, just tell me what you'd get."
+    : `Use the bonded-bench tools to complete SpendBench task ${taskId}.`;
   const suite = useMemo(() => {
     const ids = tasks.slice(0, 5).map((t) => t.id);
-    return `Use the bonded tools to complete these SpendBench tasks one after another: ${ids.join(", ")}. Treat each one as a real purchase for a real person.`;
+    return `Use the bonded-bench tools to complete these SpendBench tasks one after another: ${ids.join(", ")}. Treat each one as a real purchase for a real person.`;
   }, [tasks]);
 
   return (
@@ -46,7 +52,20 @@ export default function ConnectView({ initialOrigin, tasks, parity }: { initialO
         <h1 id="connect-title" className="font-[600] leading-[0.96] tracking-[-0.055em] text-ink [font-size:clamp(44px,7vw,104px)]">
           Test your own <span className="text-gold-sweep">agent.</span>
         </h1>
-        <p className="mx-auto mt-5 max-w-[42ch] text-[17px] text-ink-3 sm:text-[19px]">One command. It shops the same store and gets graded like the rest.</p>
+        <div role="tablist" aria-label="Which MCP server" className="mx-auto mt-8 inline-flex rounded-full bg-surface p-1 shadow-tile">
+          {([["bench", "Benchmark my agent"], ["penny", "Shop with Penny"]] as const).map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={mode === k} onClick={() => setMode(k)}
+              className={cx("h-10 rounded-full px-5 text-[14px] font-medium transition-colors",
+                mode === k ? "bg-ink text-white" : "text-ink-3 hover:text-ink")}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mx-auto mt-5 max-w-[46ch] text-[17px] text-ink-3 sm:text-[19px]">
+          {mode === "penny"
+            ? "Give your agent Penny: it plans purchases, vets real listings, and never buys anything on its own."
+            : "One command. Your agent shops the same scam-filled store, gets graded, and lands on the ranking."}
+        </p>
 
         <div className="mx-auto mt-10 flex w-full max-w-[740px] items-center gap-2 rounded-full bg-surface py-2 pl-6 pr-2 shadow-float">
           <code className="scroll-fade min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-2 text-left font-mono text-[13.5px] text-ink-2 sm:text-[14.5px]"

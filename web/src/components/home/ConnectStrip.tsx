@@ -11,7 +11,7 @@ export default function ConnectStrip({ origin: initial }: { origin: string }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => { setOrigin(window.location.origin); }, []);
   useEffect(() => { if (!copied) return; const t = setTimeout(() => setCopied(false), 1800); return () => clearTimeout(t); }, [copied]);
-  const cmd = `claude mcp add --transport http bonded ${origin}/api/mcp`;
+  const cmd = `claude mcp add --transport http bonded-bench ${origin}/api/mcp/bench`;
 
   return (
     <section aria-labelledby="connect-title" className="relative isolate overflow-x-clip px-5 pb-28 pt-28 text-center sm:pb-40 sm:pt-40">

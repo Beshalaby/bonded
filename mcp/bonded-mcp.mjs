@@ -2,14 +2,16 @@
 // Bonded MCP stdio bridge: lets any stdio-only MCP client (Claude Desktop, agent frameworks, IDEs)
 // talk to a Bonded server's Streamable HTTP endpoint. Zero dependencies; Node 18+.
 //
-//   BONDED_URL=http://localhost:3000 node mcp/bonded-mcp.mjs
+//   BONDED_URL=http://localhost:3000 BONDED_MCP=penny node mcp/bonded-mcp.mjs
 //
-// Env: BONDED_URL (default http://localhost:3000), BONDED_AGENT_KEY (optional Bearer agent key).
+// Env: BONDED_URL (default http://localhost:3000), BONDED_MCP = penny | bench | all (default all),
+//      BONDED_AGENT_KEY (optional Bearer agent key).
 // Protocol: newline-delimited JSON-RPC on stdin/stdout (MCP stdio transport); logs go to stderr.
 import readline from "node:readline";
 
 const BASE = (process.env.BONDED_URL || "http://localhost:3000").replace(/\/$/, "");
-const ENDPOINT = `${BASE}/api/mcp`;
+const WHICH = (process.env.BONDED_MCP || "all").toLowerCase();
+const ENDPOINT = `${BASE}/api/mcp${WHICH === "penny" ? "/penny" : WHICH === "bench" ? "/bench" : ""}`;
 const KEY = process.env.BONDED_AGENT_KEY || "";
 const log = (...a) => process.stderr.write(`[bonded-mcp] ${a.join(" ")}\n`);
 

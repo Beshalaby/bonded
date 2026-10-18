@@ -3,7 +3,7 @@ import { AUTH_REQUIRED, INTERNAL_HEADER, SESSION_COOKIE, WRITES_DISABLED, authMo
 
 // Access policy for every /api route (README "Security"). Deny by default for non-GET methods.
 //
-//   public          GET/HEAD/OPTIONS (except /api/admin/* and /api/auth/agent-keys), /api/arena/*, /api/mcp,
+//   public          GET/HEAD/OPTIONS (except /api/admin/* and /api/auth/agent-keys), /api/arena/*, /api/mcp (+ /penny, /bench),
 //                   POST /api/shield/analyze (read-style compute), POST /api/check (real-listing checks; never buys),
 //                   POST /api/procure (Penny plans a purchase; never orders or charges),
 //                   /api/auth/login|logout|session
@@ -11,7 +11,7 @@ import { AUTH_REQUIRED, INTERNAL_HEADER, SESSION_COOKIE, WRITES_DISABLED, authMo
 //   admin (+svc)    /api/admin/* (any method; the Python runner reads trap ground truth and injects listings here)
 //   admin           every other write: POST /api/runs, /api/redteam, /api/live, /api/auth/agent-keys, ...
 //
-// Rate limits (token/closed mode only; per client IP, in-memory token buckets): /api/mcp 60/min, POST /api/arena/sessions 20/min,
+// Rate limits (token/closed mode only; per client IP, in-memory token buckets): /api/mcp[/penny|/bench] 60/min, POST /api/arena/sessions 20/min,
 // POST /api/shield/analyze 60/min,
 // POST /api/auth/login 10/min, POST /api/check 10/min, POST /api/procure 6/min. Requests carrying a valid service token are exempt.
 
@@ -73,7 +73,7 @@ export async function middleware(req: NextRequest) {
   // Rate-limited public agent surfaces. Only when the server is exposed (token/closed mode): in open local demo
   // mode there is no internal token the middleware can verify, so limiting would throttle our own runner.
   const limiting = authMode() !== "open";
-  if (p === "/api/mcp" && m !== "OPTIONS") {
+  if ((p === "/api/mcp" || p === "/api/mcp/penny" || p === "/api/mcp/bench") && m !== "OPTIONS") {
     const r = limiting ? take("mcp", clientIp(req)) : 0;
     return r ? limited(r) : NextResponse.next();
   }

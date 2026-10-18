@@ -135,26 +135,32 @@ python3 -m agents.harness.run --model sim/careful --instruction "Buy AirPods Pro
 Pass `taskCount` to get a deterministic, diverse sample. It covers every trap tag first, then round-robins
 over the remaining tags.
 
-## Evaluate your own agent (MCP)
+## MCP servers
 
-The Arena is a real MCP server (Streamable HTTP, protocol 2025-06-18; 2025-03-26 and 2024-11-05 accepted) at
-`/api/mcp`, with 11 tools. Nine are for benchmark tasks: `list_tasks`, `start_task`, `search_products`, `view_product`, `add_to_cart`,
-`remove_from_cart`, `view_cart`, `checkout` (grades immediately) and `end_task`. Every MCP session is traced, graded
-and ranked on the leaderboard as `<client> (MCP)`, exactly like built-in agents. The other two, `plan_purchase` and
-`get_proposal`, plan real purchases (see [Plan a purchase](#plan-a-purchase-council--trust-score)).
+Bonded runs two MCP servers (Streamable HTTP, protocol 2025-06-18; 2025-03-26 and 2024-11-05 accepted):
 
-| Client | Setup |
-|---|---|
-| Claude Code (HTTP) | `claude mcp add --transport http bonded http://localhost:3000/api/mcp` (or open this repo: `.mcp.json` registers it) |
-| Cursor | `{"mcpServers": {"bonded": {"url": "http://localhost:3000/api/mcp"}}}` |
-| Claude Desktop / any stdio-only agent | `{"command": "node", "args": ["/path/to/bonded/mcp/bonded-mcp.mjs"], "env": {"BONDED_URL": "http://localhost:3000"}}` |
+| Server | Endpoint | Tools | Use it to |
+|---|---|---|---|
+| **Penny** | `/api/mcp/penny` | `plan_purchase`, `get_proposal`, `vet_listing`, `send_listing` | Let your agent shop safely for a real user. Penny plans the purchase (council of expert models, trust score, buy / ask / decline) and Shield vets real listings. Nothing is ever ordered or charged. |
+| **SpendBench** | `/api/mcp/bench` | `list_tasks`, `start_task`, `search_products`, `view_product`, `add_to_cart`, `remove_from_cart`, `view_cart`, `checkout`, `end_task` | Benchmark your agent: it shops the scam-filled Arena, every checkout is graded, and it is ranked on the leaderboard as `<client> (MCP)`. |
 
-`mcp/bonded-mcp.mjs` is a zero-dependency stdio bridge (Node 18+): newline-delimited JSON-RPC on stdin/stdout,
-forwarded to `/api/mcp`, re-initializing transparently if the server restarts. Set `BONDED_AGENT_KEY` to send an
-agent key (`POST /api/auth/agent-keys`) so the agent's identity is fixed server-side. Then prompt the agent:
-*"Use the bonded tools to complete SpendBench task airpods-pro-2."* `/connect` shows copy-paste setup and a live
-panel of connected agents. Hosted agents (e.g. Claude.ai connectors) need a public HTTPS deployment; see
-[docs/DEPLOY.md](docs/DEPLOY.md) and set `SPENDBENCH_ALLOWED_HOSTS` to your hostname.
+`/api/mcp` still serves every tool, for configs made before the split.
+
+```bash
+# Claude Code (or open this repo: .mcp.json registers both)
+claude mcp add --transport http bonded-penny http://localhost:3000/api/mcp/penny
+claude mcp add --transport http bonded-bench http://localhost:3000/api/mcp/bench
+# then e.g.  "Use bonded-penny to find me AirPods Pro 2 under $260"
+#       or   "Use the bonded-bench tools to complete SpendBench task airpods-pro-2"
+```
+
+Cursor: `{"mcpServers": {"bonded-penny": {"url": "http://localhost:3000/api/mcp/penny"}}}`. Claude Desktop or any
+stdio-only agent: `{"command": "node", "args": ["/path/to/bonded/mcp/bonded-mcp.mjs"], "env": {"BONDED_URL":
+"http://localhost:3000", "BONDED_MCP": "penny"}}` (or `"bench"`). The bridge (`mcp/bonded-mcp.mjs`, zero
+dependencies, Node 18+) re-initializes if the server restarts and sends `BONDED_AGENT_KEY` as a Bearer key when set.
+With logins on (`BONDED_ADMIN_TOKEN`), Penny's web sourcing needs an agent key (`POST /api/auth/agent-keys`);
+without one it plans from the Arena. Hosted agents (e.g. Claude.ai connectors) need a public HTTPS deployment and
+`SPENDBENCH_ALLOWED_HOSTS`; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Plan a purchase (council + trust score)
 
