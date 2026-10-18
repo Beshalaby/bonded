@@ -25,20 +25,12 @@ the public address, so judges can copy them as-is.
 
 ## Pre-flight (T-15 min)
 
-1. **Server.** Run `cd web && npm run dev`. Use port 3000 unless you've planned otherwise, and keep the terminal out of sight.
-2. **Fresh data and dress rehearsal (about 6 min).** Run `scripts/rehearse.sh http://127.0.0.1:3000`. It seeds with history, checks
-   all 6 slides, runs `/live` and a red-team round, runs the MCP flow and checks trace integrity. **Every line must say PASS.**
-   If seeding fails, run `scripts/seed_history.sh` and then `SKIP_SEED=1 scripts/rehearse.sh`.
-3. **Warm every page.** Dev mode compiles on first hit, which takes up to 25 s. Open each of these once and wait until it renders:
-   `/present?slide=1` … `?slide=6`, `/live`, `/redteam`, `/connect`, `/`. Leave them as tabs in this order: **present, live, redteam**.
-4. **Pick a replay trace.** On slide 4, click "Open trace" and copy the session id from the URL. Keep
-   `/live?replay=<sessionId>` in a spare tab. This is your fallback if a live run stalls.
-5. **Browser.**
-   - Close every other tab and window, and turn on Do Not Disturb.
-   - Set zoom to **110%** on a 1080p projector, or 100% on a laptop panel. Check that slide 3 shows every leaderboard row without scrolling.
-   - Make the present tab fullscreen (Ctrl+Cmd+F on Mac). The deck has no fullscreen button.
-6. **Clicker / keys.** Use → or Space for next, ← for back, 1–6 to jump, Enter on slide 4 to open `/live`, and Esc to exit.
-7. Check the "Live data" dot in the deck header is **green** (the event stream is connected).
+**The current pitch script and run-of-show are in [PITCH.md](PITCH.md).** Use `scripts/preflight.sh` (read-only) to
+check everything before going on stage.
+
+> **Do not run `scripts/rehearse.sh`, `scripts/setup.sh` or `scripts/seed_history.sh` against the demo server.** They
+> re-seed the store and wipe the real-model results, wallets and red-team history. Use them only on a throwaway data
+> directory (`SPENDBENCH_DATA_DIR=/tmp/x`).
 
 ## Run-of-show (2:00)
 
