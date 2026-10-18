@@ -135,6 +135,10 @@ python3 -m agents.harness.run --model sim/careful --instruction "Buy AirPods Pro
 Pass `taskCount` to get a deterministic, diverse sample. It covers every trap tag first, then round-robins
 over the remaining tags.
 
+
+**Public demo link:** `scripts/public.sh` serves Bonded from this machine through a free Cloudflare quick tunnel
+with logins on, and prints the public URL, admin sign-in and MCP addresses (see [docs/DEMO.md](docs/DEMO.md)).
+
 ## MCP servers
 
 Bonded runs two MCP servers (Streamable HTTP, protocol 2025-06-18; 2025-03-26 and 2024-11-05 accepted):

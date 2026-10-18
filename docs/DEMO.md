@@ -5,6 +5,24 @@ them, with a benchmark that gets harder every time an agent is fooled.**
 
 Everything below works with no API key (simulated agents and heuristic judges). The last section covers real models.
 
+
+## Put it online for judges (Cloudflare Tunnel)
+
+```bash
+scripts/public.sh            # Ctrl+C stops everything; add --rebuild to force a fresh build
+```
+
+One command: preflight checks, logins on (admin token created once in `web/.env.local`), a production build,
+a free Cloudflare quick tunnel, the server on the demo data with the tunnel hostname allowed for MCP, keep-awake,
+and checks from the internet. It prints the public `https://….trycloudflare.com` link, your admin sign-in, and the
+Penny / SpendBench MCP addresses. Pages opened through that link (`/connect`, `/penny#agents`) show snippets with
+the public address, so judges can copy them as-is.
+
+- Stop the dev server first (`pkill -f "next dev"`): one server owns `web/.data`.
+- The link changes every time the script starts; start it once before judging and leave it running.
+- The laptop must stay on and online. Sign in at `/login` with the printed admin token before running models,
+  the red team or Penny's web search (everyone else can browse, check listings and connect agents).
+
 ## Pre-flight (T-15 min)
 
 1. **Server.** Run `cd web && npm run dev`. Use port 3000 unless you've planned otherwise, and keep the terminal out of sight.

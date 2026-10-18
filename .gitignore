@@ -14,3 +14,4 @@ web/.data-*
 web/.dev-server*.log
 web/.next-*
 /data
+web/.public/
