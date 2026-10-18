@@ -2,6 +2,7 @@
 // POST /api/procure { request, budget?, quantity?, constraints?, sources?: ("web"|"arena")[] } -> Proposal
 //   Plans a purchase (council of experts + trust score) and returns what Penny would buy. Never orders anything.
 // GET  /api/procure?limit=50 -> { proposals: Proposal[] } newest first
+import { HAS_LLM } from "@/lib/llm";
 import { takeWebPlan } from "@/lib/procure/quota";
 import { authMode, isAdminRequest } from "@/lib/auth";
 import { agentKeyFrom, isInternalRequest } from "@/lib/auth-node";
@@ -25,7 +26,10 @@ export async function POST(req: Request) {
       let key: ReturnType<typeof agentKeyFrom> = null;
       try { key = agentKeyFrom(req); } catch { throw new HttpError(401, "invalid or revoked agent key"); }
       const trusted = !!key || isInternalRequest(req) || (await isAdminRequest(req));
-      if (!trusted && (parsed.sources ?? ["web"]).includes("web")) {
+      // Decide the sources once and hand procure() that same list, so the allowance check and the search agree
+      // (an empty or missing list means procure's default: web when there's an LLM key).
+      parsed.sources = parsed.sources?.length ? parsed.sources : HAS_LLM ? ["web"] : ["arena"];
+      if (!trusted && parsed.sources.includes("web")) {
         const over = takeWebPlan({ trusted: false });
         if (over) throw new HttpError(429, over);
       }

@@ -20,6 +20,7 @@ export function parseProcureArgs(a: Record<string, unknown>): Omit<ProcureInput,
   if (a.sources != null) {
     if (!Array.isArray(a.sources) || !a.sources.every((s) => s === "web" || s === "arena")) return "'sources' must be an array of \"web\" and/or \"arena\"";
     sources = [...new Set(a.sources as Source[])];
+    if (!sources.length) return "'sources' must not be empty";
   }
   return { request, budget, quantity, constraints, sources };
 }
