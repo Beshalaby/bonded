@@ -108,6 +108,20 @@ for dest, body in api.items():
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(body)
 
+# Plain <img src="/hero/x.png"> and other hard-coded public/ paths ignore basePath; prefix them
+# in the HTML and the client bundle (only when preceded by a quote/paren, so never twice).
+public_names = [p.name for p in (WEB / "public").iterdir()] if (WEB / "public").is_dir() else []
+if public_names:
+    pat = re.compile(r"([\"'`(])/(" + "|".join(map(re.escape, public_names)) + r")(?=[/\"'`?)#])")
+    fix = lambda s: pat.sub(lambda m: f"{m.group(1)}{PREFIX}/{m.group(2)}", s)
+    (OUT / "index.html").write_text(fix((OUT / "index.html").read_text(encoding="utf-8")), encoding="utf-8")
+    for f in (OUT / "_next" / "static").rglob("*"):
+        if f.suffix in (".js", ".css"):
+            s = f.read_text(encoding="utf-8", errors="surrogateescape")
+            t = fix(s)
+            if t != s:
+                f.write_text(t, encoding="utf-8", errors="surrogateescape")
+
 (OUT / ".nojekyll").write_text("")
 (OUT / "404.html").write_text(
     f"""<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
