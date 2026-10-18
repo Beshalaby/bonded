@@ -3,6 +3,7 @@
 //   { product_ids: string[≤40], intent?, market?, llm? }                         → { verdicts: Record<id, ShieldVerdict>, missing: string[] }
 //   { listing: NormalizedListing, intent?, llm? }                                any listing (web, pasted) → ShieldVerdict
 // Read-style compute endpoint: public, rate-limited per IP in token/closed mode (middleware.ts). Never reads ground truth.
+import { isInternalRequest } from "@/lib/auth-node";
 import { HttpError, jsonBody, respond } from "@/lib/http";
 import { analyzeArenaProduct, analyzeCached } from "@/lib/shield/arena";
 import { parseShieldRequest } from "@/lib/shield/input";
@@ -18,7 +19,10 @@ export async function POST(req: Request) {
     if (typeof r === "string") throw new HttpError(400, r);
     if (r.listing) return analyzeCached(r.listing, r.intent, { llm: r.llm });
     const ids = r.productIds!;
-    const opts = { market: r.market, llm: r.llm };
+    // A batch is one rate-limit token but up to 40 analyses: only the server's own runner may switch the
+    // LLM judge on for batches, so a public caller can't amplify model spend.
+    const llm = r.batch && !isInternalRequest(req) ? false : r.llm;
+    const opts = { market: r.market, llm };
     if (!r.batch) {
       const v = analyzeArenaProduct(ids[0], r.intent, opts);
       if (!v) throw new HttpError(404, `product ${ids[0]} not found`);
