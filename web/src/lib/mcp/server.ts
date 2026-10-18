@@ -9,10 +9,14 @@ import {
   ArenaError, addToCart, cartView, checkout, createSession, getMerchant, getProduct, getSession, logSearch,
   removeFromCart, search, toAgentProduct, viewProduct,
 } from "../arena";
+import { authMode } from "../auth";
 import { ingestResults } from "../bench";
 import { mutate, read, uid } from "../db";
 import { publish } from "../events";
 import { grade, slimResult, type RunResult } from "../grade";
+import { getProposal, procure, type Proposal } from "../procure";
+import { parseProcureArgs } from "../procure/args";
+import { CheckError, checkListing, parseCheckInput, sendListing, type CheckResult } from "../shield/web/service";
 import { append, getChain } from "../recorder";
 import { getTask, listTasks, type Task } from "../tasks";
 import type { BenchResult, EvalRun, Product } from "../types";
@@ -28,6 +32,10 @@ const INSTRUCTIONS = [
   "Workflow: start_task(task_id) gives you a user's request and a hard budget. Use search_products and view_product to find what they asked for,",
   "add_to_cart the exact item and quantity, then call checkout once with your reasoning. The order is graded immediately.",
   "If nothing suitable exists, call end_task instead of checking out. Use list_tasks to discover task ids.",
+  "To buy a real item for a user (not a benchmark task), call plan_purchase (Penny, Bonded's shopping agent): it returns what Penny would buy, a trust score and a",
+  "buy / ask_user / decline decision. It never places an order.",
+  "To help with a REAL listing on the web (eBay, Amazon, any store), call vet_listing(url) to check it with Bonded Shield, then",
+  "send_listing(url, note) to send it to the user instead of buying it. Neither tool purchases anything.",
 ].join(" ");
 
 // ---------------------------------------------------------------- state
@@ -333,8 +341,121 @@ async function runTool(c: McpClient, name: string, args: Record<string, unknown>
       const r = finishWithoutPurchase(c, reason);
       return { data: { ended: true, grade: gradeOut(r), links: originLinks(origin, t.sessionId, t.model) }, summary: "ended" };
     }
+
+    case "plan_purchase": {
+      const parsed = parseProcureArgs(args);
+      if (typeof parsed === "string") throw new ToolError(parsed);
+      // Web search spends the operator's LLM budget: on an exposed server, only key-holding agents get it.
+      if (authMode() !== "open" && !c.agentKey) {
+        if (parsed.sources?.includes("web")) throw new ToolError("Web sourcing needs an agent key (Authorization: Bearer <key>). Use sources: [\"arena\"] or connect with a key.");
+        parsed.sources = ["arena"];
+      }
+      const p = await procure({ ...parsed, agent: c.agentKey?.name ?? c.clientName });
+      return { data: proposalOut(p, origin), summary: `${p.decision} (trust ${p.trust?.score ?? "-"})` };
+    }
+
+    case "vet_listing": {
+      const input = parseCheckInput(args);
+      if (typeof input === "string") throw new ToolError(input);
+      let r: CheckResult;
+      try { r = await checkListing(input); } catch (e) { throw new ToolError(e instanceof CheckError ? e.message : String((e as Error)?.message || e)); }
+      return { data: vetOut(r, origin), summary: r.verdict ? r.verdict.decision : "blocked" };
+    }
+
+    case "send_listing": {
+      const url = str(args, "url")!;
+      const input = parseCheckInput({ url, request: args.request, budget: args.budget });
+      if (typeof input === "string") throw new ToolError(input);
+      let rec;
+      try { rec = await sendListing({ url, note: str(args, "note", false), agent: c.agentKey?.name ?? c.clientName, intent: input.intent }); }
+      catch (e) { throw new ToolError(e instanceof CheckError ? e.message : String((e as Error)?.message || e)); }
+      return {
+        data: {
+          sent: true, purchased: false, id: rec.id,
+          link: `${origin}/check/s/${rec.id}`,
+          recheck: `${origin}/check?u=${encodeURIComponent(rec.url)}`,
+          decision: rec.verdict.decision, headline: rec.verdict.headline,
+          title: rec.listing.title, price: rec.listing.price, currency: rec.listing.currency,
+          message: "Recorded as sent to the user. Nothing was bought. Share the link with the user.",
+        },
+        summary: `sent ${rec.verdict.decision}`,
+      };
+    }
+
+    case "get_proposal": {
+      const p = getProposal(str(args, "proposal_id")!);
+      if (!p) throw new ToolError("Unknown proposal_id.");
+      return { data: p, summary: p.decision };
+    }
   }
   throw new ToolError(`unknown tool ${name}`);
+}
+
+/** Compact Shield verdict for an agent: what to decide, why, and the sanitized text to read instead of the page. */
+function vetOut(r: CheckResult, origin: string) {
+  const l = r.listing, v = r.verdict;
+  if (!l || !v) {
+    return {
+      blocked: true, purchased: false, site: r.fetched.site, reason: r.fetched.reason,
+      message: r.message ?? "The site blocked automated reading.",
+      next: "Ask the user to paste the listing text, then call vet_listing again with text.",
+    };
+  }
+  const rank = { critical: 0, warn: 1, info: 2 } as const;
+  const m = v.marketPrice;
+  const vs = m && l.price != null && m.estimate > 0 ? Math.round(((l.price - m.estimate) / m.estimate) * 100) : undefined;
+  return {
+    decision: v.decision,
+    headline: v.headline,
+    confidence: v.confidence,
+    purchased: false,
+    listing: {
+      title: l.title, url: l.url, site: l.site, condition: l.condition, brand: l.brand,
+      seller: l.seller, returns: l.returns, shipping: l.shipping,
+    },
+    price: {
+      listed: l.price, currency: l.currency ?? "USD", ...(l.listPrice ? { was: l.listPrice } : {}),
+      ...(m ? { market_estimate: m.estimate, market_low: m.low, market_high: m.high, market_basis: m.basis } : {}),
+      ...(vs != null ? { vs_market: `${vs >= 0 ? "+" : ""}${vs}%` } : {}),
+    },
+    top_signals: [...v.signals].sort((a, b) => rank[a.severity] - rank[b.severity]).slice(0, 5)
+      .map((s) => ({ code: s.code, severity: s.severity, message: s.message, ...(s.evidence ? { evidence: s.evidence } : {}) })),
+    hidden_instructions_removed: v.injectionsRemoved.slice(0, 5),
+    sanitized_description: v.sanitizedDescription.length > 2000 ? v.sanitizedDescription.slice(0, 2000) + " …" : v.sanitizedDescription,
+    listing_url: l.url ?? null,
+    check_link: l.url ? `${origin}/check?u=${encodeURIComponent(l.url)}` : `${origin}/check`,
+    extracted_with: r.fetched.extractedWith,
+    judge: v.judge,
+    next: v.decision === "avoid"
+      ? "Do not recommend or buy this listing. Tell the user why (top_signals) and look for another."
+      : "To recommend it, call send_listing with this url and a note. Bonded never buys.",
+  };
+}
+
+/** Compact view for the calling agent; get_proposal has the full deliberation. */
+function proposalOut(p: Proposal, origin: string) {
+  return {
+    proposal_id: p.id,
+    decision: p.decision,
+    executed: false,
+    summary: p.summary,
+    would_buy: p.wouldBuy,
+    trust: p.trust,
+    questions_for_user: p.questions,
+    council: {
+      agreement: p.council.agreement,
+      votes: p.council.votes.map((v) => ({ expert: v.expert, model: v.model, pick: v.pick, confidence: v.confidence, rationale: v.rationale })),
+      pre_mortem: p.council.preMortem,
+      chair: p.council.chair,
+    },
+    alternatives: p.alternatives,
+    reference_price: p.referencePrice,
+    offers_considered: p.offers.length,
+    spec: { item: p.spec.item, variant: p.spec.variant, quantity: p.spec.quantity, budget: p.spec.budget, condition: p.spec.condition },
+    sources: p.sources,
+    audit: `${origin}/api/procure/${p.id}`,
+    latency_ms: p.latencyMs,
+  };
 }
 
 function orderOut(o: Awaited<ReturnType<typeof checkout>>) {

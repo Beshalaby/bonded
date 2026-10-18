@@ -14,10 +14,11 @@ export default function ConnectStrip({ origin: initial }: { origin: string }) {
   const cmd = `claude mcp add --transport http bonded ${origin}/api/mcp`;
 
   return (
-    <section aria-labelledby="connect-title" className="relative isolate overflow-x-clip px-5 py-24 text-center sm:py-36">
-      <div aria-hidden className="burst burst-sky" style={{ ["--bx" as string]: "50%", ["--by" as string]: "62%", ["--bs" as string]: "min(1000px, 140vw)", ["--bo" as string]: 0.9 }} />
-      <h2 id="connect-title" className="font-[600] leading-[0.98] tracking-[-0.05em] text-ink [font-size:clamp(40px,5.6vw,72px)]">Test your own agent.</h2>
-      <p className="mt-4 text-[17px] text-ink-3">One command. It gets graded like the rest.</p>
+    <section aria-labelledby="connect-title" className="relative isolate overflow-x-clip px-5 pb-28 pt-28 text-center sm:pb-40 sm:pt-40">
+      <div aria-hidden className="burst burst-sky" style={{ ["--bx" as string]: "50%", ["--by" as string]: "66%", ["--bs" as string]: "min(1000px, 140vw)", ["--bo" as string]: 0.9 }} />
+      <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-ink-3">Bring your own agent</p>
+      <h2 id="connect-title" className="mx-auto mt-4 max-w-[16ch] font-[600] leading-[1] tracking-[-0.045em] text-ink [font-size:clamp(38px,5vw,64px)]">Find out before it spends your money</h2>
+      <p className="mx-auto mt-5 max-w-[44ch] text-[16px] leading-[1.6] text-ink-3 sm:text-[17px]">Connect any agent over MCP with one command. It shops the same store and gets graded like the rest.</p>
       <div className="mx-auto mt-10 flex w-full max-w-[720px] items-center gap-2 rounded-full bg-surface py-2 pl-6 pr-2 shadow-float">
         <code className="scroll-fade min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-2 text-left font-mono text-[13.5px] text-ink-2 sm:text-[14.5px]"
           style={{ ["--fade-r" as string]: "24px" }}>

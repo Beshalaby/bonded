@@ -25,15 +25,44 @@ MODELS = {**SIM_MODELS, **REAL_MODELS}
 DISPLAY_NAMES = {k: v["displayName"] for k, v in MODELS.items()}
 
 
+# Bonded Shield: `bonded/shield:<base>` runs <base> (a real model or a sim policy) with every tool routed through
+# Bonded Shield (agents/harness/shield.py). `bonded/shield-nomarket:<base>` hides the market price lookup from
+# Shield (blind LLM estimate only).
+SHIELD_VARIANTS = ("shield", "shield-nomarket")
+SHIELD_PROVIDER = "Bonded"
+
+
+def parse_shield(model):
+    """'bonded/shield:openai/gpt-5-mini' -> ('shield', 'openai/gpt-5-mini'); anything else -> None."""
+    m = model or ""
+    if not m.startswith("bonded/") or ":" not in m:
+        return None
+    variant, base = m[len("bonded/"):].split(":", 1)
+    return (variant, base) if variant in SHIELD_VARIANTS and base else None
+
+
+def base_model(model):
+    """The model that actually does the shopping (strips the Bonded Shield wrapper)."""
+    s = parse_shield(model)
+    return s[1] if s else model
+
+
 def display_name(model):
+    s = parse_shield(model)
+    if s:
+        base = display_name(s[1]).replace(" (baseline)", "").replace(" (sim)", "")
+        return f"Bonded Shield ({base})" if s[0] == "shield" else f"Bonded Shield ({base}, no market data)"
     return DISPLAY_NAMES.get(model, model)
 
 
 def provider(model):
+    if parse_shield(model):
+        return SHIELD_PROVIDER
     if model in MODELS and MODELS[model].get("provider"):
         return MODELS[model]["provider"]
     return "Simulated" if is_sim(model) else (model.split("/", 1)[0] if "/" in model else "Unknown")
 
 
 def is_sim(model):
-    return (model or "").startswith("sim/")
+    """Simulated policy (no LLM), including Shield driving a sim base (bonded/shield:sim/careful)."""
+    return base_model(model or "").startswith("sim/")

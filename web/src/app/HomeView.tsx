@@ -1,13 +1,14 @@
 "use client";
-// Home: one idea per screen. Hero → ranking → one finding → how it works → test your own agent.
-// Everything else (runs, traces, heatmaps, head-to-head, red team...) lives in the Lab (nav + footer).
+// Home: hero (with the how-it-works scroll stage) → ranking → the traps → one finding → test your own agent.
+// Everything else (runs, traces, head-to-head, red team...) lives under Research; infrastructure lives in the Lab.
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import ConnectStrip from "@/components/home/ConnectStrip";
 import Finding, { type Striking } from "@/components/home/Finding";
 import Hero from "@/components/home/Hero";
-import HowItWorks from "@/components/home/HowItWorks";
 import Ranking from "@/components/home/Ranking";
+import Traps from "@/components/home/Traps";
+import TryCheck from "@/components/home/TryCheck";
 import { useEvents } from "@/components/useEvents";
 import type { FeedEvent } from "@/lib/types";
 import { useApi, type LeaderboardResponse } from "@/lib/ui/api";
@@ -36,8 +37,9 @@ export default function HomeView({ striking, origin }: { striking: Striking | nu
     <>
       <Hero />
       <Ranking rows={lb.data?.rows ?? []} loading={lb.loading} tasks={lb.data?.totals.tasks} error={lb.error} onRetry={lb.reload} />
+      <TryCheck />
+      <Traps />
       {striking && <Finding f={striking} />}
-      <HowItWorks />
       <ConnectStrip origin={origin} />
     </>
   );

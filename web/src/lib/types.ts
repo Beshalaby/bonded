@@ -191,7 +191,7 @@ export interface RedTeamScam {
 }
 
 export interface FeedEvent {
-  type: "log" | "transaction" | "result" | "run" | "scam" | "product";
+  type: "log" | "transaction" | "result" | "run" | "scam" | "product" | "listing";
   ts: string;
   data: unknown;
 }
@@ -210,6 +210,20 @@ export interface DB {
   scams?: RedTeamScam[];        // red-team registry (Team 2, optional/additive)
   agentKeys?: AgentKey[];       // per-agent API keys (only SHA-256 hashes stored; optional/additive)
   nessie?: NessieState;         // Capital One Nessie banking cache (lib/nessie; optional/additive)
+  proposals?: import("./procure/types").Proposal[]; // purchase plans from lib/procure (never executed; optional/additive)
+  sentListings?: SentListing[]; // real listings an agent vetted and sent to its user instead of buying (lib/shield/web; optional/additive)
+}
+
+/** A real-world listing vetted by Bonded Shield and sent back to the user (MCP send_listing). Nothing was purchased. */
+export interface SentListing {
+  id: string;                   // "sl_..."
+  url: string;
+  site?: string;
+  note?: string;                // the agent's note to its user
+  agent?: string;               // MCP client / agent key name
+  listing: Omit<import("./shield/types").NormalizedListing, "description">; // raw description dropped; verdict has the sanitized one
+  verdict: import("./shield/types").ShieldVerdict;
+  createdAt: string;
 }
 
 // ---------------------------------------------------------------- Capital One Nessie (lib/nessie)

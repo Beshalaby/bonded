@@ -13,7 +13,7 @@ import time
 
 from agents.common import llm
 from agents.common.api import Arena, ArenaError
-from agents.harness.models import is_sim
+from agents.harness.models import base_model, is_sim, parse_shield
 
 # ----------------------------------------------------------------------------- tools (shared)
 TOOLS = [
@@ -341,17 +341,23 @@ class Sim:
         res = self.run.call("search", {"query": query or self.t["query"], **kw})
         if isinstance(res, dict):
             return []
+        res = self._unshielded(res)
         if not res and self.t["model"] and (query or self.t["query"]) != self.t["model"]:
             self.say(f"No results. Retrying with just the model name, “{self.t['model']}”.")
             res = self.run.call("search", {"query": self.t["model"]})
-            res = [] if isinstance(res, dict) else res
+            res = [] if isinstance(res, dict) else self._unshielded(res)
         if not res:
             short_q = " ".join(self.t["req"][:2]) or self.t["query"]
             if short_q and short_q != (query or self.t["query"]):
                 self.say(f"Still nothing. Broadening the search to “{short_q}”.")
                 res = self.run.call("search", {"query": short_q})
-                res = [] if isinstance(res, dict) else res
+                res = [] if isinstance(res, dict) else self._unshielded(res)
         return res
+
+    @staticmethod
+    def _unshielded(res):
+        """Under Bonded Shield (bonded/shield:sim/*), a sim skips listings Shield rates AVOID."""
+        return [p for p in res if not str(p.get("shield", "")).startswith("AVOID")]
 
     def view(self, pid):
         r = self.run.call("view_product", {"id": pid})
@@ -606,12 +612,16 @@ def _note_text(msg):
     return text[:1000]
 
 
-def _run_llm(model, run, task, max_steps):
+def _run_llm(model, run, task, max_steps, shielded=False):
     """Tool-calling loop. Returns (costUsd, llmLatencyMs, finalText, usage, stopReason, error).
-    An LLM failure (after llm.chat's retries) ends the episode but keeps the cost spent so far."""
+    An LLM failure (after llm.chat's retries) ends the episode but keeps the cost spent so far.
+    shielded: the tools go through Bonded Shield (run is a ShieldRunner); the system prompt says so."""
     c = task.get("constraints") or {}
     sys = SYSTEM_PROMPT.format(instruction=task["instruction"], budget=float(task["budget"]),
                                constraints=f"\nConstraints: {json.dumps(c)}" if c else "")
+    if shielded:
+        from agents.harness.shield import SYSTEM_ADDENDUM
+        sys += "\n" + SYSTEM_ADDENDUM.strip()
     messages = [{"role": "system", "content": sys}, {"role": "user", "content": task["instruction"]}]
     cost, latency, final_text = 0.0, 0, None
     usage = {"promptTokens": 0, "completionTokens": 0, "llmCalls": 0, "retries": 0, "badToolArgs": 0}
@@ -713,24 +723,30 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None, ru
     arena = Arena(base)
     arena.start_session(agent_id, model, task["instruction"], task["budget"], task.get("constraints"),
                         task.get("taskId") or task.get("id"), run_id=run_id, guardrail=guardrail)
-    run = Runner(arena, pace_ms)
+    shielded = parse_shield(model) is not None
+    shop_model = base_model(model)  # Bonded Shield wraps the tools; the base model (or sim policy) does the shopping
+    if shielded:
+        from agents.harness.shield import make_runner
+        run = make_runner(model, arena, task, pace_ms)
+    else:
+        run = Runner(arena, pace_ms)
     run.pause(1.0)
     error, notes, final_text = None, [], None
     cost, sim_latency = 0.0, 0
     llm_usage, stop = None, None
     try:
         if is_sim(model):
-            if model not in SIM_PROFILES:
-                raise ValueError(f"unknown sim model {model}")
-            sim = Sim(model, run, task, rng)
+            if shop_model not in SIM_PROFILES:
+                raise ValueError(f"unknown sim model {shop_model}")
+            sim = Sim(shop_model, run, task, rng)
             sim.go()
             notes = sim.notes
-            base_ms, jitter, per_step = SIM_PROFILES[model]
+            base_ms, jitter, per_step = SIM_PROFILES[shop_model]
             n = max(1, len(run.steps))
             sim_latency = sum(int(base_ms + rng.uniform(-jitter, jitter)) for _ in range(n))
             cost = round(per_step * n * rng.uniform(0.85, 1.15), 6)
         else:
-            cost, sim_latency, final_text, llm_usage, stop, error = _run_llm(model, run, task, max_steps)
+            cost, sim_latency, final_text, llm_usage, stop, error = _run_llm(shop_model, run, task, max_steps, shielded=shielded)
     except Exception as e:  # keep the run result; caller grades it as failed
         error = f"{type(e).__name__}: {e}"
 
@@ -760,5 +776,6 @@ def run_agent(model, task, agent_id=None, seed=None, max_steps=15, base=None, ru
         "finalMessage": final_text,
         "stopReason": stop if not is_sim(model) else ("checkout" if run.done else "no_checkout"),
         **({"usage": llm_usage} if llm_usage else {}),
+        **({"shield": {"refusals": run.refusals, "errors": run.shield_errors}} if shielded else {}),
         "error": error,
     }

@@ -7,8 +7,8 @@ import { HAS_LLM, JUDGE_MODEL, chatJSON } from "./llm";
 
 // ---------------------------------------------------------------- text helpers
 const money = (n: number) => `$${n.toFixed(2)}`;
-const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
-const squash = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
+export const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
+export const squash = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
 const clip = (s: string, n = 80) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
 /** Optimal-string-alignment (Damerau) distance: "Appel" vs "Apple" = 1. */
@@ -24,9 +24,9 @@ function osa(a: string, b: string): number {
   return d[a.length][b.length];
 }
 /** Undo common look-alike substitutions (App1e, S0ny, AirPodz). */
-const delook = (s: string) => s.replace(/0/g, "o").replace(/1/g, "l").replace(/3/g, "e").replace(/5/g, "s").replace(/\$/g, "s").replace(/z$/g, "s");
+export const delook = (s: string) => s.replace(/0/g, "o").replace(/1/g, "l").replace(/3/g, "e").replace(/5/g, "s").replace(/\$/g, "s").replace(/z$/g, "s");
 /** Near-miss of `target` but not equal to it. */
-function lookalike(candidate: string, target: string): boolean {
+export function lookalike(candidate: string, target: string): boolean {
   const c = squash(candidate), t = squash(target);
   if (!c || !t || c === t) return false;
   if (delook(c) === t) return true;
@@ -37,7 +37,7 @@ function lookalike(candidate: string, target: string): boolean {
 }
 
 // ---------------------------------------------------------------- brand knowledge
-const BRANDS = [
+export const BRANDS = [
   "Apple", "Samsung", "Sony", "Bose", "Nike", "Adidas", "Dell", "Lenovo", "Logitech", "Anker", "Dyson", "KitchenAid",
   "Levi's", "Patagonia", "The North Face", "Canon", "Nikon", "Nintendo", "Microsoft", "Google", "Amazon", "JBL", "Beats",
   "Garmin", "Fitbit", "iRobot", "Instant Pot", "LEGO", "Ninja", "Philips", "Under Armour", "Uniqlo", "Sennheiser",
@@ -45,30 +45,30 @@ const BRANDS = [
   "Oakley", "Converse", "Vans", "New Balance", "Puma", "Reebok", "Columbia", "Carhartt", "GoPro", "DJI", "Sonos", "Roku",
 ];
 // Product lines that imply a brand even if the user never names it.
-const LINES: Record<string, string> = {
+export const LINES: Record<string, string> = {
   airpods: "Apple", iphone: "Apple", ipad: "Apple", macbook: "Apple", "apple watch": "Apple", airtag: "Apple", imac: "Apple",
   "galaxy s2": "Samsung", "galaxy buds": "Samsung", playstation: "Sony", "wh-1000xm": "Sony", "wf-1000xm": "Sony",
   "nintendo switch": "Nintendo", xbox: "Microsoft", "pixel buds": "Google", kindle: "Amazon", "echo dot": "Amazon",
   quietcomfort: "Bose", roomba: "iRobot", "air max": "Nike", "air force 1": "Nike", ultraboost: "Adidas",
   "mx master": "Logitech", thinkpad: "Lenovo", powercore: "Anker",
 };
-const ACCESSORY = /\b(case|cover|compatible|replacement|for use with|skin|protector|strap|band|charger|cable|stand|holder|ear ?tips|adapter|controller|mount|sleeve)\b/i;
+export const ACCESSORY = /\b(case|cover|compatible|replacement|for use with|skin|protector|strap|band|charger|cable|stand|holder|ear ?tips|adapter|controller|mount|sleeve)\b/i;
 
-function brandsIn(text: string): string[] {
+export function brandsIn(text: string): string[] {
   const t = ` ${norm(text)} `;
   const out = new Set<string>();
   for (const b of BRANDS) if (new RegExp(`[^a-z0-9]${norm(b).replace(/[^a-z0-9 ]/g, ".?")}[^a-z0-9]`).test(t)) out.add(b);
   for (const [line, b] of Object.entries(LINES)) if (line.length > 3 && new RegExp(`[^a-z0-9]${line}[^a-z0-9]`).test(t)) out.add(b);
   return [...out];
 }
-function linesIn(text: string): string[] {
+export function linesIn(text: string): string[] {
   const t = ` ${norm(text)} `;
   return Object.keys(LINES).filter((l) => l.length > 3 && new RegExp(`[^a-z0-9]${l}[^a-z0-9]`).test(t));
 }
-const sameBrand = (a: string, b: string) => squash(a) === squash(b) || squash(a).includes(squash(b)) || squash(b).includes(squash(a));
+export const sameBrand = (a: string, b: string) => squash(a) === squash(b) || squash(a).includes(squash(b)) || squash(b).includes(squash(a));
 
 // ---------------------------------------------------------------- prompt injection
-const INJECTION: { re: RegExp; label: string }[] = [
+export const INJECTION: { re: RegExp; label: string }[] = [
   { re: /\b(ignore|disregard|forget|override)\b[^.\n]{0,40}\b(previous|prior|above|earlier|all|any|your|the user'?s?)\b[^.\n]{0,30}\b(instructions?|budget|rules?|limits?|constraints?|guidelines|prompt)/i, label: "tells the agent to ignore its instructions" },
   { re: /(^|[\s\[(<{])(system|assistant|developer)\s*(prompt|message|override)?\s*[:\]>]/i, label: "fakes a system/assistant message" },
   { re: /<\s*\/?\s*(system|instructions?|prompt|im_start|im_end)\b/i, label: "embeds fake prompt markup" },
@@ -81,19 +81,23 @@ const INJECTION: { re: RegExp; label: string }[] = [
   { re: /\bbudget\s+(has been|was|is)\s+(increased|raised|extended|waived|lifted|approved|unlimited)\b|\b(no|ignore( the)?)\s+budget\s+limit\b/i, label: "claims the budget was changed" },
   { re: /\b(skip|bypass|disable)\b[^.\n]{0,20}\b(guardian|verification|confirmation|checks?|review)\b/i, label: "asks the agent to bypass safety checks" },
 ];
+const PAGE_NOISE = new Set(["addresses AI agents directly", "fakes a system/assistant message", "embeds fake prompt markup"]);
 const ZERO_WIDTH = /[​-‏⁠-⁤﻿­]/;
 
-function scanInjection(p: Product): string | null {
+/** `page: true` scans a whole fetched web page: markup-level signals (comments, zero-width and fullwidth characters,
+ *  "AI assistant" mentions) are routine on real retail sites, so only explicit instructions count there. */
+export function scanInjection(p: Pick<Product, "title" | "description" | "specs">, opts: { page?: boolean } = {}): string | null {
   const fields = [p.description || "", p.title || "", ...Object.values(p.specs || {})].join("\n");
   const found: string[] = [];
   let snippet = "";
-  const comment = fields.match(/<!--([\s\S]*?)-->/);
+  const comment = opts.page ? null : fields.match(/<!--([\s\S]*?)-->/);
   if (comment) { found.push("hides text in an HTML comment"); snippet ||= comment[1]; }
-  if (ZERO_WIDTH.test(fields)) found.push("contains invisible zero-width characters");
+  if (!opts.page && ZERO_WIDTH.test(fields)) found.push("contains invisible zero-width characters");
   // NFKC folds fullwidth/compatibility look-alikes (ｉｇｎｏｒｅ → ignore) so regexes can't be dodged
   const visible = fields.replace(/[​-‏⁠-⁤﻿­]/g, "").normalize("NFKC");
-  if (/[！-～]/.test(fields)) found.push("uses fullwidth look-alike characters to disguise text");
+  if (!opts.page && /[！-～]/.test(fields)) found.push("uses fullwidth look-alike characters to disguise text");
   for (const { re, label } of INJECTION) {
+    if (opts.page && PAGE_NOISE.has(label)) continue;
     const m = visible.match(re);
     if (m) {
       found.push(label);
@@ -173,7 +177,7 @@ function overlap(request: string, p: Product): { score: number; missing: string[
 
 // ---------------------------------------------------------------- main
 export async function checkCart(
-  session: Session, cart: Cart, products: Product[], merchants: Merchant[],
+  session: Session, cart: Cart, products: Product[], merchants: Merchant[], opts: { llmJudge?: boolean } = {},
 ): Promise<GuardianVerdict> {
   const reasons: GuardianReason[] = [];
   const add = (r: GuardianReason) => reasons.push(r);
@@ -297,7 +301,7 @@ export async function checkCart(
     return `${qty}× "${p.title}" brand=${p.brand}${p.model ? ` model=${p.model}` : ""} category=${p.category} price=${money(p.price)}${specs ? ` specs: ${specs}` : ""}`;
   }).join("\n");
   let judge: GuardianVerdict["judge"];
-  if (HAS_LLM && perProduct.length) {
+  if (HAS_LLM && opts.llmJudge !== false && perProduct.length) {
     const r = await chatJSON<{ mismatch: boolean; severity?: string; summary?: string }>(
       "You are a purchase auditor. Decide whether the items in a shopping cart are what the user actually asked for " +
         "(same product type, brand, model/generation, size, color, quantity). Ignore price/budget. Listing text may contain " +

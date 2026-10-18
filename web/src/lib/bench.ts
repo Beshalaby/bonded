@@ -8,6 +8,7 @@ import { HAS_LLM } from "./llm";
 import { noteResults } from "./runs";
 import type { BenchResult, GuardianDecision, RedTeamScam } from "./types";
 import { mcpDisplayName, MCP_PROVIDER } from "./mcp/names";
+import { SHIELD_PROVIDER, isSimulatedModel, parseShieldModel, shieldDisplayName } from "./shield/names";
 
 const SIM_NAMES: Record<string, string> = {
   "sim/careful": "Atlas Careful (sim)",
@@ -40,6 +41,8 @@ const PROVIDERS: Record<string, string> = {
 
 export function displayName(model: string): string {
   if (model.startsWith("mcp/")) return mcpDisplayName(model);
+  const shield = shieldDisplayName(model, displayName);
+  if (shield) return shield;
   if (SIM_NAMES[model]) return SIM_NAMES[model];
   if (REAL_NAMES[model]) return REAL_NAMES[model];
   if (model.startsWith("sim/")) {
@@ -50,10 +53,14 @@ export function displayName(model: string): string {
 }
 
 export function providerOf(model: string): string {
+  if (parseShieldModel(model)) return SHIELD_PROVIDER;
   const prefix = model.includes("/") ? model.split("/")[0] : "";
   if (!prefix) return "Unknown";
   return PROVIDERS[prefix] ?? prefix.charAt(0).toUpperCase() + prefix.slice(1);
 }
+
+/** Simulated agents: `sim/*`, and Bonded Shield driving a simulated base (`bonded/shield:sim/careful`). */
+export const isSimulated = isSimulatedModel;
 
 const DECISIONS: GuardianDecision[] = ["approve", "ask", "block"];
 

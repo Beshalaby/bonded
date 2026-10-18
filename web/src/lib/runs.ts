@@ -3,6 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { mutate, read, uid } from "./db";
 import { internalToken } from "./auth-node";
 import { publish } from "./events";
+import { isSimulatedModel } from "./shield/names";
 import { listTasks, repoRoot, sampleTasks, type Task } from "./tasks";
 import type { EvalRun, GuardrailMode } from "./types";
 
@@ -84,7 +85,7 @@ export function createRun(b: CreateRunInput): EvalRun {
   if (models.length > 20) throw new RunError(400, "at most 20 models per run");
   const bad = models.find((m) => !MODEL_RE.test(m));
   if (bad) throw new RunError(400, `invalid model id: ${bad}`);
-  const real = models.filter((m) => !m.startsWith("sim/"));
+  const real = models.filter((m) => !isSimulatedModel(m));
   if (real.length && !process.env.OPENROUTER_API_KEY)
     throw new RunError(400, `OPENROUTER_API_KEY is not set on the server; cannot run ${real.join(", ")} (use sim/* models)`);
   const guardrail = (b.guardrail ?? "observe") as GuardrailMode;

@@ -34,6 +34,7 @@ Eval API (new):
 - `GET /api/traces/:sessionId` → `{ session, entries: LogEntry[], integrity: {valid, length, brokenAt?, reason?}, result?: BenchResult, products: Record<id, Product /* incl. trap, for display */> }`
 - `GET /api/redteam` → `{ scams: RedTeamScam[], growth: {ts, tasks}[], byTrap: {trapType, count, fooledModels}[] }`; `POST /api/redteam` `{ rounds?: 1, perRound?: 6 }` → `{ started: true }` (background; emits `scam` events).
 - `GET /api/events` → SSE of `FeedEvent` (`run` progress/status, `result`, `scam`, `log`, `transaction`, `product`). Keepalive comment every 15s.
+- `POST /api/shield/analyze` `{product_id | product_ids[≤40] | listing: NormalizedListing, intent?: ShoppingIntent, market?: "reference"|"hidden", llm?: boolean}` → `ShieldVerdict` (`web/src/lib/shield/types.ts`), or `{verdicts: Record<id, ShieldVerdict>, missing}` for `product_ids`. Public compute endpoint (60/min per IP when exposed). Never reads trap ground truth. Model ids `bonded/shield:<base>` run `<base>` with tools routed through Shield (`agents/harness/shield.py`); provider "Bonded".
 - `POST /api/bench/results` `{ runId?, results: BenchResult[] }` (used by Python runner; ingestion computes attribution for failures and publishes `result` + `run` progress).
 
 Removed: `/api/claims`, `/api/risk/**`, `/api/demo/**`, `/api/recorder/**`, `/api/feed`, `/api/guardian/check`.

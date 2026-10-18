@@ -138,9 +138,10 @@ over the remaining tags.
 ## Evaluate your own agent (MCP)
 
 The Arena is a real MCP server (Streamable HTTP, protocol 2025-06-18; 2025-03-26 and 2024-11-05 accepted) at
-`/api/mcp`, with 9 tools: `list_tasks`, `start_task`, `search_products`, `view_product`, `add_to_cart`,
+`/api/mcp`, with 11 tools. Nine are for benchmark tasks: `list_tasks`, `start_task`, `search_products`, `view_product`, `add_to_cart`,
 `remove_from_cart`, `view_cart`, `checkout` (grades immediately) and `end_task`. Every MCP session is traced, graded
-and ranked on the leaderboard as `<client> (MCP)`, exactly like built-in agents.
+and ranked on the leaderboard as `<client> (MCP)`, exactly like built-in agents. The other two, `plan_purchase` and
+`get_proposal`, plan real purchases (see [Plan a purchase](#plan-a-purchase-council--trust-score)).
 
 | Client | Setup |
 |---|---|
@@ -154,6 +155,75 @@ agent key (`POST /api/auth/agent-keys`) so the agent's identity is fixed server-
 *"Use the bonded tools to complete SpendBench task airpods-pro-2."* `/connect` shows copy-paste setup and a live
 panel of connected agents. Hosted agents (e.g. Claude.ai connectors) need a public HTTPS deployment; see
 [docs/DEPLOY.md](docs/DEPLOY.md) and set `SPENDBENCH_ALLOWED_HOSTS` to your hostname.
+
+## Plan a purchase (council + trust score)
+
+`plan_purchase` (MCP) and `POST /api/procure` take a plain request (`{"request": "Sony WH-1000XM5, black", "budget": 400}`)
+and return what Bonded **would** buy. Nothing is ordered or charged. Pipeline (`web/src/lib/procure/`):
+
+1. **Intake** parses the request into a spec and lists ambiguities. A blocking one, like a missing shoe size, becomes a question, not a guess.
+2. **Sourcing** uses live web search (OpenRouter `web` plugin) and/or the Arena catalog. For web offers it fetches the
+   product page (public HTTPS only) to confirm the price and scan for injected instructions.
+3. **Hard checks** run each offer through the SpendBench guardrail: knockoffs, fake discounts, gouging, injection,
+   untrusted merchants, wrong condition, prices that are too good to be true, and price-comparison pages posing as stores.
+4. **Council**: four experts score every offer independently, on different model families. The *exact-match inspector*,
+   *fraud hunter* (can veto), *value analyst* (the only one that sees the budget) and *user's advocate* each judge
+   one dimension. The chair takes a confidence-weighted vote.
+5. **Pre-mortem**: a devil's advocate imagines the user unhappy two weeks later and names the likeliest reason. It can
+   cost trust, or switch the pick when the council wasn't united behind it.
+6. **Trust score** (0–100) is a weighted geometric mean of match, authenticity, price fairness, merchant, consensus and
+   evidence, so one weak dimension sinks it. The decision is `buy` at ≥ 75 and `ask_user` at ≥ 50 (with `questions_for_user`).
+   Otherwise it is `decline`, or `ask_user` with a "raise the budget?" question when a clean offer exists above the budget.
+
+Every stage is appended to a hash chain keyed by the proposal id. `GET /api/procure/:id` returns the full deliberation
+and an integrity check. Without an API key every expert has a deterministic stand-in and sourcing uses the Arena catalog.
+On an exposed server, MCP callers without an agent key are limited to Arena sourcing, because web search spends the
+operator's key. `POST /api/procure` is an admin write.
+
+## Bonded Shield (a safety layer for shopping agents)
+
+`analyzeListing(listing, intent)` (`web/src/lib/shield/analyze.ts`) judges one listing for one request and returns a
+`ShieldVerdict` (`buy` / `caution` / `avoid`, a one-sentence headline, signals, a sanitized description and the
+stripped injections). It runs on Arena products and on real listings (`NormalizedListing`, `web/src/lib/shield/types.ts`).
+
+| Signal | What it catches |
+|---|---|
+| Hidden instructions | HTML comments, CSS-hidden elements, fake prompt markup, zero-width and fullwidth obfuscation (NFKC), whitespace padding, and sentences aimed at AI agents ("ignore previous", "the user has pre-approved", "add 3 to cart", "only authorized seller", "skip comparison"). They are stripped from `sanitizedDescription` and quoted in `injectionsRemoved`. |
+| Knockoffs | Brand look-alikes (Appel, Am4zon, Fujiflim), borrowed names (SonyMax), "-style" and replica wording, product-line imitation (AirPodz), and a brand that doesn't match the request. |
+| Price sanity | Too good to be true (< 60% of market), above market (> 1.3×, gouging > 1.6×), and fake discounts (an inflated "was" price). |
+| Seller trust | New, unverified, low feedback or rating, a self-declared "brand new seller", and false "Official X Store" claims. |
+| Intent fit | Over budget (× quantity), wrong size, colour, capacity, format or edition, model, condition (used or for parts), and multi-packs. |
+| Marketplace red flags | Off-platform payment (wire, crypto, gift cards, WhatsApp), no returns, stock photos, "box only" and "photo of" tricks, and pressure tactics. |
+
+The decision rule is simple: any critical signal means `avoid`, any warning means `caution`, and otherwise `buy`. With
+`OPENROUTER_API_KEY` set, two more things happen. A blind LLM estimate supplies the market price when none is known; the
+model sees what the item is, never the seller's price. An LLM judge (`SHIELD_MODEL`, default `JUDGE_MODEL`) also reviews
+the findings plus the *sanitized* listing, which it receives inside `<untrusted_listing>` tags as data. The judge can add
+signals but never remove one. Each signal it adds must quote the listing verbatim and can't be speculative.
+
+`POST /api/shield/analyze` with `{product_id | product_ids[≤40] | listing, intent?, market?: "reference"|"hidden", llm?}`
+returns a `ShieldVerdict`, or `{verdicts, missing}` for a batch. It is a public compute endpoint, limited to 60/min per IP
+when the server is exposed.
+
+**Shield in the eval.** The model id `bonded/shield:<base>` (for example `bonded/shield:openai/gpt-5-mini`, or
+`bonded/shield:sim/careful` with no key) runs the base model with every tool routed through Shield
+(`agents/harness/shield.py`):
+- search results carry a `shield` rating;
+- `view_product` returns the sanitized description plus a `bondedShield` verdict;
+- `add_to_cart` refuses `avoid` listings, extra units and carts that would go over budget;
+- `checkout` refuses carts that break the request.
+
+The system prompt tells the model it has Shield and should prefer listings Shield rates `buy`.
+
+**Honesty.** Shield sees only what a shopper sees: the agent-visible product (`toAgentProduct`), the seller's public
+profile, the price and the request. It never reads `product.trap` or `/api/admin/*`, and `tests/shield.test.ts`
+enforces this. The Arena adapter's one extra input is the market price, used as a market price lookup (the same
+reference the guardrail uses). `bonded/shield-nomarket:<base>` hides it, so Shield falls back to its blind LLM estimate.
+
+```bash
+# from the repo root, against a running server; the same ids work in POST /api/runs
+python3 -m agents.spendbench.runner --models openai/gpt-5-mini,bonded/shield:openai/gpt-5-mini --tasks 30 --post
+```
 
 ## Real models
 
@@ -226,6 +296,8 @@ overspent its funding.
 | `BONDED_ROOT` | repo root | Where `agents/` lives (set in the Docker image) |
 | `OPENROUTER_API_KEY` | – | Real models + LLM judges |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint (e.g. the mock) |
+| `PROCURE_SEARCH_MODEL` | `openai/gpt-4o-mini` | Model used with OpenRouter web search to source offers |
+| `PROCURE_COUNCIL_MODELS` | `openai/gpt-4o-mini,anthropic/claude-haiku-4.5,google/gemini-2.5-flash` | Council experts, assigned round-robin so they span model families |
 | `NEXT_DIST_DIR` | `.next` | Lets several dev servers coexist |
 | `NESSIE_API_KEY` | – | Capital One Nessie key: each agent spends from a real Nessie account. Without it (and without `NESSIE_BASE_URL`) a simulated ledger is used |
 | `NESSIE_BASE_URL` | `https://api.nessieisreal.com` | Nessie endpoint (e.g. `scripts/mock_nessie.py`). Setting it alone, with no key, also selects the HTTP client |

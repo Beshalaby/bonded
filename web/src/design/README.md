@@ -87,7 +87,7 @@ Headings use `text-wrap: balance`; paragraphs use `pretty`. Keep line length ≤
 - **Home is full-bleed.** `PageMain` (`components/home/PageMain.tsx`) renders `/` without a container. Every other page gets the 1200px column, padded under the fixed 64px nav (`pt-24 sm:pt-28`).
 - **Nav** (`components/Nav.tsx`): logo, then Ranking (`/#ranking`), Watch (`/live`), Connect (`/connect`), and a quiet "Lab" with a dot that turns gold on Lab pages. It is transparent over the hero and becomes frosted white after 24px of scroll (and always off the home page). Phones get the logo plus a menu button. Both open the same **Lab sheet**: a dialog with a focus trap, Esc to close, and focus returned to the opener.
 - **The Lab list** lives in `lib/ui/lab.ts` (`LAB_LINKS`, `NEW_RUN`, `PRIMARY_LINKS`). The nav sheet and `SiteFooter` both read it. Add a Lab page there and nowhere else.
-- **Home sections** (`components/home/`): `Hero`, `Ranking`, `Finding`, `HowItWorks`, `ConnectStrip`, `SiteFooter`.
+- **Home sections** (`components/home/`): `Hero` (with the `Showcase` scroll stage), `Ranking`, `Traps`, `Finding`, `ConnectStrip`, `SiteFooter`.
 - **Primitives** (`@/design`): `Tile`, `Pill`, `MicroLabel`, `SectionHead`, `DisplayTitle`, `Stat`, `CapsuleRow`, `Mark`, `DotBar`/`DotHeatmap`/`DotSparkline`, `Bloom`/`Orb`, `ScrollFade`, `MotionProvider`. All of them are still exported and used by Lab pages, and all of them are restyled by the tokens. On the home page, prefer plain type and `.burst` over tiles.
 - **Legacy** `components/ui.tsx` and `components/charts.tsx`: every export name is unchanged.
 

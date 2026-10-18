@@ -1,7 +1,7 @@
 // Static primitives of the "soft instrument" system. No client state, so they render on the server too.
 // Spec and usage rules: ./README.md
 import Link from "next/link";
-import type { CSSProperties, ElementType, ReactNode } from "react";
+import { useId, type CSSProperties, type ElementType, type ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, Check, Minus, Plus, X } from "lucide-react";
 
 export function cx(...c: (string | false | null | undefined)[]) {
@@ -267,13 +267,17 @@ export function StatusCheck({ tone = "pass", children, className }: { tone?: "pa
 
 /* ------------------------------------------------------------------ Glyph: the Bonded mark */
 
-/** Logo mark: a black squircle with a rising 3-step dot matrix. */
+/** Logo mark: two interlocked rings, ink and gold. The gold ring passes over the ink one at the bottom crossing. */
 export function Mark({ size = 24, className }: { size?: number; className?: string }) {
-  const d = [[0, 2], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]];
+  const id = `mark${useId().replace(/[^a-z0-9]/gi, "")}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden className={className}>
-      <rect width="24" height="24" rx="7.5" fill="var(--color-ink)" />
-      {d.map(([c, r]) => <circle key={`${c}${r}`} cx={7 + c * 5} cy={7 + r * 5} r={1.7} fill={r === 0 ? "var(--color-gold)" : "white"} />)}
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth={2.6} aria-hidden className={className}>
+      <mask id={id} maskUnits="userSpaceOnUse">
+        <rect width="24" height="24" fill="white" />
+        <path d="M20.5 12A5.5 5.5 0 0 1 9.5 12" stroke="black" strokeWidth={4.4} />
+      </mask>
+      <circle cx="15" cy="12" r="5.5" stroke="var(--color-gold-deep)" />
+      <circle cx="9" cy="12" r="5.5" stroke="var(--color-ink)" mask={`url(#${id})`} />
     </svg>
   );
 }

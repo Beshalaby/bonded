@@ -4,19 +4,22 @@ import { AUTH_REQUIRED, INTERNAL_HEADER, SESSION_COOKIE, WRITES_DISABLED, authMo
 // Access policy for every /api route (README "Security"). Deny by default for non-GET methods.
 //
 //   public          GET/HEAD/OPTIONS (except /api/admin/* and /api/auth/agent-keys), /api/arena/*, /api/mcp,
+//                   POST /api/shield/analyze (read-style compute), POST /api/check (real-listing checks; never buys),
+//                   POST /api/procure (Penny plans a purchase; never orders or charges),
 //                   /api/auth/login|logout|session
 //   service         POST /api/bench/*, POST /api/redteam/progress: x-bonded-internal or admin cookie
 //   admin (+svc)    /api/admin/* (any method; the Python runner reads trap ground truth and injects listings here)
 //   admin           every other write: POST /api/runs, /api/redteam, /api/live, /api/auth/agent-keys, ...
 //
 // Rate limits (token/closed mode only; per client IP, in-memory token buckets): /api/mcp 60/min, POST /api/arena/sessions 20/min,
-// POST /api/auth/login 10/min. Requests carrying a valid service token are exempt.
+// POST /api/shield/analyze 60/min,
+// POST /api/auth/login 10/min, POST /api/check 10/min, POST /api/procure 6/min. Requests carrying a valid service token are exempt.
 
 // ---------------------------------------------------------------- rate limiting
 type Bucket = { tokens: number; at: number };
 const g = globalThis as unknown as { __bondedRl?: Map<string, Bucket> };
 const buckets: Map<string, Bucket> = g.__bondedRl ?? (g.__bondedRl = new Map());
-const LIMITS = { mcp: 60, sessions: 20, login: 10 } as const; // per minute
+const LIMITS = { mcp: 60, sessions: 20, login: 10, shield: 60, check: 10, procure: 6 } as const; // per minute
 
 function take(name: keyof typeof LIMITS, ip: string): number {
   const cap = LIMITS[name], rate = cap / 60_000, now = Date.now(), key = `${name}:${ip}`;
@@ -76,6 +79,20 @@ export async function middleware(req: NextRequest) {
   }
   if (p === "/api/arena/sessions" && m === "POST") {
     if (limiting && !(internalHeader && await internal())) { const r = take("sessions", clientIp(req)); if (r) return limited(r); }
+    return NextResponse.next();
+  }
+  if (p === "/api/shield/analyze" && m === "POST") {
+    // the eval runner (service token) calls this for every search and view, so it is exempt like sessions
+    if (limiting && !(internalHeader && await internal())) { const r = take("shield", clientIp(req)); if (r) return limited(r); }
+    return NextResponse.next();
+  }
+  if (p === "/api/check" && m === "POST") {
+    if (limiting && !(internalHeader && await internal())) { const r = take("check", clientIp(req)); if (r) return limited(r); }
+    return NextResponse.next();
+  }
+  if (p === "/api/procure" && m === "POST") {
+    // Penny: the same planner agents reach through the public MCP plan_purchase tool; it never places an order
+    if (limiting && !(internalHeader && await internal())) { const r = take("procure", clientIp(req)); if (r) return limited(r); }
     return NextResponse.next();
   }
   if (p === "/api/auth/login" && m === "POST") {

@@ -15,6 +15,12 @@ export interface ChatOptions {
   timeoutMs?: number;
   /** Extra attempts after the first on 429 / 5xx / timeout / network error. */
   retries?: number;
+  /** Sampling temperature (default 0). */
+  temperature?: number;
+  /** OpenRouter plugins, e.g. [{ id: "web", max_results: 8 }] for live web search. */
+  plugins?: Record<string, unknown>[];
+  /** Receives the URLs the provider cited (web search annotations), when there are any. */
+  onCitations?: (urls: { url: string; title?: string }[]) => void;
 }
 
 class Retryable extends Error {
@@ -44,7 +50,7 @@ export function parseJsonLoose(s: string): unknown {
   try { return JSON.parse(body); } catch { return JSON.parse(body.replace(/,\s*([}\]])/g, "$1")); }
 }
 
-async function once(system: string, user: string, model: string, timeoutMs: number): Promise<unknown> {
+async function once(system: string, user: string, model: string, timeoutMs: number, o: ChatOptions = {}): Promise<unknown> {
   let res: Response;
   try {
     res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
@@ -56,8 +62,10 @@ async function once(system: string, user: string, model: string, timeoutMs: numb
       body: JSON.stringify({
         model,
         response_format: { type: "json_object" },
-        temperature: 0,
+        // reasoning models (GPT-5, o-series) reject sampling parameters
+        ...(/^openai\/(?:gpt-5|o\d)/.test(model) ? {} : { temperature: o.temperature ?? 0 }),
         messages: [{ role: "system", content: system }, { role: "user", content: user }],
+        ...(o.plugins ? { plugins: o.plugins } : {}),
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -73,7 +81,10 @@ async function once(system: string, user: string, model: string, timeoutMs: numb
     }
     throw new Error(msg);
   }
-  let j: { choices?: { message?: { content?: unknown } }[]; error?: { code?: unknown; message?: unknown } };
+  let j: {
+    choices?: { message?: { content?: unknown; annotations?: { type?: string; url_citation?: { url?: string; title?: string } }[] } }[];
+    error?: { code?: unknown; message?: unknown };
+  };
   try { j = JSON.parse(raw); } catch { throw new Retryable(`non-JSON response: ${raw.slice(0, 120)}`); }
   if (j.error && !j.choices?.length) {
     const code = Number(j.error.code);
@@ -83,7 +94,12 @@ async function once(system: string, user: string, model: string, timeoutMs: numb
   }
   const text = textOf(j.choices?.[0]?.message?.content);
   if (!text.trim()) throw new Retryable("empty reply");
-  return parseJsonLoose(text);
+  const parsed = parseJsonLoose(text);
+  const cites = (j.choices?.[0]?.message?.annotations ?? [])
+    .filter((a) => a?.type === "url_citation" && typeof a.url_citation?.url === "string")
+    .map((a) => ({ url: a.url_citation!.url!, title: a.url_citation!.title }));
+  if (cites.length) o.onCitations?.(cites);
+  return parsed;
 }
 
 /** JSON-mode completion. Returns the parsed object, or null (no key / all attempts failed / not an object). */
@@ -98,7 +114,7 @@ export async function chatJSON<T>(system: string, user: string, modelOrOpts: str
     const left = deadline - Date.now();
     if (left < 1000) break;
     try {
-      const v = await once(system, user, model, Math.min(o.timeoutMs ?? 20000, left));
+      const v = await once(system, user, model, Math.min(o.timeoutMs ?? 20000, left), o);
       if (!v || typeof v !== "object" || Array.isArray(v)) throw new Error("reply is not a JSON object");
       return v as T;
     } catch (e) {

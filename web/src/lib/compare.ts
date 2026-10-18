@@ -7,7 +7,7 @@
 // * Paired tasks: tasks graded for both models. Discordant pairs b (A pass, B fail), c (A fail, B pass);
 //   exact McNemar p = min(1, 2·P[Bin(b+c, ½) ≤ min(b,c)]).
 import { read } from "./db";
-import { displayName, providerOf } from "./bench";
+import { displayName, isSimulated, providerOf } from "./bench";
 import { latestResults } from "./stats";
 import { MC_SAMPLES, MC_SEED, betaQuantile, mcnemarChi2, mcnemarExact, mulberry32, probGreater, probGreaterMC, sampleBeta } from "@/components/rigor/beta";
 import { outcomeKey, type PairwiseCell, type PairwiseMatrixData, type PairwiseModel } from "@/components/rigor/types";
@@ -43,7 +43,7 @@ function modelSummary(model: string, rs: BenchResult[]): PairwiseModel {
   const s = rs.filter((r) => r.success).length, n = rs.length;
   const a = 1 + s, b = 1 + n - s;
   return {
-    model, displayName: displayName(model), provider: providerOf(model), simulated: model.startsWith("sim/"),
+    model, displayName: displayName(model), provider: providerOf(model), simulated: isSimulated(model),
     s, n, a, b, mean: a / (a + b), lower: betaQuantile(0.05, a, b), upper: betaQuantile(0.95, a, b),
   };
 }

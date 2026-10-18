@@ -1,20 +1,20 @@
 "use client";
-// Minimal site nav: logo, three links (Ranking, Watch, Connect) and a quiet "Lab" that opens a sheet with every
-// power tool. Transparent over the home hero; frosted white once the page scrolls (and always off the home page).
+// Minimal site nav: logo left, the primary links (Research, Check, Watch, Connect; lib/ui/lab.ts) centred, and a quiet "Lab" on the right that
+// opens a sheet with the infrastructure tools. Floats as a white bar inset from the screen edges, the same on every page and scroll position.
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Menu, Plus, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Menu, X } from "lucide-react";
 import { Mark, SPRING } from "@/design";
-import { LAB_LINKS, NEW_RUN, PRIMARY_LINKS, isLabPath } from "@/lib/ui/lab";
+import { LAB_LINKS, PRIMARY_LINKS, isLabPath } from "@/lib/ui/lab";
 import { cx } from "./ui";
 import AdminBadge from "./auth/AdminBadge";
 
 export function Logo() {
   return (
-    <Link href="/" className="flex shrink-0 items-center gap-2.5 rounded-full py-1 pr-2 text-[16px] font-[620] tracking-[-0.03em] text-ink">
-      <Mark size={26} />
+    <Link href="/" className="flex shrink-0 items-center gap-2 rounded-full py-1 pr-2 text-[15px] font-[600] tracking-[-0.035em] text-ink">
+      <Mark size={24} />
       Bonded
     </Link>
   );
@@ -55,13 +55,13 @@ function LabSheet({ open, onClose, path, returnFocus }: { open: boolean; onClose
             initial={{ opacity: 0, y: -10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.985 }}
             transition={SPRING.soft}
             className="absolute inset-x-3 top-3 isolate flex max-h-[calc(100svh-24px)] origin-top flex-col overflow-hidden rounded-[30px] bg-surface shadow-float
-              md:left-auto md:right-[max(16px,calc((100vw-1200px)/2+20px))] md:top-[70px] md:w-[560px] md:origin-top-right">
+              md:left-auto md:right-[max(24px,calc((100vw-1320px)/2))] md:top-[64px] md:w-[560px] md:origin-top-right">
             <div aria-hidden className="burst burst-gold" style={{ ["--bx" as string]: "92%", ["--by" as string]: "0%", ["--bs" as string]: "460px" }} />
             <div aria-hidden className="burst burst-sage" style={{ ["--bx" as string]: "0%", ["--by" as string]: "100%", ["--bs" as string]: "420px", ["--bo" as string]: 0.7 }} />
             <div className="flex shrink-0 items-start justify-between gap-4 px-6 pb-2 pt-5">
               <div>
                 <h2 id="lab-sheet-title" className="text-[22px] font-[600] tracking-[-0.03em] text-ink">The Lab</h2>
-                <p className="mt-0.5 text-[13.5px] text-ink-3">Everything that runs behind the scenes.</p>
+                <p className="mt-0.5 text-[13.5px] text-ink-3">The infrastructure the benchmark runs on.</p>
               </div>
               <button type="button" onClick={onClose} aria-label="Close"
                 className="-mr-2 inline-flex size-10 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-canvas-sunk hover:text-ink">
@@ -97,10 +97,6 @@ function LabSheet({ open, onClose, path, returnFocus }: { open: boolean; onClose
             </div>
             <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-5 pt-1">
               <AdminBadge />
-              <Link href={NEW_RUN.href} onClick={onClose} aria-current={path === NEW_RUN.href ? "page" : undefined}
-                className="ml-auto inline-flex h-11 items-center gap-1.5 rounded-full bg-ink px-5 text-[14px] font-medium text-white shadow-ink transition-transform active:scale-[0.97]">
-                <Plus size={15} strokeWidth={2.25} /> {NEW_RUN.label}
-              </Link>
             </div>
           </motion.div>
         </div>
@@ -111,9 +107,7 @@ function LabSheet({ open, onClose, path, returnFocus }: { open: boolean; onClose
 
 export default function Nav() {
   const path = usePathname() || "/";
-  const home = path === "/";
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const deskBtn = useRef<HTMLButtonElement>(null);
   const mobileBtn = useRef<HTMLButtonElement>(null);
   const lastBtn = useRef<HTMLButtonElement>(null);
@@ -121,45 +115,36 @@ export default function Nav() {
   const openFrom = (btn: HTMLButtonElement | null) => { lastBtn.current = btn; setOpen((o) => !o); };
 
   useEffect(() => { setOpen(false); }, [path]);
-  useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 24);
-    on();
-    window.addEventListener("scroll", on, { passive: true });
-    return () => window.removeEventListener("scroll", on);
-  }, []);
-
-  const frosted = !home || scrolled;
   const inLab = isLabPath(path);
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40">
-        {/* frosted layer fades in (opacity only) instead of re-painting the header */}
-        <div aria-hidden className={cx("absolute inset-0 bg-[oklch(100%_0_0/0.74)] shadow-[0_1px_0_oklch(20%_0.012_70/0.06)] backdrop-blur-xl backdrop-saturate-150 transition-opacity duration-300",
-          frosted ? "opacity-100" : "opacity-0")} />
-        <div className="relative mx-auto flex h-16 max-w-[1200px] items-center gap-2 px-4 sm:px-8">
+      {/* a floating white bar, inset from the screen edges on every side; no border or shadow, the same at every scroll position */}
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 px-2 pt-1.5 sm:px-6 sm:pt-2">
+        <div className="pointer-events-auto relative mx-auto flex h-12 max-w-[1320px] items-center rounded-[16px] bg-white/90 px-4 backdrop-blur-xl backdrop-saturate-150 sm:rounded-[18px] sm:px-6">
           <Logo />
-          <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Primary">
+          <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-7 md:flex" aria-label="Primary">
             {PRIMARY_LINKS.map((l) => (
               <Link key={l.href} href={l.href} aria-current={l.match(path) ? "page" : undefined}
-                className={cx("rounded-full px-3.5 py-2 text-[14px] tracking-[-0.01em] transition-colors",
-                  l.match(path) ? "font-medium text-ink" : "text-ink-2 hover:text-ink")}>
+                className={cx("py-2 text-[13.5px] tracking-[-0.01em] transition-colors",
+                  l.match(path) ? "text-ink" : "text-ink-3 hover:text-ink")}>
                 {l.label}
               </Link>
             ))}
-            <span aria-hidden className="mx-2 h-4 w-px bg-ink-5" />
+          </nav>
+          <div className="ml-auto hidden items-center gap-4 md:flex">
+            <AdminBadge />
             <button ref={deskBtn} type="button" onClick={() => openFrom(deskBtn.current)}
               aria-expanded={open} aria-controls="lab-sheet" aria-haspopup="dialog"
-              className={cx("inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[14px] tracking-[-0.01em] transition-colors",
-                inLab || open ? "font-medium text-ink" : "text-ink-3 hover:text-ink")}>
-              <span aria-hidden className={cx("size-1.5 rounded-full transition-colors", inLab || open ? "bg-gold" : "bg-ink-4")} />
+              className={cx("inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-[13px] tracking-[-0.01em] ring-1 ring-inset transition-colors",
+                inLab || open ? "bg-ink text-white ring-ink" : "text-ink-2 ring-ink/10 hover:text-ink hover:ring-ink/20")}>
               Lab
+              <ChevronDown aria-hidden size={13} strokeWidth={2.25} className={cx("transition-transform duration-200", open && "rotate-180")} />
             </button>
-            <AdminBadge className="ml-2" />
-          </nav>
+          </div>
           <button ref={mobileBtn} type="button" onClick={() => openFrom(mobileBtn.current)}
             aria-expanded={open} aria-controls="lab-sheet" aria-haspopup="dialog" aria-label={open ? "Close menu" : "Open menu"}
-            className="ml-auto inline-flex size-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink/5 md:hidden">
-            <Menu size={20} />
+            className="-mr-2 ml-auto inline-flex size-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink/5 md:hidden">
+            <Menu size={19} strokeWidth={1.75} />
           </button>
         </div>
       </header>
